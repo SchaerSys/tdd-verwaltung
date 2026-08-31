@@ -1,0 +1,20 @@
+{
+  "name": "tdd-verwaltung",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Verwaltungssystem Tischlein deck dich – Personen, Karten, Ausgabe, Dublettenprüfung",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w @tdd/web",
+    "build": "npm run build -w @tdd/web",
+    "test": "npm run test -w @tdd/core",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "db:push": "echo 'DB-Migration: psql < packages/db/sql/001_init.sql && psql < packages/db/sql/002_roles.sql'"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

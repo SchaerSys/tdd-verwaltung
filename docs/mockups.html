@@ -1,0 +1,731 @@
+<title>TDD-Verwaltung – Mockups</title>
+<style>
+  :root{
+    --bg:#f6f7f9; --surface:#ffffff; --surface-2:#f0f2f5; --border:#e2e6eb;
+    --text:#171a1f; --muted:#5b6472; --muted-2:#8a94a3;
+    --accent:#2f4b99; --accent-weak:#eaeff7; --accent-text:#ffffff;
+    --good:#148f5b; --good-bg:#e7f6ee; --bad:#d33a2c; --bad-bg:#fdecea;
+    --warn:#b7791f; --warn-bg:#fbf1dd;
+    --shadow:0 1px 2px rgba(16,24,40,.06),0 1px 3px rgba(16,24,40,.08);
+    --shadow-lg:0 10px 30px rgba(16,24,40,.14);
+    --r:10px; --r-sm:7px;
+    --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:ui-monospace,"SF Mono","Cascadia Mono","Roboto Mono",Menlo,Consolas,monospace;
+    --fs-xs:.72rem; --fs-sm:.8125rem; --fs-base:.875rem; --fs-md:.95rem;
+    --fs-lg:1.1rem; --fs-xl:1.4rem; --fs-2xl:1.8rem;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --bg:#0f1216; --surface:#171b21; --surface-2:#1e232b; --border:#2a313b;
+      --text:#e6e9ee; --muted:#97a1b0; --muted-2:#6f7987;
+      --accent:#7d9bff; --accent-weak:#1b2740; --accent-text:#0f1216;
+      --good:#3ecf8e; --good-bg:#10231b; --bad:#ff6b5e; --bad-bg:#2a1512;
+      --warn:#e6b450; --warn-bg:#2a2110;
+      --shadow:0 1px 2px rgba(0,0,0,.4); --shadow-lg:0 12px 34px rgba(0,0,0,.5);
+    }
+  }
+  :root[data-theme="light"]{
+    --bg:#f6f7f9; --surface:#ffffff; --surface-2:#f0f2f5; --border:#e2e6eb;
+    --text:#171a1f; --muted:#5b6472; --muted-2:#8a94a3;
+    --accent:#2f4b99; --accent-weak:#eaeff7; --accent-text:#ffffff;
+    --good:#148f5b; --good-bg:#e7f6ee; --bad:#d33a2c; --bad-bg:#fdecea;
+    --warn:#b7791f; --warn-bg:#fbf1dd;
+    --shadow:0 1px 2px rgba(16,24,40,.06),0 1px 3px rgba(16,24,40,.08);
+    --shadow-lg:0 10px 30px rgba(16,24,40,.14);
+  }
+  :root[data-theme="dark"]{
+    --bg:#0f1216; --surface:#171b21; --surface-2:#1e232b; --border:#2a313b;
+    --text:#e6e9ee; --muted:#97a1b0; --muted-2:#6f7987;
+    --accent:#7d9bff; --accent-weak:#1b2740; --accent-text:#0f1216;
+    --good:#3ecf8e; --good-bg:#10231b; --bad:#ff6b5e; --bad-bg:#2a1512;
+    --warn:#e6b450; --warn-bg:#2a2110;
+    --shadow:0 1px 2px rgba(0,0,0,.4); --shadow-lg:0 12px 34px rgba(0,0,0,.5);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);
+    font-size:var(--fs-base);line-height:1.5;-webkit-font-smoothing:antialiased}
+  h1,h2,h3,h4{margin:0;text-wrap:balance;font-weight:650;letter-spacing:-.01em}
+  button{font-family:inherit}
+  .mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+  /* banner */
+  .banner{background:var(--accent-weak);color:var(--text);border-bottom:1px solid var(--border);
+    padding:7px 16px;font-size:var(--fs-xs);display:flex;gap:10px;align-items:center;justify-content:center;
+    text-align:center}
+  .banner b{color:var(--accent)}
+
+  /* shell */
+  .shell{display:grid;grid-template-columns:248px 1fr;min-height:calc(100vh - 34px)}
+  .side{background:var(--surface);border-right:1px solid var(--border);padding:14px 12px;
+    display:flex;flex-direction:column;gap:4px;position:sticky;top:0;height:calc(100vh - 34px);overflow:auto}
+  .brand{display:flex;align-items:center;gap:10px;padding:6px 8px 14px}
+  .brand .logo{width:30px;height:30px;border-radius:8px;background:var(--accent);color:var(--accent-text);
+    display:grid;place-items:center;font-weight:800;font-size:.85rem;letter-spacing:-.02em}
+  .brand .n{font-weight:700;font-size:.95rem}
+  .brand .s{font-size:var(--fs-xs);color:var(--muted)}
+  .nav-group{font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted-2);
+    padding:12px 10px 4px;font-weight:700}
+  .nav{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:var(--r-sm);
+    color:var(--muted);cursor:pointer;border:0;background:none;width:100%;text-align:left;font-size:var(--fs-base)}
+  .nav:hover{background:var(--surface-2);color:var(--text)}
+  .nav.active{background:var(--accent-weak);color:var(--accent);font-weight:600}
+  .nav .ic{width:16px;height:16px;flex:none;opacity:.85}
+  .nav .badge{margin-left:auto;background:var(--bad);color:#fff;font-size:.65rem;font-weight:700;
+    padding:1px 6px;border-radius:20px}
+  :root[data-theme="dark"] .nav .badge,@media (prefers-color-scheme:dark){}
+
+  .main{padding:22px 26px 60px;max-width:100%;overflow:hidden}
+  .topbar{display:flex;align-items:center;gap:14px;margin-bottom:20px}
+  .topbar .search{flex:1;max-width:420px;display:flex;align-items:center;gap:8px;background:var(--surface);
+    border:1px solid var(--border);border-radius:var(--r-sm);padding:8px 12px;color:var(--muted);font-size:var(--fs-sm)}
+  .topbar .spacer{flex:1}
+  .chip-user{display:flex;align-items:center;gap:9px;font-size:var(--fs-sm)}
+  .chip-user .av{width:30px;height:30px;border-radius:50%;background:var(--surface-2);border:1px solid var(--border);
+    display:grid;place-items:center;font-weight:700;font-size:.75rem;color:var(--muted)}
+  .rolepill{font-size:.66rem;background:var(--surface-2);border:1px solid var(--border);color:var(--muted);
+    padding:2px 8px;border-radius:20px;font-weight:600}
+  .theme-btn{background:var(--surface);border:1px solid var(--border);color:var(--muted);border-radius:var(--r-sm);
+    padding:7px 10px;cursor:pointer;font-size:var(--fs-sm);display:flex;gap:6px;align-items:center}
+  .theme-btn:hover{color:var(--text)}
+
+  .page-h{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:18px;flex-wrap:wrap}
+  .page-h h1{font-size:var(--fs-2xl)}
+  .page-h .sub{color:var(--muted);font-size:var(--fs-sm);margin-top:4px}
+
+  .screen{display:none;animation:fade .25s ease}
+  .screen.active{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion:reduce){.screen,.modal-card{animation:none}}
+
+  /* buttons */
+  .btn{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--border);background:var(--surface);
+    color:var(--text);padding:8px 13px;border-radius:var(--r-sm);font-size:var(--fs-sm);font-weight:600;cursor:pointer}
+  .btn:hover{background:var(--surface-2)}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-text)}
+  .btn.primary:hover{filter:brightness(1.06)}
+  .btn.ghost{background:none;border-color:transparent;color:var(--muted)}
+  .btn.ghost:hover{background:var(--surface-2);color:var(--text)}
+  .btn.danger{background:var(--bad);border-color:var(--bad);color:#fff}
+  .btn.sm{padding:5px 9px;font-size:var(--fs-xs)}
+
+  /* cards / grid */
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px;box-shadow:var(--shadow)}
+  .stat .k{font-size:var(--fs-xs);color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-weight:600}
+  .stat .v{font-size:var(--fs-2xl);font-weight:700;margin-top:6px;font-variant-numeric:tabular-nums}
+  .stat .d{font-size:var(--fs-xs);color:var(--muted);margin-top:6px;display:flex;gap:6px;align-items:center}
+  .trend-up{color:var(--good);font-weight:700}
+  .grid-2{display:grid;grid-template-columns:1.6fr 1fr;gap:16px;align-items:start}
+  @media(max-width:900px){.grid-2{grid-template-columns:1fr}}
+
+  .panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden}
+  .panel-h{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+  .panel-h h3{font-size:var(--fs-md)}
+  .panel-b{padding:6px 0}
+
+  /* table */
+  .twrap{overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-size:var(--fs-sm)}
+  th{text-align:left;font-size:var(--fs-xs);text-transform:uppercase;letter-spacing:.04em;color:var(--muted);
+    font-weight:600;padding:9px 16px;border-bottom:1px solid var(--border);white-space:nowrap}
+  td{padding:11px 16px;border-bottom:1px solid var(--border);vertical-align:middle}
+  tr:last-child td{border-bottom:0}
+  tbody tr:hover{background:var(--surface-2)}
+  .cell-name{display:flex;align-items:center;gap:10px}
+  .av-sm{width:30px;height:30px;border-radius:50%;flex:none;display:grid;place-items:center;font-weight:700;
+    font-size:.72rem;background:var(--accent-weak);color:var(--accent)}
+
+  /* status pills */
+  .pill{display:inline-flex;align-items:center;gap:6px;font-size:var(--fs-xs);font-weight:600;padding:3px 9px;border-radius:20px;white-space:nowrap}
+  .pill .dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+  .pill.good{background:var(--good-bg);color:var(--good)}
+  .pill.bad{background:var(--bad-bg);color:var(--bad)}
+  .pill.warn{background:var(--warn-bg);color:var(--warn)}
+  .pill.muted{background:var(--surface-2);color:var(--muted)}
+  .tag-shop{background:var(--accent-weak);color:var(--accent)}
+  .tag-out{background:var(--surface-2);color:var(--muted)}
+
+  /* forms */
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px 18px}
+  @media(max-width:720px){.form-grid{grid-template-columns:1fr}}
+  .field{display:flex;flex-direction:column;gap:6px}
+  .field.full{grid-column:1/-1}
+  label{font-size:var(--fs-xs);color:var(--muted);font-weight:600}
+  .inp{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);padding:9px 11px;
+    color:var(--text);font-size:var(--fs-sm);width:100%}
+  .inp:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent)}
+  .inp.flag{border-color:var(--warn);box-shadow:0 0 0 3px var(--warn-bg)}
+  .hint{font-size:var(--fs-xs);color:var(--muted)}
+
+  /* dossier */
+  .dossier-head{display:flex;gap:18px;align-items:center;flex-wrap:wrap;background:var(--surface);
+    border:1px solid var(--border);border-radius:var(--r);padding:18px;box-shadow:var(--shadow)}
+  .photo{width:76px;height:76px;border-radius:14px;background:var(--surface-2);border:1px solid var(--border);
+    display:grid;place-items:center;color:var(--muted-2);font-size:var(--fs-xs);text-align:center;flex:none}
+  .tabs{display:flex;gap:4px;border-bottom:1px solid var(--border);margin:20px 0 0;flex-wrap:wrap}
+  .tab{padding:9px 14px;font-size:var(--fs-sm);color:var(--muted);border-bottom:2px solid transparent;cursor:pointer;font-weight:600}
+  .tab.active{color:var(--accent);border-color:var(--accent)}
+  .meta-row{display:flex;gap:26px;flex-wrap:wrap;margin-top:4px}
+  .meta-row .m .l{font-size:var(--fs-xs);color:var(--muted)}
+  .meta-row .m .val{font-size:var(--fs-sm);font-weight:600;margin-top:2px}
+
+  /* duplicate live panel */
+  .dup-live{background:var(--warn-bg);border:1px solid var(--warn);border-radius:var(--r);padding:0;overflow:hidden}
+  .dup-live .h{padding:12px 14px;display:flex;gap:10px;align-items:center;font-weight:700;color:var(--warn);font-size:var(--fs-sm);
+    border-bottom:1px solid color-mix(in srgb,var(--warn) 35%,transparent)}
+  .dup-item{padding:12px 14px;display:flex;gap:12px;align-items:center;border-bottom:1px solid color-mix(in srgb,var(--warn) 22%,transparent)}
+  .dup-item:last-child{border-bottom:0}
+  .score{margin-left:auto;text-align:right;flex:none}
+  .score .n{font-weight:800;font-variant-numeric:tabular-nums;font-size:var(--fs-md)}
+  .score .n.hi{color:var(--bad)} .score .n.mid{color:var(--warn)}
+  .score .l{font-size:.62rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+
+  /* modal */
+  .modal{position:fixed;inset:0;background:rgba(10,14,20,.5);backdrop-filter:blur(2px);
+    display:none;place-items:center;padding:20px;z-index:50}
+  .modal.open{display:grid}
+  .modal-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;max-width:560px;width:100%;
+    box-shadow:var(--shadow-lg);animation:pop .2s ease}
+  @keyframes pop{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:none}}
+  .modal-top{padding:18px 20px;display:flex;gap:13px;align-items:flex-start;border-bottom:1px solid var(--border)}
+  .warn-ic{width:38px;height:38px;border-radius:10px;background:var(--bad-bg);color:var(--bad);display:grid;place-items:center;flex:none}
+  .modal-b{padding:18px 20px;display:flex;flex-direction:column;gap:12px}
+  .cand{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-sm);padding:12px 14px;
+    display:flex;gap:12px;align-items:center}
+  .modal-f{padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
+
+  /* KIOSK */
+  .kiosk{min-height:calc(100vh - 34px);background:var(--bg);display:flex;flex-direction:column}
+  .k-top{display:flex;align-items:center;gap:14px;padding:16px 22px;border-bottom:1px solid var(--border);background:var(--surface)}
+  .k-top .loc{font-weight:700;font-size:var(--fs-lg)}
+  .k-online{margin-left:auto;display:flex;align-items:center;gap:16px}
+  .k-body{flex:1;display:grid;place-items:center;padding:26px}
+  .k-inner{width:100%;max-width:620px;text-align:center}
+  .scanbox{background:var(--surface);border:2px dashed var(--border);border-radius:20px;padding:34px 26px;display:flex;
+    flex-direction:column;align-items:center;gap:16px}
+  .scanbox .big-inp{font-size:1.5rem;text-align:center;letter-spacing:.06em;padding:16px;width:100%;max-width:360px;
+    border:1px solid var(--border);border-radius:12px;background:var(--bg);color:var(--text);font-family:var(--mono)}
+  .k-result{border-radius:20px;padding:30px;display:none;flex-direction:column;align-items:center;gap:18px;color:#fff}
+  .k-result.show{display:flex;animation:fade .25s}
+  .k-result.ok{background:linear-gradient(180deg,#178a58,#0f6f46)}
+  .k-result.no{background:linear-gradient(180deg,#cf3b2d,#a82c20)}
+  .k-badge{width:88px;height:88px;border-radius:50%;background:rgba(255,255,255,.16);display:grid;place-items:center}
+  .k-status{font-size:2rem;font-weight:800;letter-spacing:-.02em}
+  .k-person{display:flex;gap:18px;align-items:center;background:rgba(255,255,255,.12);border-radius:14px;padding:16px 20px;width:100%;max-width:420px}
+  .k-photo{width:66px;height:66px;border-radius:12px;background:rgba(255,255,255,.2);display:grid;place-items:center;font-size:1.4rem;font-weight:800;flex:none}
+  .k-person .pn{font-size:1.35rem;font-weight:750;text-align:left}
+  .k-person .pd{opacity:.9;font-size:var(--fs-sm);text-align:left;margin-top:3px}
+  .k-valid{font-size:var(--fs-md);opacity:.95}
+  .btn-huge{font-size:1.25rem;font-weight:750;padding:18px 30px;border-radius:14px;border:0;cursor:pointer;
+    background:#fff;color:#0f6f46;display:inline-flex;gap:10px;align-items:center;box-shadow:var(--shadow-lg)}
+  .btn-huge.re{background:rgba(255,255,255,.16);color:#fff;font-size:1rem;padding:12px 22px}
+  .k-sub{display:flex;gap:12px;justify-content:center;margin-top:22px;flex-wrap:wrap}
+
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  .split{display:grid;grid-template-columns:1.15fr .85fr;gap:18px;align-items:start}
+  @media(max-width:860px){.split{grid-template-columns:1fr}}
+  .list-clean{list-style:none;margin:0;padding:0}
+  .list-clean li{padding:11px 16px;border-bottom:1px solid var(--border);display:flex;gap:12px;align-items:center;font-size:var(--fs-sm)}
+  .list-clean li:last-child{border-bottom:0}
+  .dotcol{width:8px;height:8px;border-radius:50%;flex:none}
+  .muted{color:var(--muted)}
+  .right{margin-left:auto}
+  .bar{height:7px;border-radius:6px;background:var(--surface-2);overflow:hidden}
+  .bar > i{display:block;height:100%;background:var(--accent)}
+  .kv{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border);font-size:var(--fs-sm)}
+  .kv:last-child{border:0}
+  .kv .k{color:var(--muted)}
+  .health-dot{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:7px}
+  .lock-note{display:flex;gap:9px;align-items:center;background:var(--surface-2);border:1px dashed var(--border);
+    border-radius:var(--r-sm);padding:10px 13px;font-size:var(--fs-xs);color:var(--muted)}
+
+  @media(max-width:760px){
+    .shell{grid-template-columns:1fr}
+    .side{display:none}
+  }
+</style>
+
+<div class="banner">
+  <span>🗂️ <b>Interaktives Mockup</b> · TDD-Verwaltung Phase&nbsp;1 · alle Personen &amp; Daten sind frei erfunden · linke Navigation wechselt die Screens</span>
+</div>
+
+<div class="shell">
+  <!-- SIDEBAR -->
+  <aside class="side">
+    <div class="brand">
+      <div class="logo">Td</div>
+      <div><div class="n">TDD-Verwaltung</div><div class="s">Tischlein deck dich</div></div>
+    </div>
+
+    <div class="nav-group">Backoffice</div>
+    <button class="nav active" data-go="dashboard"><span class="ic">▤</span> Dashboard</button>
+    <button class="nav" data-go="personen"><span class="ic">☰</span> Personen</button>
+    <button class="nav" data-go="neu"><span class="ic">＋</span> Neu aufnehmen</button>
+    <button class="nav" data-go="dossier"><span class="ic">◧</span> Person-Dossier</button>
+    <button class="nav" data-go="karten"><span class="ic">▦</span> Karten <span class="badge">14</span></button>
+    <button class="nav" data-go="auswertungen"><span class="ic">◔</span> Auswertungen</button>
+
+    <div class="nav-group">Tresen-Kiosk</div>
+    <button class="nav" data-go="kiosk"><span class="ic">◎</span> Ausgabe-Scan</button>
+
+    <div class="nav-group">Betrieb</div>
+    <button class="nav" data-go="wartung"><span class="ic">⚙</span> Wartungsplattform</button>
+
+    <div style="flex:1"></div>
+    <div class="lock-note">🔒 Standort: <b style="color:var(--text)">Ausgabestelle Feldkirch</b></div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="topbar" id="topbar">
+      <div class="search">🔍 Person, Kartennummer oder Adresse suchen…</div>
+      <div class="spacer"></div>
+      <button class="theme-btn" id="themeBtn" aria-label="Farbschema wechseln">◐ Theme</button>
+      <div class="chip-user">
+        <span class="rolepill">Erfassung</span>
+        <div class="av">MK</div>
+      </div>
+    </div>
+
+    <!-- ===== DASHBOARD ===== -->
+    <section class="screen active" data-screen="dashboard">
+      <div class="page-h">
+        <div><h1>Dashboard</h1><div class="sub">Ausgabestelle Feldkirch · Stand 17.08.2026</div></div>
+        <button class="btn primary" data-go="neu">＋ Person aufnehmen</button>
+      </div>
+
+      <div class="cards" style="margin-bottom:16px">
+        <div class="card stat"><div class="k">Aktuell berechtigt</div><div class="v">312</div>
+          <div class="d"><span class="trend-up">▲ 6</span> diese Woche · eigener Standort</div></div>
+        <div class="card stat"><div class="k">Karten laufen ab (30 T.)</div><div class="v">14</div>
+          <div class="d">4 in den nächsten 7 Tagen</div></div>
+        <div class="card stat"><div class="k">Ausgaben heute</div><div class="v">47</div>
+          <div class="d">letzte 09:52 Uhr</div></div>
+        <div class="card stat"><div class="k">Offene Dubletten-Hinweise</div><div class="v" style="color:var(--warn)">3</div>
+          <div class="d">zur Prüfung markiert</div></div>
+      </div>
+
+      <div class="grid-2">
+        <div class="panel">
+          <div class="panel-h"><h3>Bald ablaufende Karten</h3><button class="btn ghost sm" data-go="karten">Alle ansehen →</button></div>
+          <div class="twrap"><table>
+            <thead><tr><th>Person</th><th>Kartennr.</th><th>Gültig bis</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td><div class="cell-name"><span class="av-sm">EM</span> Elisabeth Müller</div></td>
+                <td class="mono">2 041 002381 6</td><td>22.08.2026</td><td><span class="pill warn"><span class="dot"></span>5 Tage</span></td></tr>
+              <tr><td><div class="cell-name"><span class="av-sm">AR</span> Amir Rahimi</div></td>
+                <td class="mono">2 041 002104 9</td><td>28.08.2026</td><td><span class="pill warn"><span class="dot"></span>11 Tage</span></td></tr>
+              <tr><td><div class="cell-name"><span class="av-sm">JB</span> Johann Bereuter</div></td>
+                <td class="mono">2 041 001987 3</td><td>03.09.2026</td><td><span class="pill muted"><span class="dot"></span>17 Tage</span></td></tr>
+              <tr><td><div class="cell-name"><span class="av-sm">FY</span> Fatima Yılmaz</div></td>
+                <td class="mono">2 041 002402 1</td><td>06.09.2026</td><td><span class="pill muted"><span class="dot"></span>20 Tage</span></td></tr>
+            </tbody>
+          </table></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-h"><h3>Letzte Aktivität</h3></div>
+          <ul class="list-clean">
+            <li><span class="dotcol" style="background:var(--good)"></span> Ausgabe erfasst · <b>A. Rahimi</b><span class="right muted">09:52</span></li>
+            <li><span class="dotcol" style="background:var(--accent)"></span> Karte verlängert · <b>E. Müller</b><span class="right muted">09:31</span></li>
+            <li><span class="dotcol" style="background:var(--warn)"></span> Dublette übersteuert · neue Person<span class="right muted">08:58</span></li>
+            <li><span class="dotcol" style="background:var(--good)"></span> Person aufgenommen · <b>N. Kastrati</b><span class="right muted">08:44</span></li>
+            <li><span class="dotcol" style="background:var(--accent)"></span> Karte gesperrt (Verlust)<span class="right muted">gestern</span></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== PERSONEN LISTE ===== -->
+    <section class="screen" data-screen="personen">
+      <div class="page-h">
+        <div><h1>Personen</h1><div class="sub">312 berechtigte Personen · Ausgabestelle Feldkirch</div></div>
+        <button class="btn primary" data-go="neu">＋ Neu aufnehmen</button>
+      </div>
+      <div class="panel">
+        <div class="panel-h">
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <span class="pill muted">Alle</span><span class="pill good">Aktiv 298</span><span class="pill muted">Inaktiv 14</span>
+          </div>
+          <div class="search" style="max-width:280px">🔍 Name / Kartennr. …</div>
+        </div>
+        <div class="twrap"><table>
+          <thead><tr><th>Name</th><th>Geburtsdatum</th><th>Adresse</th><th>Bezugsort</th><th>Karte gültig bis</th><th></th></tr></thead>
+          <tbody>
+            <tr><td><div class="cell-name"><span class="av-sm">EM</span><div><b>Müller, Elisabeth</b></div></div></td>
+              <td class="mono">14.03.1968</td><td>Bahnhofstr. 12, 6800 Feldkirch</td>
+              <td><span class="pill tag-out">Ausgabestelle FK</span></td><td>22.08.2026</td>
+              <td><button class="btn ghost sm" data-go="dossier">Öffnen →</button></td></tr>
+            <tr><td><div class="cell-name"><span class="av-sm">AR</span><div><b>Rahimi, Amir</b></div></div></td>
+              <td class="mono">02.11.1990</td><td>Reichsstr. 4, 6800 Feldkirch</td>
+              <td><span class="pill tag-out">Ausgabestelle FK</span></td><td>28.08.2026</td>
+              <td><button class="btn ghost sm" data-go="dossier">Öffnen →</button></td></tr>
+            <tr><td><div class="cell-name"><span class="av-sm">FY</span><div><b>Yılmaz, Fatima</b></div></div></td>
+              <td class="mono">19.07.1985</td><td>Runastr. 30, 6800 Feldkirch</td>
+              <td><span class="pill tag-out">Ausgabestelle FK</span></td><td>06.09.2026</td>
+              <td><button class="btn ghost sm" data-go="dossier">Öffnen →</button></td></tr>
+            <tr><td><div class="cell-name"><span class="av-sm">JB</span><div><b>Bereuter, Johann</b></div></div></td>
+              <td class="mono">28.02.1954</td><td>Ardetzenweg 9, 6800 Feldkirch</td>
+              <td><span class="pill tag-out">Ausgabestelle FK</span></td><td>03.09.2026</td>
+              <td><button class="btn ghost sm" data-go="dossier">Öffnen →</button></td></tr>
+            <tr><td><div class="cell-name"><span class="av-sm">NK</span><div><b>Kastrati, Nora</b></div></div></td>
+              <td class="mono">11.05.1993</td><td>Schießstätte 21, 6800 Feldkirch</td>
+              <td><span class="pill tag-out">Ausgabestelle FK</span></td><td>14.02.2027</td>
+              <td><button class="btn ghost sm" data-go="dossier">Öffnen →</button></td></tr>
+          </tbody>
+        </table></div>
+      </div>
+    </section>
+
+    <!-- ===== NEUAUFNAHME + DUBLETTEN ===== -->
+    <section class="screen" data-screen="neu">
+      <div class="page-h">
+        <div><h1>Person aufnehmen</h1><div class="sub">Prüfung auf Doppelaufnahme läuft live während der Eingabe</div></div>
+      </div>
+      <div class="split">
+        <div class="panel">
+          <div class="panel-h"><h3>Stammdaten</h3><span class="pill muted">Entwurf</span></div>
+          <div style="padding:16px 18px">
+            <div class="form-grid">
+              <div class="field"><label>Nachname</label><input class="inp flag" value="Mueller"></div>
+              <div class="field"><label>Vorname</label><input class="inp" value="Elisabeth"></div>
+              <div class="field"><label>Geburtsdatum</label><input class="inp flag mono" value="14.03.1968"></div>
+              <div class="field"><label>Telefon</label><input class="inp mono" value="+43 660 1234567"></div>
+              <div class="field full"><label>Adresse</label><input class="inp" value="Bahnhofstrasse 12"></div>
+              <div class="field"><label>PLZ</label><input class="inp mono" value="6800"></div>
+              <div class="field"><label>Ort</label><input class="inp" value="Feldkirch"></div>
+              <div class="field"><label>Anzahl Haushalt</label><input class="inp mono" value="3"></div>
+              <div class="field"><label>Anzahl Kinder</label><input class="inp mono" value="1"></div>
+              <div class="field"><label>Sprache</label><select class="inp"><option>Deutsch</option><option>Türkisch</option><option>Arabisch</option></select></div>
+              <div class="field"><label>Herkunft (Zuweisung)</label><select class="inp"><option>Sozialamt Feldkirch</option><option>Gemeinde</option><option>Caritas</option></select></div>
+              <div class="field full"><label>Notiz</label><input class="inp" placeholder="optional"></div>
+            </div>
+            <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:18px">
+              <button class="btn ghost">Abbrechen</button>
+              <button class="btn primary" id="saveBtn">Speichern &amp; prüfen</button>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <div class="dup-live">
+            <div class="h">⚠ Mögliche Doppelaufnahme — 2 Treffer</div>
+            <div class="dup-item">
+              <span class="av-sm">EM</span>
+              <div><b>Elisabeth Müller</b><div class="muted" style="font-size:var(--fs-xs)">14.03.1968 · Bahnhofstr. 12, Feldkirch</div>
+                <span class="pill tag-out" style="margin-top:6px">Ausgabestelle Feldkirch</span></div>
+              <div class="score"><div class="n hi">0.96</div><div class="l">sehr hoch</div></div>
+            </div>
+            <div class="dup-item">
+              <span class="av-sm">EM</span>
+              <div><b>Elsa Miller</b><div class="muted" style="font-size:var(--fs-xs)">14.03.1968 · Reichsstr. 8, Feldkirch</div>
+                <span class="pill tag-shop">Laden Feldkirch</span></div>
+              <div class="score"><div class="n mid">0.71</div><div class="l">möglich</div></div>
+            </div>
+          </div>
+          <div class="card" style="font-size:var(--fs-xs);color:var(--muted)">
+            <b style="color:var(--text)">Wie geprüft wird:</b><br>
+            „Mueller" → normalisiert zu <span class="mono">mueller</span> (= „Müller"), Kölner Phonetik + Geburtsdatum-Treffer.
+            Der Score gewichtet Name, exaktes Geburtsdatum (stark) und Adresse.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== DOSSIER ===== -->
+    <section class="screen" data-screen="dossier">
+      <div class="page-h"><div><h1>Person-Dossier</h1><div class="sub">Interne ID · <span class="mono">a7f3-91c2</span></div></div>
+        <div style="display:flex;gap:8px"><button class="btn">✎ Bearbeiten</button><button class="btn primary" data-go="karten">▦ Karte ausstellen</button></div></div>
+      <div class="dossier-head">
+        <div class="photo">Foto<br>optional</div>
+        <div style="flex:1">
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <h2 style="font-size:var(--fs-xl)">Elisabeth Müller</h2>
+            <span class="pill good"><span class="dot"></span>Berechtigt</span>
+            <span class="pill tag-out">Ausgabestelle Feldkirch</span>
+          </div>
+          <div class="meta-row">
+            <div class="m"><div class="l">Geburtsdatum</div><div class="val mono">14.03.1968</div></div>
+            <div class="m"><div class="l">Haushalt</div><div class="val">3 Pers. · 1 Kind</div></div>
+            <div class="m"><div class="l">Telefon</div><div class="val mono">+43 660 1234567</div></div>
+            <div class="m"><div class="l">Sprache</div><div class="val">Deutsch</div></div>
+            <div class="m"><div class="l">Herkunft</div><div class="val">Sozialamt Feldkirch</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="tabs">
+        <div class="tab active">Stammdaten</div><div class="tab">Karten</div><div class="tab">Ausgaben</div>
+        <div class="tab">Dokumente / Scans</div><div class="tab">Notizen</div><div class="tab">Verlauf</div>
+      </div>
+      <div class="split" style="margin-top:16px">
+        <div class="panel">
+          <div class="panel-h"><h3>Karten-Historie</h3></div>
+          <div class="twrap"><table>
+            <thead><tr><th>Kartennr.</th><th>Ausgestellt</th><th>Gültig bis</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">2 041 002381 6</td><td>22.02.2026</td><td>22.08.2026</td><td><span class="pill good"><span class="dot"></span>Aktiv</span></td></tr>
+              <tr><td class="mono">2 041 001655 2</td><td>19.08.2025</td><td>19.02.2026</td><td><span class="pill muted"><span class="dot"></span>Ersetzt</span></td></tr>
+              <tr><td class="mono">2 041 000912 7</td><td>03.03.2025</td><td>03.09.2025</td><td><span class="pill muted"><span class="dot"></span>Abgelaufen</span></td></tr>
+            </tbody>
+          </table></div>
+        </div>
+        <div class="panel">
+          <div class="panel-h"><h3>Letzte Ausgaben</h3></div>
+          <ul class="list-clean">
+            <li><span class="dotcol" style="background:var(--good)"></span>15.08.2026<span class="right muted">Feldkirch</span></li>
+            <li><span class="dotcol" style="background:var(--good)"></span>08.08.2026<span class="right muted">Feldkirch</span></li>
+            <li><span class="dotcol" style="background:var(--good)"></span>01.08.2026<span class="right muted">Feldkirch</span></li>
+            <li><span class="dotcol" style="background:var(--good)"></span>25.07.2026<span class="right muted">Feldkirch</span></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== KARTEN ===== -->
+    <section class="screen" data-screen="karten">
+      <div class="page-h"><div><h1>Karte ausstellen</h1><div class="sub">für Elisabeth Müller · Ausgabestelle Feldkirch</div></div></div>
+      <div class="split">
+        <div class="panel">
+          <div class="panel-h"><h3>Kartendaten</h3></div>
+          <div style="padding:16px 18px">
+            <div class="form-grid">
+              <div class="field"><label>Startdatum</label><input class="inp mono" value="17.08.2026"></div>
+              <div class="field"><label>Laufdauer</label><select class="inp"><option>6 Monate (Standard)</option><option>3 Monate</option><option>12 Monate</option><option>individuell</option></select></div>
+              <div class="field"><label>Gültig bis</label><input class="inp mono" value="17.02.2027" disabled></div>
+              <div class="field"><label>Bezugsort</label><input class="inp" value="Ausgabestelle Feldkirch" disabled></div>
+              <div class="field full"><label>Neue Kartennummer (EAN-13, autom.)</label><input class="inp mono" value="2 041 002511 4" disabled></div>
+            </div>
+            <div class="hint" style="margin-top:10px">Präfix <b>2</b> = innerbetrieblicher Eigengebrauch (kollidiert nie mit Handelsware). Verlängern erzeugt stets eine neue Nummer.</div>
+            <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px">
+              <button class="btn ghost">Abbrechen</button><button class="btn">Vorschau</button><button class="btn primary">🖨 Etikett drucken</button>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-h"><h3>Etikett-Vorschau</h3></div>
+          <div style="padding:22px;display:grid;place-items:center">
+            <div style="background:#fff;color:#111;border:1px solid #d9d9d9;border-radius:12px;width:300px;padding:16px 18px;box-shadow:var(--shadow)">
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <div style="font-weight:800;letter-spacing:-.02em">Tischlein deck dich</div>
+                <div style="font-size:.62rem;color:#666">Ausgabestelle FK</div>
+              </div>
+              <div style="margin-top:12px;font-size:1.05rem;font-weight:700;color:#111">Elisabeth Müller</div>
+              <div style="font-size:.72rem;color:#555">gültig bis 17.02.2027</div>
+              <div style="margin-top:14px;height:52px;background:repeating-linear-gradient(90deg,#111 0 2px,#fff 2px 4px,#111 4px 5px,#fff 5px 9px);border-radius:3px"></div>
+              <div style="text-align:center;font-family:var(--mono);letter-spacing:.22em;font-size:.8rem;color:#111;margin-top:6px">2 041 002511 4</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== AUSWERTUNGEN ===== -->
+    <section class="screen" data-screen="auswertungen">
+      <div class="page-h"><div><h1>Auswertungen</h1><div class="sub">Alle Standorte · Zeitraum 2026</div></div>
+        <button class="btn primary">⬇ Excel-Export</button></div>
+      <div class="cards" style="margin-bottom:16px">
+        <div class="card stat"><div class="k">Berechtigte gesamt</div><div class="v">3.184</div><div class="d">über 8 Standorte</div></div>
+        <div class="card stat"><div class="k">Ausgaben (Aug.)</div><div class="v">2.947</div><div class="d"><span class="trend-up">▲ 8%</span> ggü. Juli</div></div>
+        <div class="card stat"><div class="k">Neuaufnahmen (Aug.)</div><div class="v">63</div><div class="d">Ø 2,4 / Tag</div></div>
+        <div class="card stat"><div class="k">Dubletten verhindert</div><div class="v" style="color:var(--good)">21</div><div class="d">9 übersteuert &amp; geprüft</div></div>
+      </div>
+      <div class="grid-2">
+        <div class="panel">
+          <div class="panel-h"><h3>Berechtigte je Standort</h3></div>
+          <div style="padding:14px 16px;display:flex;flex-direction:column;gap:12px">
+            <div><div style="display:flex;justify-content:space-between;font-size:var(--fs-sm)"><span>Laden Dornbirn</span><b class="mono">712</b></div><div class="bar"><i style="width:100%"></i></div></div>
+            <div><div style="display:flex;justify-content:space-between;font-size:var(--fs-sm)"><span>Laden Feldkirch</span><b class="mono">640</b></div><div class="bar"><i style="width:90%"></i></div></div>
+            <div><div style="display:flex;justify-content:space-between;font-size:var(--fs-sm)"><span>Laden Bludenz</span><b class="mono">548</b></div><div class="bar"><i style="width:77%"></i></div></div>
+            <div><div style="display:flex;justify-content:space-between;font-size:var(--fs-sm)"><span>Ausgabestelle Feldkirch</span><b class="mono">312</b></div><div class="bar"><i style="width:44%;background:var(--muted)"></i></div></div>
+            <div><div style="display:flex;justify-content:space-between;font-size:var(--fs-sm)"><span>Ausgabestelle Dornbirn</span><b class="mono">286</b></div><div class="bar"><i style="width:40%;background:var(--muted)"></i></div></div>
+            <div><div style="display:flex;justify-content:space-between;font-size:var(--fs-sm)"><span>Ausgabestelle Hard</span><b class="mono">201</b></div><div class="bar"><i style="width:28%;background:var(--muted)"></i></div></div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-h"><h3>Ausgaben über Zeit</h3></div>
+          <div style="padding:18px 16px 8px">
+            <svg viewBox="0 0 320 130" width="100%" height="130" preserveAspectRatio="none" role="img" aria-label="Ausgaben pro Monat, steigender Verlauf">
+              <defs><linearGradient id="g" x1="0" x2="0" y1="0" y2="1">
+                <stop offset="0" stop-color="var(--accent)" stop-opacity=".28"/><stop offset="1" stop-color="var(--accent)" stop-opacity="0"/></linearGradient></defs>
+              <polyline points="0,95 45,88 90,92 135,70 180,64 225,52 270,44 320,30" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round"/>
+              <polygon points="0,95 45,88 90,92 135,70 180,64 225,52 270,44 320,30 320,130 0,130" fill="url(#g)"/>
+              <circle cx="320" cy="30" r="3.5" fill="var(--accent)"/>
+            </svg>
+            <div style="display:flex;justify-content:space-between;font-size:var(--fs-xs);color:var(--muted);margin-top:4px">
+              <span>Feb</span><span>Apr</span><span>Jun</span><span>Aug</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== WARTUNGSPLATTFORM ===== -->
+    <section class="screen" data-screen="wartung">
+      <div class="page-h"><div><h1>Wartungsplattform</h1>
+        <div class="sub">Betreiber-Ansicht · Schär Systems · <b style="color:var(--good)">nur Metadaten</b></div></div>
+        <span class="rolepill" style="border-color:var(--accent);color:var(--accent)">Betreiber</span></div>
+
+      <div class="lock-note" style="margin-bottom:16px;color:var(--good);border-color:var(--good)">
+        🔒 Diese Plattform hat <b>keinen Datenbank-Lesezugriff auf Personen-, Sozial- oder Scan-Daten</b> (DB-Rolle <span class="mono">tdd_ops</span>). Alle Zahlen stammen aus PII-freien Aggregat-Views.
+      </div>
+
+      <div class="cards" style="margin-bottom:16px">
+        <div class="card stat"><div class="k">System-Status</div><div class="v" style="font-size:1.3rem;color:var(--good)"><span class="health-dot" style="background:var(--good)"></span>Online</div><div class="d">Uptime 42 Tage</div></div>
+        <div class="card stat"><div class="k">Letztes Backup</div><div class="v" style="font-size:1.3rem">03:00</div><div class="d"><span style="color:var(--good)">✓ verifiziert</span> · offsite</div></div>
+        <div class="card stat"><div class="k">DB-Größe</div><div class="v" style="font-size:1.3rem">418 MB</div><div class="d">+12 MB / 30 T.</div></div>
+        <div class="card stat"><div class="k">App-Version</div><div class="v mono" style="font-size:1.3rem">1.4.0</div><div class="d">Update 1.4.1 verfügbar</div></div>
+      </div>
+
+      <div class="grid-2">
+        <div class="panel">
+          <div class="panel-h"><h3>Kennzahlen (aggregiert, ohne Namen)</h3></div>
+          <div style="padding:6px 16px 12px">
+            <div class="kv"><span class="k">Personen gesamt</span><b class="mono">3.184</b></div>
+            <div class="kv"><span class="k">Aktive Karten</span><b class="mono">3.041</b></div>
+            <div class="kv"><span class="k">Ausgaben (30 Tage)</span><b class="mono">2.947</b></div>
+            <div class="kv"><span class="k">Aktive Benutzer</span><b class="mono">5</b></div>
+            <div class="kv"><span class="k">Fehler (24 h)</span><b class="mono" style="color:var(--good)">0</b></div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-h"><h3>Betrieb</h3></div>
+          <div style="padding:14px 16px;display:flex;flex-direction:column;gap:10px">
+            <button class="btn">↻ Backup jetzt auslösen &amp; prüfen</button>
+            <button class="btn">⬆ Update 1.4.1 einspielen</button>
+            <button class="btn">👥 Benutzer &amp; Rollen verwalten</button>
+            <button class="btn">⚙ Konfiguration (Löschfristen, Standorte, Listen)</button>
+            <button class="btn ghost">📄 System-Logs (PII-bereinigt)</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- ===== KIOSK (full screen, replaces shell) ===== -->
+<section class="screen" data-screen="kiosk">
+  <div class="kiosk">
+    <div class="k-top">
+      <button class="btn ghost sm" data-go="dashboard">← Backoffice</button>
+      <div class="loc">◎ Tresen · Ausgabestelle Feldkirch</div>
+      <div class="k-online">
+        <span class="pill good"><span class="dot"></span>Online · synchron</span>
+        <span class="rolepill">Kasse</span>
+      </div>
+    </div>
+    <div class="k-body">
+      <div class="k-inner">
+        <!-- scan idle -->
+        <div class="scanbox" id="scanIdle">
+          <div style="font-size:2.4rem">◎</div>
+          <h2 style="font-size:var(--fs-xl)">Karte scannen</h2>
+          <div class="muted">Barcode scannen oder Nummer eingeben</div>
+          <input class="big-inp" value="" placeholder="2 041 …" aria-label="Kartennummer">
+          <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
+            <button class="btn primary" id="simOk">▶ Scan simulieren (gültig)</button>
+            <button class="btn" id="simNo">▶ Scan simulieren (gesperrt)</button>
+          </div>
+          <button class="btn ghost sm">🔍 Ohne Karte nach Name suchen</button>
+        </div>
+
+        <!-- result OK -->
+        <div class="k-result ok" id="resOk">
+          <div class="k-badge">✓</div>
+          <div class="k-status">Berechtigt</div>
+          <div class="k-person">
+            <div class="k-photo">EM</div>
+            <div><div class="pn">Elisabeth Müller</div><div class="pd">Karte 2 041 002381 6</div></div>
+          </div>
+          <div class="k-valid">Gültig bis <b>22.08.2026</b></div>
+          <button class="btn-huge" id="confirmBtn">✓ Ausgabe bestätigen</button>
+          <button class="btn-huge re" data-reset>Nächste Karte</button>
+        </div>
+
+        <!-- result NO -->
+        <div class="k-result no" id="resNo">
+          <div class="k-badge">✕</div>
+          <div class="k-status">Nicht berechtigt</div>
+          <div class="k-person">
+            <div class="k-photo">HB</div>
+            <div><div class="pn">Hasan Bauer</div><div class="pd">Karte 2 041 001220 8</div></div>
+          </div>
+          <div class="k-valid">Karte <b>gesperrt</b> (Verlust gemeldet) · Bitte an Backoffice verweisen</div>
+          <button class="btn-huge re" data-reset>Nächste Karte</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== WARN DIALOG ===== -->
+<div class="modal" id="dupModal" role="dialog" aria-modal="true" aria-labelledby="dupTitle">
+  <div class="modal-card">
+    <div class="modal-top">
+      <div class="warn-ic">⚠</div>
+      <div><h3 id="dupTitle" style="font-size:var(--fs-lg)">Sehr wahrscheinlich Doppelaufnahme</h3>
+        <div class="muted" style="font-size:var(--fs-sm);margin-top:3px">Diese Person wird offenbar bereits geführt. Bitte prüfen, bevor neu angelegt wird.</div></div>
+    </div>
+    <div class="modal-b">
+      <div class="cand">
+        <span class="av-sm">EM</span>
+        <div style="flex:1"><b>Elisabeth Müller</b>
+          <div class="muted" style="font-size:var(--fs-xs)">14.03.1968 · Bahnhofstr. 12, Feldkirch</div>
+          <span class="pill tag-out" style="margin-top:6px">Ausgabestelle Feldkirch</span></div>
+        <div class="score"><div class="n hi">0.96</div><div class="l">Übereinstimmung</div></div>
+      </div>
+      <div class="hint">Bei „Trotzdem neu anlegen" wird ein Grund verlangt und die Entscheidung protokolliert (wer / wann).</div>
+    </div>
+    <div class="modal-f">
+      <button class="btn ghost" data-close>Abbrechen</button>
+      <button class="btn danger" data-close>Trotzdem neu anlegen</button>
+      <button class="btn primary" data-close>Bestehende öffnen</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var root=document.documentElement;
+  // theme toggle
+  document.getElementById('themeBtn').addEventListener('click',function(){
+    var cur=root.getAttribute('data-theme');
+    if(!cur){cur=matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light';}
+    root.setAttribute('data-theme',cur==='dark'?'light':'dark');
+  });
+
+  var screens=document.querySelectorAll('.screen');
+  var navs=document.querySelectorAll('.nav');
+  var shellMain=document.querySelector('.shell');
+  function go(id){
+    screens.forEach(function(s){s.classList.toggle('active',s.dataset.screen===id);});
+    navs.forEach(function(n){n.classList.toggle('active',n.dataset.go===id);});
+    // kiosk is full-bleed: hide shell chrome
+    var kioskOn=(id==='kiosk');
+    shellMain.style.display=kioskOn?'none':'grid';
+    if(kioskOn){reset();}
+    window.scrollTo(0,0);
+  }
+  document.addEventListener('click',function(e){
+    var t=e.target.closest('[data-go]');
+    if(t){go(t.dataset.go);}
+  });
+
+  // save -> warn modal
+  var modal=document.getElementById('dupModal');
+  var sb=document.getElementById('saveBtn');
+  if(sb) sb.addEventListener('click',function(){modal.classList.add('open');});
+  document.addEventListener('click',function(e){
+    if(e.target.closest('[data-close]')||e.target===modal){modal.classList.remove('open');}
+  });
+
+  // kiosk sim
+  var idle=document.getElementById('scanIdle'),ok=document.getElementById('resOk'),no=document.getElementById('resNo');
+  function reset(){if(idle)idle.style.display='flex';if(ok)ok.classList.remove('show');if(no)no.classList.remove('show');
+    var c=document.getElementById('confirmBtn');if(c){c.disabled=false;c.textContent='✓ Ausgabe bestätigen';c.style.background='#fff';c.style.color='#0f6f46';}}
+  var so=document.getElementById('simOk'),sn=document.getElementById('simNo');
+  if(so)so.addEventListener('click',function(){idle.style.display='none';no.classList.remove('show');ok.classList.add('show');});
+  if(sn)sn.addEventListener('click',function(){idle.style.display='none';ok.classList.remove('show');no.classList.add('show');});
+  document.querySelectorAll('[data-reset]').forEach(function(b){b.addEventListener('click',reset);});
+  var cf=document.getElementById('confirmBtn');
+  if(cf)cf.addEventListener('click',function(){cf.textContent='✓ Ausgabe erfasst · 17.08. 10:04';cf.disabled=true;cf.style.background='rgba(255,255,255,.25)';cf.style.color='#fff';});
+})();
+</script>

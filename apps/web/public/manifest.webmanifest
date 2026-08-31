@@ -1,0 +1,9 @@
+{
+  "name": "TDD Tresen-Kiosk",
+  "short_name": "TDD Kiosk",
+  "start_url": "/kiosk",
+  "scope": "/kiosk",
+  "display": "standalone",
+  "background_color": "#0f1216",
+  "theme_color": "#2f4b99"
+}

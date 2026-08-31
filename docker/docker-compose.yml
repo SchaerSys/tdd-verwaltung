@@ -1,0 +1,60 @@
+# ════════════════════════════════════════════════════════════════════════
+#  TDD-Verwaltung · isolierter Stack (eigenes Netz, eigene DB, eigene Domains)
+#  Auf dem bestehenden Hetzner-Server – abgeschottet von anderen Projekten.
+#  Start:  docker compose --env-file ../.env up -d --build
+# ════════════════════════════════════════════════════════════════════════
+name: tdd
+
+networks:
+  tdd-net:
+    driver: bridge
+
+volumes:
+  tdd-db-data:
+  tdd-uploads:
+  caddy-data:
+  caddy-config:
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: tdd
+      POSTGRES_USER: tdd_owner
+      POSTGRES_PASSWORD: ${POSTGRES_OWNER_PASSWORD}
+    volumes:
+      - tdd-db-data:/var/lib/postgresql/data
+    networks: [tdd-net]
+    # Kein Port nach außen – nur intern im tdd-net erreichbar.
+
+  web:
+    build:
+      context: ..
+      dockerfile: apps/web/Dockerfile
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      SESSION_SECRET: ${SESSION_SECRET}
+      STORAGE_DIR: /data/uploads
+      NODE_ENV: production
+    volumes:
+      - tdd-uploads:/data/uploads
+    networks: [tdd-net]
+    depends_on: [postgres]
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "443:443"
+      - "80:80"
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN}
+      OPS_DOMAIN: ${OPS_DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    networks: [tdd-net]
+    depends_on: [web]

@@ -1,0 +1,36 @@
+node_modules/
+dist/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+
+# env / secrets
+.env
+.env.local
+.env.*.local
+*.pem
+!*.example
+
+# uploads / sensitive data (never commit person data or scans)
+/data/
+/uploads/
+/backups/
+*.sqlite
+*.dump
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# build/deploy artefacts & logs
+*.log
+*.tar.gz
+/backup-stage/
+scratchpad/
+
+# next
+apps/web/.next/
+next-env.d.ts

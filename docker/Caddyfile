@@ -1,0 +1,12 @@
+# Fach-App (Verein). TLS automatisch (Let's Encrypt).
+{$APP_DOMAIN} {
+	encode gzip
+	reverse_proxy web:3000
+}
+
+# Wartungsplattform (Betreiber). Erst ab Bau-Schritt 10 mit eigenem Container
+# (ops:3000) belegt. Bis dahin auskommentiert lassen oder auf Wartungsseite zeigen.
+# {$OPS_DOMAIN} {
+# 	encode gzip
+# 	reverse_proxy ops:3000
+# }

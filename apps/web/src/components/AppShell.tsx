@@ -126,6 +126,7 @@ export function AppShell({
                   <div className="text-[color:var(--muted)] text-[.72rem]">{roleLabel} · {locationName}</div>
                 </div>
                 <div style={{ borderTop: "1px solid var(--border)", margin: "4px 0" }} />
+                <Link href="/konto" className="ctx-item" role="menuitem">Mein Konto</Link>
                 <form action={logout}>
                   <button type="submit" className="ctx-item" role="menuitem">Abmelden</button>
                 </form>

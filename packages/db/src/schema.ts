@@ -322,3 +322,23 @@ export const antragDocuments = pgTable(
   },
   (t) => ({ antragIdx: index("idx_antrag_documents_antrag").on(t.antragId) }),
 );
+
+// ── A2 · Personal-Verzeichnis (Zentralsystem, getrennt von A1 persons) ─────
+export const staff = pgTable("staff", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  firstName: text("first_name").notNull(),
+  lastName: text("last_name").notNull(),
+  staffType: text("staff_type").notNull().default("ANGESTELLT"), // ANGESTELLT | ZIVILDIENER | EHRENAMT | FAHRER
+  email: text("email"),
+  phone: text("phone"),
+  locationId: integer("location_id").references(() => locations.id),
+  employmentStart: date("employment_start"),
+  employmentEnd: date("employment_end"),
+  weeklyHours: numeric("weekly_hours", { precision: 5, scale: 2 }),
+  vacationDaysYear: numeric("vacation_days_year", { precision: 5, scale: 1 }),
+  nfcCardId: text("nfc_card_id").unique(),
+  isActive: boolean("is_active").notNull().default(true),
+  note: text("note"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({ activeIdx: index("idx_staff_active").on(t.isActive), lastIdx: index("idx_staff_lastname").on(t.lastName) }));

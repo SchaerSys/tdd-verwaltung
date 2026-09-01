@@ -1,6 +1,6 @@
 import { hasPermission, type Permission, type Role } from "./rbac";
 
-export type NavGroupTitle = "Backoffice" | "Tresen-Kiosk" | "Verwaltung";
+export type NavGroupTitle = "Backoffice" | "Tresen-Kiosk" | "Zentralsystem" | "Verwaltung";
 
 export interface NavDef {
   href: string;
@@ -21,6 +21,7 @@ export const NAV: NavDef[] = [
   { href: "/auswertungen", label: "Auswertungen", perm: "report:view", group: "Backoffice" },
   { href: "/kiosk", label: "Ausgabe-Scan", perm: "distribution:record", group: "Tresen-Kiosk" },
   { href: "/ausgaben", label: "Ausgaben (heute)", perm: "distribution:record", group: "Tresen-Kiosk" },
+  { href: "/personal", label: "A2 · Personal", perm: "staff:manage", group: "Zentralsystem" },
   { href: "/admin", label: "Stammdaten", perm: "admin:manage", group: "Verwaltung" },
   { href: "/admin/benutzer", label: "Benutzerverwaltung", perm: "admin:manage", group: "Verwaltung" },
   { href: "/admin/import", label: "Import", perm: "admin:manage", group: "Verwaltung" },
@@ -34,7 +35,7 @@ export function navFor(role: Role): NavDef[] {
 
 /** Sichtbare Nav-Einträge nach Gruppen (leere Gruppen entfallen). */
 export function navGroups(role: Role): { title: NavGroupTitle; items: { href: string; label: string }[] }[] {
-  const order: NavGroupTitle[] = ["Backoffice", "Tresen-Kiosk", "Verwaltung"];
+  const order: NavGroupTitle[] = ["Backoffice", "Tresen-Kiosk", "Zentralsystem", "Verwaltung"];
   const visible = navFor(role);
   return order
     .map((title) => ({ title, items: visible.filter((n) => n.group === title).map((n) => ({ href: n.href, label: n.label })) }))

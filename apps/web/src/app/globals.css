@@ -289,3 +289,7 @@
 /* Kiosk-Tageszaehler im Kopf */
 .k-today { font-size:.82rem; opacity:.85; }
 .k-today b { font-variant-numeric:tabular-nums; }
+
+/* Nav: Hinweis "oeffnet in neuem Fenster" */
+.nav-ext { margin-left:auto; opacity:.35; font-size:.85em; }
+.nav .badge + .nav-ext { margin-left:6px; }

@@ -85,19 +85,25 @@ export function AppSidebar({
       {groups.map((g) => (
         <div key={g.title}>
           <div className="nav-group">{g.title}</div>
-          {g.items.map((it) => (
-            <Link
-              key={it.href}
-              href={it.href}
-              className={`nav${isActive(it.href) ? " active" : ""}`}
-              onContextMenu={(e) => onCtx(e, it.href)}
-              title={isFavoritable(it.href) ? "Rechtsklick: als Favorit" : undefined}
-            >
-              {isFav(it.href) ? <span aria-hidden className="mr-1">★</span> : null}
-              {it.label}
-              {it.badge ? <span className="badge">{it.badge}</span> : null}
-            </Link>
-          ))}
+          {g.items.map((it) => {
+            const newWindow = it.href !== "/dashboard"; // Dashboard bleibt das feste Hauptfenster
+            return (
+              <Link
+                key={it.href}
+                href={it.href}
+                target={newWindow ? "_blank" : undefined}
+                rel={newWindow ? "noopener" : undefined}
+                className={`nav${isActive(it.href) ? " active" : ""}`}
+                onContextMenu={(e) => onCtx(e, it.href)}
+                title={newWindow ? "Öffnet in eigenem Fenster · Rechtsklick: als Favorit" : undefined}
+              >
+                {isFav(it.href) ? <span aria-hidden className="mr-1">★</span> : null}
+                {it.label}
+                {it.badge ? <span className="badge">{it.badge}</span> : null}
+                {newWindow ? <span aria-hidden className="nav-ext">↗</span> : null}
+              </Link>
+            );
+          })}
         </div>
       ))}
 

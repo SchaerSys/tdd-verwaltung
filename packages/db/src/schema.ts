@@ -111,6 +111,7 @@ export const persons = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
     deleteReason: text("delete_reason"),
+    consentAt: timestamp("consent_at", { withTimezone: true }),
     retentionUntil: date("retention_until"),
     sourceAntragId: uuid("source_antrag_id"),
     sourceOrganizationId: integer("source_organization_id"),

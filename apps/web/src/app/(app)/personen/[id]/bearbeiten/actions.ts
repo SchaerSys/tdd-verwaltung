@@ -50,6 +50,7 @@ export async function updatePerson(formData: FormData): Promise<void> {
     householdSize: householdTotal(toInt(s(formData, "adults")), toInt(s(formData, "childrenCount"))), childrenCount: toInt(s(formData, "childrenCount")),
     gruppe: toInt(s(formData, "gruppe")), ausgabeNumber: toInt(s(formData, "nummer")),
     languageId: toInt(s(formData, "languageId")), originId: toInt(s(formData, "originId")), note: s(formData, "note"),
+    consentAt: formData.get("consent") ? sql`COALESCE(${persons.consentAt}, now())` : null,
     lastNameNorm, firstNameNorm, addressNorm: normalizeAddress(address),
     lastNamePhon: koelnerPhonetik(lastNameNorm), firstNamePhon: koelnerPhonetik(firstNameNorm),
     updatedBy: user.id, updatedAt: new Date(),

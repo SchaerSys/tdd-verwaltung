@@ -72,6 +72,12 @@ export default async function EditPersonPage({ params }: { params: Promise<{ id:
               <select name="originId" className="inp" defaultValue={p.originId ?? ""}><option value="">—</option>
                 {origins.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}</select></div>
             <div className="field sm:col-span-2"><label className="lbl">Notiz</label><input name="note" className="inp" defaultValue={p.note ?? ""} /></div>
+            <div className="field sm:col-span-2">
+              <label className="flex items-center gap-2 text-[.9rem]">
+                <input type="checkbox" name="consent" value="1" defaultChecked={!!p.consentAt} />
+                DSGVO-Einwilligung liegt vor{p.consentAt ? ` (seit ${new Date(p.consentAt).toLocaleDateString("de-AT")})` : ""}
+              </label>
+            </div>
           </div>
           <div className="flex gap-2 justify-end mt-4">
             <Link href={`/personen/${id}`} className="btn ghost">Abbrechen</Link>

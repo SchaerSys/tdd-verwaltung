@@ -80,6 +80,7 @@ export async function createPerson(_prev: CreateState, fd: FormData): Promise<Cr
       householdSize: householdTotal(toInt(s(fd, "adults")), toInt(s(fd, "childrenCount"))),
       childrenCount: toInt(s(fd, "childrenCount")),
       languageId: toInt(s(fd, "languageId")), originId: toInt(s(fd, "originId")), note: s(fd, "note"),
+      consentAt: fd.get("consent") ? new Date() : null,
       lastNameNorm, firstNameNorm, addressNorm: normalizeAddress(address),
       lastNamePhon: koelnerPhonetik(lastNameNorm), firstNamePhon: koelnerPhonetik(firstNameNorm),
       createdBy: user.id, updatedBy: user.id,

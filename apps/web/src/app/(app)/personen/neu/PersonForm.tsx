@@ -118,6 +118,12 @@ export function PersonForm({
               <select name="originId" className="inp"><option value="">—</option>
                 {origins.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}</select></div>
             <div className="field sm:col-span-2"><label className="lbl">Notiz</label><input name="note" className="inp" /></div>
+            <div className="field sm:col-span-2">
+              <label className="flex items-center gap-2 text-[.9rem]">
+                <input type="checkbox" name="consent" value="1" />
+                DSGVO-Einwilligung zur Datenverarbeitung liegt vor (unterschrieben)
+              </label>
+            </div>
           </div>
 
           {state.error ? <div className="mt-3 text-[color:var(--bad)] text-[.8125rem]">{state.error}</div> : null}

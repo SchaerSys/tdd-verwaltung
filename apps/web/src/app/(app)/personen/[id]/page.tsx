@@ -92,6 +92,7 @@ export default async function DossierPage({ params }: { params: Promise<{ id: st
             <Meta l="Telefon" v={p.phone ?? "—"} mono />
             <Meta l="Sprache" v={lang ?? "—"} />
             <Meta l="Herkunft" v={origin ?? "—"} />
+            <Meta l="DSGVO-Einwilligung" v={p.consentAt ? `✓ erteilt (${fmtDate(p.consentAt)})` : "✗ nicht dokumentiert"} />
           </div>
         </div>
       </div>

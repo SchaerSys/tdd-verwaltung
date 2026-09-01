@@ -38,7 +38,6 @@ export function AppShell({
   const router = useRouter();
   const onDashboard = pathname === "/dashboard";
 
-  // Konto-Menü schließt bei Klick außerhalb.
   useEffect(() => {
     if (!userMenu) return;
     const close = () => setUserMenu(false);
@@ -46,13 +45,6 @@ export function AppShell({
     return () => window.removeEventListener("click", close);
   }, [userMenu]);
 
-  const submitSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    const q = query.trim();
-    router.push(q ? `/personen?q=${encodeURIComponent(q)}` : "/personen");
-  };
-
-  // Beim Laden: sofortige Anzeige aus localStorage (kein Flackern), DB ist die Quelle.
   useEffect(() => {
     const ls = localStorage.getItem("tdd_nav_collapsed");
     if (ls !== null) setCollapsed(ls === "1");
@@ -68,73 +60,62 @@ export function AppShell({
     });
   };
 
+  const submitSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    const q = query.trim();
+    router.push(q ? `/personen?q=${encodeURIComponent(q)}` : "/personen");
+  };
+
   return (
-    <div className="grid min-h-screen" style={{ gridTemplateColumns: collapsed ? "1fr" : "248px 1fr" }}>
-      {!collapsed ? (
-        <AppSidebar groups={groups} user={user} roleLabel={roleLabel} locationName={locationName} logout={logout} favorites={favorites} />
-      ) : null}
-      <div className="min-w-0">
-        <div className="topbar">
-          <button
-            type="button"
-            className="btn ghost"
-            onClick={toggle}
-            aria-label="Navigation ein- oder ausblenden"
-            title="Navigation ein-/ausblenden"
-          >
-            ☰
-          </button>
-          {collapsed ? (
-            <Link href="/dashboard" className="logo" title="TDD-Verwaltung" style={{ width: 30, height: 30, textDecoration: "none" }}>Td</Link>
-          ) : null}
-          {!onDashboard ? (
-            <Link href="/dashboard" className="btn ghost" title="Zurück zum Dashboard">← Dashboard</Link>
-          ) : null}
-          <form className="search flex-1 max-w-[420px]" style={{ paddingTop: 6, paddingBottom: 6 }} onSubmit={submitSearch} role="search">
-            <span aria-hidden>🔍</span>
-            <input
-              type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Person, Adresse oder Kartennummer suchen…"
-              aria-label="Person, Adresse oder Kartennummer suchen"
-              className="flex-1 border-0 bg-transparent text-[color:var(--text)] outline-none"
-              style={{ font: "inherit" }}
-            />
-          </form>
-          <div className="flex-1" />
+    <div className="approot">
+      {/* Marken-Header (rotes Kopfband über die ganze App) */}
+      <header className="topbar">
+        <button type="button" className="btn ghost icon" onClick={toggle} aria-label="Navigation ein-/ausblenden" title="Navigation ein-/ausblenden">☰</button>
+        <Link href="/dashboard" className="hdr-brand" title="TDD-Verwaltung">
+          <span className="hdr-logo">Td</span>
+          <span className="hdr-name"><b>TDD-Verwaltung</b><small>Tischlein deck dich</small></span>
+        </Link>
+        {!onDashboard ? <Link href="/dashboard" className="btn ghost" title="Zurück zum Dashboard">← Dashboard</Link> : null}
+
+        <form className="search" role="search" onSubmit={submitSearch}>
+          <span aria-hidden>🔍</span>
+          <input
+            type="search" value={query} onChange={(e) => setQuery(e.target.value)}
+            placeholder="Person, Adresse oder Kartennummer suchen…"
+            aria-label="Person, Adresse oder Kartennummer suchen"
+            className="flex-1 border-0 bg-transparent outline-none" style={{ font: "inherit" }}
+          />
+        </form>
+
+        <div className="hdr-actions">
           <InstallButton />
           <ThemeToggle />
           <span className="rolepill">{roleLabel}</span>
           <div className="relative" onClick={(e) => e.stopPropagation()}>
-            <button
-              type="button"
-              className="avatar"
-              style={{ cursor: "pointer" }}
-              onClick={() => setUserMenu((v) => !v)}
-              aria-haspopup="menu"
-              aria-expanded={userMenu}
-              aria-label="Konto-Menü"
-              title={user.displayName}
-            >
+            <button type="button" className="avatar" style={{ cursor: "pointer" }} onClick={() => setUserMenu((v) => !v)}
+              aria-haspopup="menu" aria-expanded={userMenu} aria-label="Konto-Menü" title={user.displayName}>
               {initials}
             </button>
             {userMenu ? (
-              <div className="ctx-menu" style={{ position: "absolute", right: 0, top: "calc(100% + 6px)", zIndex: 60, minWidth: 190 }} role="menu">
+              <div className="ctx-menu" style={{ position: "absolute", right: 0, top: "calc(100% + 8px)", zIndex: 60, minWidth: 200 }} role="menu">
                 <div style={{ padding: "6px 12px" }}>
                   <div className="font-semibold text-[color:var(--text)]">{user.displayName}</div>
                   <div className="text-[color:var(--muted)] text-[.72rem]">{roleLabel} · {locationName}</div>
                 </div>
                 <div style={{ borderTop: "1px solid var(--border)", margin: "4px 0" }} />
                 <Link href="/konto" className="ctx-item" role="menuitem">Mein Konto</Link>
-                <form action={logout}>
-                  <button type="submit" className="ctx-item" role="menuitem">Abmelden</button>
-                </form>
+                <form action={logout}><button type="submit" className="ctx-item" role="menuitem">Abmelden</button></form>
               </div>
             ) : null}
           </div>
         </div>
-        <main className="p-6"><UpdateChecker />{children}<Footer /></main>
+      </header>
+
+      <div className="appbody" style={{ gridTemplateColumns: collapsed ? "1fr" : "248px 1fr" }}>
+        {!collapsed ? <AppSidebar groups={groups} locationName={locationName} favorites={favorites} /> : null}
+        <div className="appmain-col min-w-0">
+          <main className="p-6"><UpdateChecker />{children}<Footer /></main>
+        </div>
       </div>
     </div>
   );

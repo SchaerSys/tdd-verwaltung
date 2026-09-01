@@ -16,27 +16,26 @@ export interface NavGroup {
   items: NavItem[];
 }
 
+const ICONS: Record<string, string> = {
+  "/dashboard": "🏠", "/personen": "👤", "/personen/papierkorb": "🗑", "/personen/dubletten": "⧉",
+  "/bewilligt": "✅", "/karten": "💳", "/karten/papierkorb": "🗑", "/auswertungen": "📊",
+  "/kiosk": "📷", "/ausgaben": "📦", "/admin": "🛠", "/admin/benutzer": "👥", "/admin/import": "⬆️",
+  "/admin/migration": "🔄", "/personal": "🧑‍💼", "/zeit": "⏱️", "/urlaub": "🌴",
+};
+
 export function AppSidebar({
   groups,
-  user,
-  roleLabel,
   locationName,
-  logout,
   favorites,
 }: {
   groups: NavGroup[];
-  user: { displayName: string; role: string };
-  roleLabel: string;
   locationName: string;
-  logout: () => Promise<void>;
   favorites: string[];
 }) {
   const pathname = usePathname();
   const router = useRouter();
   const [menu, setMenu] = useState<{ x: number; y: number; href: string } | null>(null);
 
-  // Nur der spezifischste Treffer ist aktiv (verhindert, dass z. B. „Personen"
-  // und „Dubletten" bei /personen/dubletten gleichzeitig hervorgehoben werden).
   const activeHref = groups
     .flatMap((g) => g.items.map((i) => i.href))
     .filter((h) => pathname === h || (h !== "/dashboard" && pathname.startsWith(h + "/")))
@@ -73,20 +72,12 @@ export function AppSidebar({
   }
 
   return (
-    <aside className="bg-[color:var(--surface)] border-r border-[color:var(--border)] p-3 flex flex-col gap-1 min-h-screen">
-      <div className="brand">
-        <div className="logo">Td</div>
-        <div>
-          <div className="font-bold text-[.95rem]">TDD-Verwaltung</div>
-          <div className="text-[.72rem] text-[color:var(--muted)]">Tischlein deck dich</div>
-        </div>
-      </div>
-
+    <aside className="side-rail">
       {groups.map((g) => (
         <div key={g.title}>
           <div className="nav-group">{g.title}</div>
           {g.items.map((it) => {
-            const newWindow = it.href !== "/dashboard"; // Dashboard bleibt das feste Hauptfenster
+            const newWindow = it.href !== "/dashboard";
             return (
               <Link
                 key={it.href}
@@ -97,8 +88,9 @@ export function AppSidebar({
                 onContextMenu={(e) => onCtx(e, it.href)}
                 title={newWindow ? "Öffnet in eigenem Fenster · Rechtsklick: als Favorit" : undefined}
               >
-                {isFav(it.href) ? <span aria-hidden className="mr-1">★</span> : null}
-                {it.label}
+                <span className="ic" aria-hidden>{ICONS[it.href] ?? "•"}</span>
+                {isFav(it.href) ? <span aria-hidden className="fav-mark">★</span> : null}
+                <span className="nav-label">{it.label}</span>
                 {it.badge ? <span className="badge">{it.badge}</span> : null}
                 {newWindow ? <span aria-hidden className="nav-ext">↗</span> : null}
               </Link>
@@ -108,18 +100,7 @@ export function AppSidebar({
       ))}
 
       <div className="flex-1" />
-      <div className="lock-note">
-        🔒 Standort:&nbsp;<b className="text-[color:var(--text)]">{locationName}</b>
-      </div>
-      <div className="text-[.72rem] text-[color:var(--muted)] px-2 py-2 border-t border-[color:var(--border)] mt-1">
-        <div className="font-semibold text-[color:var(--text)]">{user.displayName}</div>
-        <div>{roleLabel}</div>
-        <form action={logout} className="mt-2">
-          <button className="text-[color:var(--accent)] hover:underline" type="submit">
-            Abmelden
-          </button>
-        </form>
-      </div>
+      <div className="lock-note">🔒 Standort:&nbsp;<b className="text-[color:var(--text)]">{locationName}</b></div>
 
       {menu ? (
         <div className="ctx-menu" style={{ position: "fixed", left: menu.x, top: menu.y, zIndex: 60 }} onClick={(e) => e.stopPropagation()}>

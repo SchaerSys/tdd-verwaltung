@@ -321,3 +321,41 @@
 .brand .logo { box-shadow: var(--shadow); }
 /* Buttons: ruhiger Hover fürs Markenrot */
 .btn.primary:hover { filter:brightness(1.08); }
+
+/* ── Variante A: App-Layout mit fixem Marken-Header ─────────────────────── */
+.approot { height:100vh; display:flex; flex-direction:column; }
+.appbody { flex:1; min-height:0; display:grid; }
+.appmain-col { overflow-y:auto; min-height:0; }
+.side-rail { background:var(--surface); border-right:1px solid var(--border); padding:12px 10px;
+  display:flex; flex-direction:column; gap:1px; overflow-y:auto; min-height:0; }
+
+/* Header-Inhalt */
+.topbar { flex-wrap:nowrap; }
+.topbar .btn.icon { padding:8px 11px; font-size:1rem; }
+.hdr-brand { display:flex; align-items:center; gap:10px; text-decoration:none; color:#fff; flex:none; }
+.hdr-logo { width:34px; height:34px; border-radius:9px; background:#fff; color:var(--brand);
+  display:grid; place-items:center; font-weight:800; letter-spacing:-.02em; font-size:.9rem; box-shadow:0 1px 3px rgba(0,0,0,.2); }
+.hdr-name { display:flex; flex-direction:column; line-height:1.15; }
+.hdr-name b { font-size:.95rem; font-weight:800; letter-spacing:-.01em; }
+.hdr-name small { font-size:.7rem; color:rgba(255,255,255,.72); }
+.topbar .search { flex:1; max-width:520px; }
+.hdr-actions { display:flex; align-items:center; gap:10px; margin-left:auto; }
+
+/* Suche als Pille (auch auf Seiten) */
+.search { border-radius:999px; }
+
+/* Sidebar-Icons */
+.nav .ic { width:18px; text-align:center; font-size:.95em; opacity:.9; flex:none; }
+.nav .nav-label { flex:0 1 auto; }
+.nav .fav-mark { color:var(--accent); font-size:.85em; }
+
+/* KPI-Kacheln: roter Akzentbalken links (nicht bei Favoriten) */
+.tile:not(.fav) { padding-left:20px; overflow:hidden; }
+.tile:not(.fav)::before { content:""; position:absolute; left:0; top:0; bottom:0; width:4px; background:var(--accent); opacity:.85; }
+
+@media (max-width:860px) {
+  .appbody { grid-template-columns:1fr !important; }
+  .side-rail { display:none; }
+  .hdr-name { display:none; }
+  .topbar .search { max-width:none; }
+}

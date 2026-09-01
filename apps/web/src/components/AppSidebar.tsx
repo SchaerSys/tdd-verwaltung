@@ -19,12 +19,14 @@ export interface NavGroup {
 export function AppSidebar({
   groups,
   user,
+  roleLabel,
   locationName,
   logout,
   favorites,
 }: {
   groups: NavGroup[];
   user: { displayName: string; role: string };
+  roleLabel: string;
   locationName: string;
   logout: () => Promise<void>;
   favorites: string[];
@@ -33,8 +35,13 @@ export function AppSidebar({
   const router = useRouter();
   const [menu, setMenu] = useState<{ x: number; y: number; href: string } | null>(null);
 
-  const isActive = (href: string) =>
-    pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
+  // Nur der spezifischste Treffer ist aktiv (verhindert, dass z. B. „Personen"
+  // und „Dubletten" bei /personen/dubletten gleichzeitig hervorgehoben werden).
+  const activeHref = groups
+    .flatMap((g) => g.items.map((i) => i.href))
+    .filter((h) => pathname === h || (h !== "/dashboard" && pathname.startsWith(h + "/")))
+    .sort((a, b) => b.length - a.length)[0];
+  const isActive = (href: string) => href === activeHref;
   const isFav = (href: string) => favorites.includes(href);
 
   useEffect(() => {
@@ -100,7 +107,7 @@ export function AppSidebar({
       </div>
       <div className="text-[.72rem] text-[color:var(--muted)] px-2 py-2 border-t border-[color:var(--border)] mt-1">
         <div className="font-semibold text-[color:var(--text)]">{user.displayName}</div>
-        <div>{user.role}</div>
+        <div>{roleLabel}</div>
         <form action={logout} className="mt-2">
           <button className="text-[color:var(--accent)] hover:underline" type="submit">
             Abmelden

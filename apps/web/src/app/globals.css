@@ -52,6 +52,12 @@
     font-size: 14px;
   }
   h1, h2, h3, h4 { margin: 0; font-weight: 650; letter-spacing: -.01em; text-wrap: balance; }
+
+  /* Sichtbarer Tastatur-Fokus (nur bei Tastaturnavigation, nicht bei Maus-Klick) */
+  a:focus-visible, button:focus-visible, .btn:focus-visible, .nav:focus-visible,
+  summary:focus-visible, [tabindex]:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px;
+  }
 }
 
 @layer components {

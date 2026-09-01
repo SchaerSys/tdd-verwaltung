@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { and, asc, eq, ilike, isNull, or, sql } from "drizzle-orm";
-import { persons, personLocationAssignments, locations } from "@tdd/db";
+import { and, asc, eq, exists, ilike, isNull, or, sql } from "drizzle-orm";
+import { persons, personLocationAssignments, locations, cards } from "@tdd/db";
 import { normalizeName } from "@tdd/core";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
@@ -42,8 +42,29 @@ export default async function PersonenPage({
   const conds = [isNull(persons.deletedAt), eq(persons.takeoverPending, false)];
   if (scoped) conds.push(eq(personLocationAssignments.locationId, user.locationId!));
   if (q && q.trim()) {
-    const n = `%${normalizeName(q)}%`;
-    conds.push(or(ilike(persons.lastNameNorm, n), ilike(persons.firstNameNorm, n))!);
+    const raw = q.trim();
+    const nameLike = `%${normalizeName(raw)}%`;
+    const rawLike = `%${raw}%`;
+    const parts = [
+      ilike(persons.lastNameNorm, nameLike),
+      ilike(persons.firstNameNorm, nameLike),
+      ilike(persons.address, rawLike),
+      ilike(persons.city, rawLike),
+      ilike(persons.postalCode, rawLike),
+    ];
+    // Kartennummer (nur wenn die Eingabe ziffernartig ist): Person hat eine passende Karte.
+    const digits = raw.replace(/\D/g, "");
+    if (digits.length >= 3) {
+      parts.push(
+        exists(
+          db()
+            .select({ x: sql`1` })
+            .from(cards)
+            .where(and(eq(cards.personId, persons.id), isNull(cards.deletedAt), ilike(cards.cardNumber, `%${digits}%`))),
+        ),
+      );
+    }
+    conds.push(or(...parts)!);
   }
 
   // Gesamtzahl (gleiche Joins/Filter wie die Liste) → Seitenanzahl.
@@ -106,7 +127,7 @@ export default async function PersonenPage({
       <div className="panel">
         <div className="panel-h">
           <form className="search max-w-[320px]" style={{ padding: 0 }}>
-            <input name="q" defaultValue={q ?? ""} placeholder="🔍 Name suchen…" className="inp" style={{ border: 0, background: "transparent" }} />
+            <input name="q" defaultValue={q ?? ""} placeholder="🔍 Name, Adresse oder Kartennummer…" className="inp" style={{ border: 0, background: "transparent" }} />
           </form>
         </div>
         <div className="twrap">

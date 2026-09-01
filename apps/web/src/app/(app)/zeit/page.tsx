@@ -44,6 +44,7 @@ export default async function ZeitPage({ searchParams }: { searchParams: Promise
     g.events.push(e); byStaff.set(e.staffId, g);
   }
   const month = date.slice(0, 7);
+  const grandMin = [...byStaff.values()].reduce((sum, g) => sum + dayTotals(g.events as unknown as Ev[]).workedMin, 0);
 
   return (
     <div>
@@ -98,6 +99,11 @@ export default async function ZeitPage({ searchParams }: { searchParams: Promise
                   </tr>
                 );
               })}
+              <tr className="total-row">
+                <td colSpan={4}><b>Gesamt ({byStaff.size} {byStaff.size === 1 ? "Person" : "Personen"})</b></td>
+                <td className="mono"><b>{fmtMin(grandMin)}</b></td>
+                <td></td>
+              </tr>
             </tbody>
           </table></div>
         )}

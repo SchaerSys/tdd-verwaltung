@@ -118,6 +118,7 @@ export default async function PersonenPage({
         </div>
         {canWrite ? (
           <div className="flex gap-2">
+            <a href={`/personen/export${q && q.trim() ? `?q=${encodeURIComponent(q.trim())}` : ""}`} className="btn ghost" title="Aktuelle Liste als Excel exportieren">⬇ Excel</a>
             <Link href="/personen/papierkorb" className="btn ghost">🗑 Papierkorb{trashCount > 0 ? ` (${trashCount})` : ""}</Link>
             <Link href="/personen/neu" className="btn primary">＋ Neu aufnehmen</Link>
           </div>

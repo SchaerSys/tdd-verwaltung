@@ -22,6 +22,7 @@ export const NAV: NavDef[] = [
   { href: "/kiosk", label: "Ausgabe-Scan", perm: "distribution:record", group: "Tresen-Kiosk" },
   { href: "/ausgaben", label: "Ausgaben (heute)", perm: "distribution:record", group: "Tresen-Kiosk" },
   { href: "/personal", label: "A2 · Personal", perm: "staff:manage", group: "Zentralsystem" },
+  { href: "/zeit", label: "A2 · Zeiterfassung", perm: "staff:manage", group: "Zentralsystem" },
   { href: "/admin", label: "Stammdaten", perm: "admin:manage", group: "Verwaltung" },
   { href: "/admin/benutzer", label: "Benutzerverwaltung", perm: "admin:manage", group: "Verwaltung" },
   { href: "/admin/import", label: "Import", perm: "admin:manage", group: "Verwaltung" },

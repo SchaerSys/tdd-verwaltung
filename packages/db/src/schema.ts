@@ -342,3 +342,16 @@ export const staff = pgTable("staff", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => ({ activeIdx: index("idx_staff_active").on(t.isActive), lastIdx: index("idx_staff_lastname").on(t.lastName) }));
+
+// ── A2 · Zeiterfassung (Stempel-Ereignisse) ────────────────────────────────
+export const timeEvents = pgTable("time_events", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  staffId: uuid("staff_id").notNull().references(() => staff.id, { onDelete: "cascade" }),
+  kind: text("kind").notNull(), // IN | OUT | BREAK_START | BREAK_END
+  at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
+  source: text("source").notNull().default("TERMINAL_MANUAL"),
+  note: text("note"),
+  edited: boolean("edited").notNull().default(false),
+  createdBy: uuid("created_by").references(() => users.id),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({ staffAtIdx: index("idx_time_events_staff_at").on(t.staffId, t.at) }));

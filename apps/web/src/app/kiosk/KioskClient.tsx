@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { lookupCard, searchByName, recordDistribution, getActiveCards, issueCardKiosk, savePersonNote, payDebt, blockCardKiosk, unblockCardKiosk, type Eligibility, type CachedCard, type IssueResult } from "./actions";
+import { lookupCard, searchByName, recordDistribution, getActiveCards, issueCardKiosk, savePersonNote, payDebt, blockCardKiosk, unblockCardKiosk, todayStats, type Eligibility, type CachedCard, type IssueResult } from "./actions";
 import { Footer } from "@/components/Footer";
 import { fmtDate, fmtDateTime } from "@/lib/format";
 
@@ -36,6 +36,7 @@ export function KioskClient({ locationName, initialCards, logout }: { locationNa
   const [scanVal, setScanVal] = useState("");
   const [result, setResult] = useState<Eligibility | null>(null);
   const [confirmed, setConfirmed] = useState<string | null>(null);
+  const [today, setToday] = useState<{ count: number; persons: number; sum: number } | null>(null);
   const [nameHits, setNameHits] = useState<Eligibility[] | null>(null);
   const [issued, setIssued] = useState<IssueResult | null>(null);
   const [issuing, setIssuing] = useState(false);
@@ -77,6 +78,9 @@ export function KioskClient({ locationName, initialCards, logout }: { locationNa
   }, [initialCards, syncQueue, focusScan]);
 
   // Notiz aus dem Scan-Ergebnis übernehmen (bleibt bei jedem Scan sichtbar).
+  const loadToday = useCallback(async () => { try { setToday(await todayStats()); } catch { /* offline – Zähler bleibt */ } }, []);
+  useEffect(() => { void loadToday(); const iv = setInterval(() => void loadToday(), 60000); return () => clearInterval(iv); }, [loadToday]);
+
   useEffect(() => { setNote(result?.note ?? ""); setPhotoError(false); }, [result?.personId, result?.note]);
 
   async function refreshCache() {
@@ -143,7 +147,7 @@ export function KioskClient({ locationName, initialCards, logout }: { locationNa
     const opts = { amountDue: result.amountDue, moneyForgotten, note };
     const item: QueueItem = { clientRef, cardId: result.cardId, name: result.name ?? "", at: new Date().toISOString(), ...opts };
     if (navigator.onLine) {
-      try { await recordDistribution(result.cardId, clientRef, opts); setConfirmed(new Date().toLocaleTimeString("de-AT")); }
+      try { await recordDistribution(result.cardId, clientRef, opts); setConfirmed(new Date().toLocaleTimeString("de-AT")); void loadToday(); }
       catch { const q = readQueue(); q.push(item); writeQueue(q); setPending(q.length); setConfirmed("offline gespeichert"); }
     } else {
       const q = readQueue(); q.push(item); writeQueue(q); setPending(q.length); setConfirmed("offline gespeichert");
@@ -176,6 +180,9 @@ export function KioskClient({ locationName, initialCards, logout }: { locationNa
     <div className="kiosk">
       <div className="k-top">
         <div className="k-loc">◎ Tresen · {locationName}</div>
+        <div className="k-today" title="Heute an diesem Standort">
+          Heute: <b>{today?.count ?? 0}</b> Ausgaben · <b>{today?.persons ?? 0}</b> Pers. · <b>{eur(today?.sum ?? 0)}</b>
+        </div>
         <div className="k-online">
           {online ? <span className="pill good"><span className="dot" />Online</span> : <span className="pill bad"><span className="dot" />Offline</span>}
           {pending > 0 ? <span className="pill warn">{pending} in Warteschlange</span> : null}

@@ -343,3 +343,19 @@ export async function getActiveCards(): Promise<CachedCard[]> {
     .limit(5000);
   return rows.map((r) => ({ cardNumber: r.number, name: `${r.first} ${r.last}`, validTo: r.validTo, status: r.status, cardId: r.cardId }));
 }
+
+/** Heutige Ausgaben am Standort des Bedieners (Live-Zähler im Kiosk-Kopf). */
+export async function todayStats(): Promise<{ count: number; persons: number; sum: number }> {
+  const user = await guard();
+  const locId = user.locationId;
+  const rows = await db().select({
+    count: sql<string>`COUNT(*)`,
+    persons: sql<string>`COUNT(DISTINCT ${distributions.personId})`,
+    sum: sql<string>`COALESCE(SUM(${distributions.amountPaid}), 0)`,
+  }).from(distributions).where(and(
+    sql`(${distributions.distributedAt} AT TIME ZONE 'Europe/Vienna')::date = (now() AT TIME ZONE 'Europe/Vienna')::date`,
+    locId ? eq(distributions.locationId, locId) : undefined,
+  ));
+  const r = rows[0];
+  return { count: Number(r?.count ?? 0), persons: Number(r?.persons ?? 0), sum: Number(r?.sum ?? 0) };
+}

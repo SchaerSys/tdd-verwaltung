@@ -285,3 +285,7 @@
 .pager { display:flex; align-items:center; justify-content:center; gap:8px; padding:14px; border-top:1px solid var(--border); flex-wrap:wrap; }
 .pager-nums { display:flex; gap:4px; align-items:center; flex-wrap:wrap; }
 .pager-ell { color:var(--muted); padding:0 4px; }
+
+/* Kiosk-Tageszaehler im Kopf */
+.k-today { font-size:.82rem; opacity:.85; }
+.k-today b { font-variant-numeric:tabular-nums; }

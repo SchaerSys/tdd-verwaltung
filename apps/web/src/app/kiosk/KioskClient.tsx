@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { lookupCard, searchByName, recordDistribution, getActiveCards, issueCardKiosk, savePersonNote, payDebt, blockCardKiosk, unblockCardKiosk, type Eligibility, type CachedCard, type IssueResult } from "./actions";
 import { Footer } from "@/components/Footer";
-import { fmtDate } from "@/lib/format";
+import { fmtDate, fmtDateTime } from "@/lib/format";
 
 const CACHE_KEY = "tdd_kiosk_cards";
 const QUEUE_KEY = "tdd_kiosk_queue";
@@ -264,6 +264,15 @@ export function KioskClient({ locationName, initialCards, logout }: { locationNa
               {isOk
                 ? <div className="k-valid">Gültig bis <b>{fmtDate(result.validTo)}</b></div>
                 : <div className="k-valid">{noReason[result.status] ?? "Nicht berechtigt"}{result.reason ? ` · ${result.reason}` : ""}</div>}
+
+              {isOk && (result.visitsToday ?? 0) > 0 ? (
+                <div
+                  role="alert"
+                  style={{ background: "#b0790f", color: "#fff", fontWeight: 800, borderRadius: 10, padding: "10px 14px", marginTop: 10, fontSize: "1.02rem", lineHeight: 1.3 }}
+                >
+                  ⚠ Bereits heute abgeholt ({result.visitsToday}×){result.lastVisit ? ` · zuletzt ${fmtDateTime(result.lastVisit)}` : ""}
+                </div>
+              ) : null}
 
               {isOk && result.adults != null ? (
                 <div className="k-pay">

@@ -31,6 +31,7 @@ export interface Eligibility {
   gruppe?: number | null;     // abgeleitet aus familienNr + Gruppengröße
   note?: string | null;       // persistente Notiz (bleibt bei jedem Scan sichtbar)
   reissued?: boolean;         // Alt-Karte gescannt → neue EAN-Karte wurde erzeugt (bitte drucken)
+  visitsToday?: number;       // Anzahl heutiger Ausgaben (Doppelausgabe-Warnung am Tresen)
 }
 
 /** Erwachsene = Haushalt gesamt − Kinder (mind. 1). */
@@ -65,13 +66,14 @@ async function tresenDetails(
     paid: sql<string>`COALESCE(SUM(${distributions.amountPaid}), 0)`,
     due: sql<string>`COALESCE(SUM(${distributions.amountDue}), 0)`,
     last: sql<string | null>`MAX(${distributions.distributedAt})`,
+    today: sql<string>`COUNT(*) FILTER (WHERE (${distributions.distributedAt} AT TIME ZONE 'Europe/Vienna')::date = (now() AT TIME ZONE 'Europe/Vienna')::date)`,
   }).from(distributions).where(eq(distributions.personId, personId));
   const a = agg[0];
   // Saldo = bezahlt − fällig; negativ ⇒ Schulden. debt als positiver Betrag.
   const balance = Number(a?.paid ?? 0) - Number(a?.due ?? 0);
   const debt = balance < 0 ? Math.round(-balance * 100) / 100 : 0;
 
-  return { adults, children, amountDue, debt, lastVisit: a?.last ?? null, locationName: loc?.name, familienNr, gruppe: grp, note };
+  return { adults, children, amountDue, debt, lastVisit: a?.last ?? null, locationName: loc?.name, familienNr, gruppe: grp, note, visitsToday: Number(a?.today ?? 0) };
 }
 
 async function guard() {

@@ -50,10 +50,36 @@ export async function issueCard(formData: FormData): Promise<void> {
 
 async function loadCard(cardId: string) {
   const rows = await db()
-    .select({ id: cards.id, personId: cards.personId, locationId: cards.locationId, validTo: cards.validTo, code: locations.locationCode })
+    .select({ id: cards.id, personId: cards.personId, locationId: cards.locationId, validTo: cards.validTo, code: locations.locationCode, status: cards.status, deletedAt: cards.deletedAt })
     .from(cards).innerJoin(locations, eq(cards.locationId, locations.id))
     .where(eq(cards.id, cardId)).limit(1);
   return rows[0];
+}
+
+/** Mehrere (ausgewählte) Karten auf einmal verlängern – je neue Karte, alte → ERSETZT. */
+export async function renewCardsBulk(formData: FormData): Promise<void> {
+  const user = await guard();
+  const ids = [...new Set(formData.getAll("cardIds").map(String).filter(Boolean))];
+  const m = months(formData);
+  const touchedPersons = new Set<string>();
+  let count = 0;
+  for (const id of ids) {
+    const old = await loadCard(id);
+    if (!old || old.status !== "AKTIV" || old.deletedAt) continue; // nur aktive, nicht gelöschte Karten
+    const validFrom = today();
+    const validTo = addMonths(validFrom, m);
+    const cardNumber = await nextCardNumber(old.code);
+    await db().insert(cards).values({
+      cardNumber, personId: old.personId, locationId: old.locationId,
+      validFrom, validTo, status: "AKTIV", predecessorCardId: old.id, createdBy: user.id,
+    });
+    await db().update(cards).set({ status: "ERSETZT", updatedAt: new Date() }).where(eq(cards.id, old.id));
+    touchedPersons.add(old.personId);
+    count++;
+  }
+  await audit({ actorUserId: user.id, action: "card.renew.bulk", entityType: "card", after: { count, months: m } });
+  touchedPersons.forEach((pid) => revalidatePath(`/personen/${pid}`));
+  revalidatePath("/karten");
 }
 
 /** Verlängern: neue Karte mit neuem Code, alte wird ERSETZT. */

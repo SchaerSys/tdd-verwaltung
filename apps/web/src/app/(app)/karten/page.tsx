@@ -7,7 +7,8 @@ import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { hasPermission } from "@/lib/rbac";
 import { fmtDate } from "@/lib/format";
-import { renewCard, blockCard, replaceCard, unblockCard } from "./actions";
+import { ConfirmButton } from "@/components/ConfirmButton";
+import { renewCard, blockCard, replaceCard, unblockCard, renewCardsBulk } from "./actions";
 
 const LIMIT = 200;
 
@@ -89,18 +90,27 @@ export default async function KartenPage({ searchParams }: { searchParams: Promi
       </div>
 
       {expiring.length > 0 ? (
-        <div className="panel mb-4" style={{ borderColor: "var(--warn)" }}>
-          <div className="panel-h" style={{ background: "var(--warn-bg)" }}><h3 style={{ color: "var(--warn)" }}>Bald ablaufende Karten</h3><span className="pill warn">{expiring.length}</span></div>
+        <form action={renewCardsBulk} className="panel mb-4" style={{ borderColor: "var(--warn)" }}>
+          <input type="hidden" name="months" value="6" />
+          <div className="panel-h" style={{ background: "var(--warn-bg)" }}>
+            <h3 style={{ color: "var(--warn)" }}>Bald ablaufende Karten</h3>
+            <div className="flex items-center gap-2">
+              <span className="pill warn">{expiring.length}</span>
+              <ConfirmButton className="btn primary sm" message="Ausgewählte Karten um 6 Monate verlängern? Für jede ausgewählte Karte wird eine neue Karte erstellt (die alte wird ersetzt).">↻ Ausgewählte verlängern (6 Mon.)</ConfirmButton>
+            </div>
+          </div>
           <div className="twrap"><table className="data">
-            <thead><tr><th>Person</th><th>Kartennr.</th><th>Gültig bis</th><th></th></tr></thead>
+            <thead><tr><th></th><th>Person</th><th>Kartennr.</th><th>Gültig bis</th><th></th></tr></thead>
             <tbody>{expiring.map((r) => (
               <tr key={r.id}>
+                <td><input type="checkbox" name="cardIds" value={r.id} aria-label={`${r.last} ${r.first} auswählen`} /></td>
                 <td><Link href={`/personen/${r.personId}`} className="font-semibold hover:underline">{r.last}, {r.first}</Link></td>
-                <td className="mono">{r.number}</td><td className="mono">{fmtDate(r.validTo)}</td><td>{actions(r)}</td>
+                <td className="mono">{r.number}</td><td className="mono">{fmtDate(r.validTo)}</td>
+                <td><Link href={`/druck/karte/${r.id}`} className="btn ghost sm">🖨</Link></td>
               </tr>
             ))}</tbody>
           </table></div>
-        </div>
+        </form>
       ) : null}
 
       <div className="panel">

@@ -10,7 +10,7 @@
   "scripts": {
     "dev": "npm run dev -w @tdd/web",
     "build": "npm run build -w @tdd/web",
-    "test": "npm run test -w @tdd/core",
+    "test": "npm run test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "db:push": "echo 'DB-Migration: psql < packages/db/sql/001_init.sql && psql < packages/db/sql/002_roles.sql'"
   },

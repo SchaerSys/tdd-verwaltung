@@ -9,19 +9,21 @@
 :root {
   --bg: #f6f7f9; --surface: #ffffff; --surface-2: #f0f2f5; --border: #e2e6eb;
   --text: #171a1f; --muted: #5b6472; --muted-2: #8a94a3;
-  --accent: #2f4b99; --accent-weak: #eaeff7; --accent-text: #ffffff;
+  /* Marke Tischlein deck dich: tiefes Rot */
+  --accent: #981313; --accent-weak: #f7e8e8; --accent-text: #ffffff;
+  --brand: #981313; --brand-dark: #7d0f0f; --brand-on: #ffffff;
   --good: #148f5b; --good-bg: #e7f6ee; --bad: #d33a2c; --bad-bg: #fdecea;
   --warn: #b7791f; --warn-bg: #fbf1dd;
-  --shadow: 0 1px 2px rgba(16,24,40,.06), 0 1px 3px rgba(16,24,40,.08);
-  --shadow-lg: 0 10px 30px rgba(16,24,40,.14);
-  --r: 10px; --r-sm: 7px;
+  --shadow: 0 1px 2px rgba(16,24,40,.05), 0 4px 14px rgba(16,24,40,.06);
+  --shadow-lg: 0 12px 34px rgba(16,24,40,.16);
+  --r: 12px; --r-sm: 8px;
   --mono: ui-monospace, "SF Mono", "Cascadia Mono", "Roboto Mono", Menlo, Consolas, monospace;
 }
 @media (prefers-color-scheme: dark) {
   :root {
     --bg:#0f1216; --surface:#171b21; --surface-2:#1e232b; --border:#2a313b;
     --text:#e6e9ee; --muted:#97a1b0; --muted-2:#6f7987;
-    --accent:#7d9bff; --accent-weak:#1b2740; --accent-text:#0f1216;
+    --accent:#e58a83; --accent-weak:#2c1615; --accent-text:#1a0d0c;
     --good:#3ecf8e; --good-bg:#10231b; --bad:#ff6b5e; --bad-bg:#2a1512;
     --warn:#e6b450; --warn-bg:#2a2110;
     --shadow:0 1px 2px rgba(0,0,0,.4); --shadow-lg:0 12px 34px rgba(0,0,0,.5);
@@ -30,16 +32,16 @@
 :root[data-theme="light"] {
   --bg:#f6f7f9; --surface:#ffffff; --surface-2:#f0f2f5; --border:#e2e6eb;
   --text:#171a1f; --muted:#5b6472; --muted-2:#8a94a3;
-  --accent:#2f4b99; --accent-weak:#eaeff7; --accent-text:#ffffff;
+  --accent:#981313; --accent-weak:#f7e8e8; --accent-text:#ffffff;
   --good:#148f5b; --good-bg:#e7f6ee; --bad:#d33a2c; --bad-bg:#fdecea;
   --warn:#b7791f; --warn-bg:#fbf1dd;
-  --shadow:0 1px 2px rgba(16,24,40,.06),0 1px 3px rgba(16,24,40,.08);
-  --shadow-lg:0 10px 30px rgba(16,24,40,.14);
+  --shadow:0 1px 2px rgba(16,24,40,.05),0 4px 14px rgba(16,24,40,.06);
+  --shadow-lg:0 12px 34px rgba(16,24,40,.16);
 }
 :root[data-theme="dark"] {
   --bg:#0f1216; --surface:#171b21; --surface-2:#1e232b; --border:#2a313b;
   --text:#e6e9ee; --muted:#97a1b0; --muted-2:#6f7987;
-  --accent:#7d9bff; --accent-weak:#1b2740; --accent-text:#0f1216;
+  --accent:#e58a83; --accent-weak:#2c1615; --accent-text:#1a0d0c;
   --good:#3ecf8e; --good-bg:#10231b; --bad:#ff6b5e; --bad-bg:#2a1512;
   --warn:#e6b450; --warn-bg:#2a2110;
   --shadow:0 1px 2px rgba(0,0,0,.4); --shadow-lg:0 12px 34px rgba(0,0,0,.5);
@@ -293,3 +295,29 @@
 /* Nav: Hinweis "oeffnet in neuem Fenster" */
 .nav-ext { margin-left:auto; opacity:.35; font-size:.85em; }
 .nav .badge + .nav-ext { margin-left:6px; }
+
+/* ── Marken-Header (Topbar in TDD-Rot) + Modernisierung ─────────────────── */
+.topbar { display:flex; align-items:center; gap:12px; padding:12px 22px;
+  background:var(--brand); color:var(--brand-on); position:sticky; top:0; z-index:30;
+  box-shadow:0 1px 0 rgba(0,0,0,.10), 0 6px 18px rgba(0,0,0,.06); }
+.topbar .btn { background:transparent; border-color:rgba(255,255,255,.28); color:#fff; }
+.topbar .btn:hover { background:rgba(255,255,255,.14); }
+.topbar .btn.ghost { border-color:transparent; color:rgba(255,255,255,.9); }
+.topbar .btn.ghost:hover { background:rgba(255,255,255,.14); color:#fff; }
+.topbar .btn.primary { background:#fff; border-color:#fff; color:var(--brand); }
+.topbar .btn.primary:hover { filter:none; background:rgba(255,255,255,.9); }
+.topbar .theme-btn { background:transparent; border-color:rgba(255,255,255,.28); color:#fff; }
+.topbar .theme-btn:hover { background:rgba(255,255,255,.14); color:#fff; }
+.topbar .search { background:rgba(255,255,255,.15); border-color:rgba(255,255,255,.25); color:#fff; }
+.topbar .search input { color:#fff; }
+.topbar .search input::placeholder { color:rgba(255,255,255,.72); }
+.topbar .rolepill { background:rgba(255,255,255,.18); border-color:rgba(255,255,255,.32); color:#fff; }
+.topbar .avatar { background:rgba(255,255,255,.2); border-color:rgba(255,255,255,.4); color:#fff; }
+.topbar :focus-visible { outline-color:#fff; }
+
+/* Nav: aktiver Eintrag mit rotem Akzentbalken */
+.nav.active { box-shadow: inset 3px 0 0 var(--accent); }
+/* Marken-Logo etwas präsenter */
+.brand .logo { box-shadow: var(--shadow); }
+/* Buttons: ruhiger Hover fürs Markenrot */
+.btn.primary:hover { filter:brightness(1.08); }

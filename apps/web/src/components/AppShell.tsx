@@ -74,7 +74,7 @@ export function AppShell({
         <AppSidebar groups={groups} user={user} roleLabel={roleLabel} locationName={locationName} logout={logout} favorites={favorites} />
       ) : null}
       <div className="min-w-0">
-        <div className="flex items-center gap-4 px-6 pt-5">
+        <div className="topbar">
           <button
             type="button"
             className="btn ghost"

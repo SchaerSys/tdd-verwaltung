@@ -34,3 +34,6 @@ scratchpad/
 # next
 apps/web/.next/
 next-env.d.ts
+
+# installierte Skills (Tooling, nicht App-Code)
+.agents/

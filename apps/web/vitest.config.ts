@@ -7,6 +7,9 @@ const dir = path.dirname(fileURLToPath(import.meta.url));
 export default defineConfig({
   test: {
     include: ["test/**/*.test.ts"],
+    // Integrationstests brauchen eine echte Postgres und laufen ueber
+    // vitest.integration.config.ts – hier bewusst ausgenommen.
+    exclude: ["test/integration/**", "**/node_modules/**"],
     environment: "node",
   },
   resolve: {

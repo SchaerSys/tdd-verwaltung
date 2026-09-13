@@ -3,7 +3,7 @@
  * Kein Fremd-Paket; Geheimnis aus SESSION_SECRET.
  */
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { SESSION_COOKIE, SESSION_MAX_AGE } from "./constants";
+import { SESSION_MAX_AGE } from "./constants";
 
 const MAX_AGE = SESSION_MAX_AGE;
 

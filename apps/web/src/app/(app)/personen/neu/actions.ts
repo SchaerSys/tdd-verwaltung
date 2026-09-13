@@ -41,7 +41,7 @@ export async function searchCandidates(input: LiveInput): Promise<Candidate[]> {
   const user = await getCurrentUser();
   if (!user || !hasPermission(user.role, "person:write")) return [];
   if (!input.lastName || input.lastName.trim().length < 2) return [];
-  return findCandidates(input as PersonKey);
+  return findCandidates(input);
 }
 
 export async function createPerson(_prev: CreateState, fd: FormData): Promise<CreateState> {

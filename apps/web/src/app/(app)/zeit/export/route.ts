@@ -75,7 +75,7 @@ export async function GET(req: Request) {
   ws.views = [{ state: "frozen", ySplit: 1 }];
 
   const buf = await wb.xlsx.writeBuffer();
-  return new Response(buf as ArrayBuffer, {
+  return new Response(buf, {
     headers: {
       "content-type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       "content-disposition": `attachment; filename="TDD-Zeiterfassung-${month}.xlsx"`,

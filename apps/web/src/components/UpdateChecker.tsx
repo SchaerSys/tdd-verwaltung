@@ -25,9 +25,9 @@ export function UpdateChecker() {
         if (version !== initial.current) setStale(true);
       } catch { /* offline – ignorieren */ }
     };
-    check();
-    const id = setInterval(check, 5 * 60 * 1000);
-    const onVis = () => { if (document.visibilityState === "visible") check(); };
+    void check();
+    const id = setInterval(() => void check(), 5 * 60 * 1000);
+    const onVis = () => { if (document.visibilityState === "visible") void check(); };
     document.addEventListener("visibilitychange", onVis);
     return () => { alive = false; clearInterval(id); document.removeEventListener("visibilitychange", onVis); };
   }, []);

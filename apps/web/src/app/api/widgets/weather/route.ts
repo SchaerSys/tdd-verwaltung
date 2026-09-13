@@ -46,7 +46,7 @@ export async function GET(req: Request) {
       code: d?.weather_code?.[i] ?? null,
       tmax: r(d?.temperature_2m_max?.[i]),
       tmin: r(d?.temperature_2m_min?.[i]),
-      pop: typeof d?.precipitation_probability_max?.[i] === "number" ? d!.precipitation_probability_max![i] : null,
+      pop: typeof d?.precipitation_probability_max?.[i] === "number" ? d.precipitation_probability_max[i] : null,
     }));
     const data: Forecast = {
       place: "Ihr Standort",

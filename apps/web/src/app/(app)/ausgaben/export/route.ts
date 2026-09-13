@@ -10,7 +10,7 @@ function isoDaysAgo(n: number): string {
 
 /** Excel-Sheetname säubern (max 31 Zeichen, keine Sonderzeichen, eindeutig). */
 function sheetName(name: string, used: Set<string>): string {
-  let base = name.replace(/[\\/?*[\]:]/g, " ").trim().slice(0, 31) || "Ausgabestelle";
+  const base = name.replace(/[\\/?*[\]:]/g, " ").trim().slice(0, 31) || "Ausgabestelle";
   let n = base, i = 2;
   while (used.has(n.toLowerCase())) { const suffix = ` (${i++})`; n = base.slice(0, 31 - suffix.length) + suffix; }
   used.add(n.toLowerCase());
@@ -62,7 +62,7 @@ export async function GET(req: Request) {
   ov.getColumn(4).numFmt = '#,##0.00 "€"';
 
   const buf = await wb.xlsx.writeBuffer();
-  return new Response(buf as ArrayBuffer, {
+  return new Response(buf, {
     headers: {
       "content-type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       "content-disposition": `attachment; filename="TDD-Ausgaben-${von}_bis_${bis}.xlsx"`,

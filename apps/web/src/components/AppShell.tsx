@@ -54,7 +54,7 @@ export function AppShell({
   const toggle = () => {
     setCollapsed((c) => {
       const v = !c;
-      try { localStorage.setItem("tdd_nav_collapsed", v ? "1" : "0"); } catch {}
+      try { localStorage.setItem("tdd_nav_collapsed", v ? "1" : "0"); } catch { /* privater Modus – dann eben nicht merken */ }
       void setNavCollapsed(v);
       return v;
     });

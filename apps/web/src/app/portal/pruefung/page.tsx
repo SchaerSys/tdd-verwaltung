@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { and, desc, eq, inArray, isNotNull } from "drizzle-orm";
-import { antraege, persons, cards } from "@tdd/db";
+import { antraege, cards } from "@tdd/db";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { withOrg } from "@/lib/org";

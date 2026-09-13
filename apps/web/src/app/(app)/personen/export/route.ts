@@ -87,7 +87,7 @@ export async function GET(req: Request) {
 
   const buf = await wb.xlsx.writeBuffer();
   const today = new Date().toISOString().slice(0, 10);
-  return new Response(buf as ArrayBuffer, {
+  return new Response(buf, {
     headers: {
       "content-type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       "content-disposition": `attachment; filename="TDD-Personen-${today}.xlsx"`,

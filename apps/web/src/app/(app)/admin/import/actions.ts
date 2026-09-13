@@ -127,7 +127,7 @@ async function parseWorkbook(buf: Buffer, filename: string): Promise<{ headers: 
   const headers = json.length ? Object.keys(json[0]!) : [];
   const cols = detectColumns(headers);
 
-  const get = (row: Record<string, unknown>, f: Field) => (cols[f] ? row[cols[f]!] : null);
+  const get = (row: Record<string, unknown>, f: Field) => (cols[f] ? row[cols[f]] : null);
 
   const rows: ParsedRow[] = json.map((row) => {
     const lastName = str(get(row, "lastName")) ?? "";

@@ -48,7 +48,7 @@ export async function ocrForm(formData: FormData): Promise<OcrResult> {
   const fileRef = `scans/${randomUUID()}.${isDocx ? "docx" : extFor(file.type)}`;
   await writeFile(join(process.env.STORAGE_DIR ?? "./data/uploads", fileRef), buf);
 
-  let text = "", confidence = 0;
+  let text: string, confidence: number;
   try {
     if (isDocx) { text = await extractDocxText(buf); confidence = 100; }
     else { const r = await runOcr(buf); text = r.text; confidence = r.confidence; }

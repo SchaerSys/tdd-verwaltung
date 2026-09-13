@@ -18,10 +18,10 @@ export function LoginForm({ notice }: { notice?: string }) {
   useEffect(() => {
     if (!access) return;
     if (access === "TDD") {
-      listOrganizations("TDD").then((l) => { setOrgs(l); if (l[0]) setOrg(l[0]); });
+      listOrganizations("TDD").then((l) => { setOrgs(l); if (l[0]) setOrg(l[0]); }).catch(() => setOrgs([]));
     } else {
       setOrg(null);
-      listOrganizations(access).then(setOrgs);
+      listOrganizations(access).then(setOrgs).catch(() => setOrgs([]));
     }
   }, [access]);
 

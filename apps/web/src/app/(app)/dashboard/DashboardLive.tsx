@@ -60,7 +60,7 @@ export function DashboardLive({
 
   useEffect(() => {
     const id = setInterval(refresh, POLL_MS);
-    const onVis = () => { if (document.visibilityState === "visible") refresh(); };
+    const onVis = () => { if (document.visibilityState === "visible") void refresh(); };
     document.addEventListener("visibilitychange", onVis);
     window.addEventListener("focus", refresh);
     return () => {
@@ -223,9 +223,9 @@ function WeatherBody() {
   // Automatische Aktualisierung: sofort + stündlich, sobald ein Standort freigegeben ist.
   useEffect(() => {
     if (!coords) return;
-    load(coords);
-    const id = setInterval(() => load(coords), 60 * 60 * 1000);
-    const onVis = () => { if (document.visibilityState === "visible") load(coords); };
+    void load(coords);
+    const id = setInterval(() => void load(coords), 60 * 60 * 1000);
+    const onVis = () => { if (document.visibilityState === "visible") void load(coords); };
     document.addEventListener("visibilitychange", onVis);
     return () => { clearInterval(id); document.removeEventListener("visibilitychange", onVis); };
   }, [coords, load]);

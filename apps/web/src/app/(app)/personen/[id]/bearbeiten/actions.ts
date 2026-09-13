@@ -92,7 +92,7 @@ export async function uploadPersonPhoto(formData: FormData): Promise<void> {
   if (!personId) throw new Error("Keine Person");
   const file = formData.get("photo");
   if (!(file instanceof File) || file.size === 0) redirect(`/personen/${personId}/bearbeiten`);
-  const f = file as File;
+  const f = file;
   const ext = PHOTO_EXT[f.type];
   if (!ext) throw new Error("Nur JPG, PNG oder WebP erlaubt.");
   if (f.size > 8 * 1024 * 1024) throw new Error("Foto zu groß (max. 8 MB).");

@@ -75,7 +75,7 @@ export function extractFields(text: string): ExtractedFields {
   }
 
   // Geburtsdatum irgendwo im Text (falls Ausweis/ZMR statt Formular)
-  const bd = text.match(/(\d{1,2})[.\/](\d{1,2})[.\/](\d{4})/);
+  const bd = text.match(/(\d{1,2})[./](\d{1,2})[./](\d{4})/);
   if (bd) out.birthDate = `${bd[3]}-${bd[2]!.padStart(2, "0")}-${bd[1]!.padStart(2, "0")}`;
 
   // Haushaltsgröße = Erwachsene + Kinder (falls beide erkannt)

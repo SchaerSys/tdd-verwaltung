@@ -14,7 +14,7 @@ export function RegisterForm() {
   const [q, setQ] = useState("");
   const [state, action, pending] = useActionState<FormState, FormData>(registerSachbearbeiter, {});
 
-  useEffect(() => { if (access) { setOrg(null); listOrganizations(access).then(setOrgs); } }, [access]);
+  useEffect(() => { if (access) { setOrg(null); listOrganizations(access).then(setOrgs).catch(() => setOrgs([])); } }, [access]);
   const filtered = orgs.filter((o) => o.name.toLowerCase().includes(q.toLowerCase()));
 
   if (state.done) {

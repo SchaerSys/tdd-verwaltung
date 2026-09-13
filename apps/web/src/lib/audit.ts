@@ -16,8 +16,8 @@ export async function audit(entry: {
     action: entry.action,
     entityType: entry.entityType,
     entityId: entry.entityId ?? null,
-    before: (entry.before ?? null) as never,
-    after: (entry.after ?? null) as never,
+    before: (entry.before ?? null),
+    after: (entry.after ?? null),
     ip: entry.ip ?? null,
   });
 }

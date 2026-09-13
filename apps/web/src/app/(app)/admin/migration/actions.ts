@@ -313,7 +313,7 @@ export async function commitFamilien(formData: FormData): Promise<FamCommit> {
         // Übernahme-Buchung: letzte Anwesenheit + Anfangs-Schulden (fällig=Schulden, bezahlt=0).
         if (cardIns[0] && (r.schulden > 0 || r.lAnwesenheit)) {
           await db().insert(distributions).values({
-            cardId: cardIns[0]!.id, personId, locationId: loc.id, distributedBy: user.id,
+            cardId: cardIns[0].id, personId, locationId: loc.id, distributedBy: user.id,
             distributedAt: new Date(`${r.lAnwesenheit ?? importDate}T12:00:00`),
             amountDue: r.schulden > 0 ? String(r.schulden) : "0", amountPaid: "0",
             note: "Übernahme Altsystem",

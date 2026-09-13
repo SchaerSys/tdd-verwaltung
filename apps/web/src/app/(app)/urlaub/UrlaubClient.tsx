@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { berechneUrlaub, fmtDe, type UrlaubInput } from "@/lib/urlaub";
+import { berechneUrlaub, fmtDe } from "@/lib/urlaub";
 
 interface StaffLite { id: string; name: string; weeklyHours: string | null; employmentStart: string | null; employmentEnd: string | null }
 
@@ -35,7 +35,7 @@ export function UrlaubClient({ staff }: { staff: StaffLite[] }) {
   const r = useMemo(() => berechneUrlaub({
     eintritt, stichtag, wochenstunden: num(wochenstunden), tageWoche: num(tageWoche),
     jahresWochen: (jahresWochen === "6" ? 6 : 5), urlaubsjahr, aliquot, verbraucht: num(verbraucht), uebertrag: num(uebertrag), mode,
-  } as UrlaubInput), [eintritt, stichtag, wochenstunden, tageWoche, jahresWochen, urlaubsjahr, aliquot, verbraucht, uebertrag, mode]);
+  }), [eintritt, stichtag, wochenstunden, tageWoche, jahresWochen, urlaubsjahr, aliquot, verbraucht, uebertrag, mode]);
 
   return (
     <div className="grid gap-4 lg:grid-cols-[1.1fr_1fr] items-start">

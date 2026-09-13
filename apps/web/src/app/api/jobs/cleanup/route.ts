@@ -1,19 +1,18 @@
 import { sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { audit } from "@/lib/audit";
+import { requireJobToken } from "@/lib/job-auth";
 
 /**
  * Papierkorb-Automatik: verschiebt Karten, die seit mehr als 6 Monaten nicht mehr
  * gültig/aktiv sind, in den Papierkorb (Soft-Delete: deleted_at gesetzt).
  * NICHT hart gelöscht – endgültiges Löschen passiert nur manuell im Papierkorb.
  * Token-geschützt (JOB_TOKEN), per täglichem Cron:
- *   curl "http://127.0.0.1:3080/api/jobs/cleanup?token=..."
+ *   curl -H "Authorization: Bearer $JOB_TOKEN" http://127.0.0.1:3080/api/jobs/cleanup
  */
 export async function GET(req: Request) {
-  const token = new URL(req.url).searchParams.get("token");
-  if (!process.env.JOB_TOKEN || token !== process.env.JOB_TOKEN) {
-    return new Response("Forbidden", { status: 403 });
-  }
+  const denied = requireJobToken(req);
+  if (denied) return denied;
 
   const res = await db().execute(sql`
     UPDATE cards

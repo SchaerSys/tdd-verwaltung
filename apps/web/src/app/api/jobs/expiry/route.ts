@@ -3,18 +3,17 @@ import { cards, persons } from "@tdd/db";
 import { db } from "@/lib/db";
 import { sendMail } from "@/lib/mail";
 import { audit } from "@/lib/audit";
+import { requireJobToken } from "@/lib/job-auth";
 
 /**
  * Karten-Ablauf-Job: markiert abgelaufene Karten als ABGELAUFEN und benachrichtigt
  * die Klient/innen per E-Mail (mit Hinweis, dass ein neuer Antrag nötig ist).
  * Token-geschützt (JOB_TOKEN) – per täglichem Cron aufrufbar:
- *   curl "http://127.0.0.1:3080/api/jobs/expiry?token=..."
+ *   curl -H "Authorization: Bearer $JOB_TOKEN" http://127.0.0.1:3080/api/jobs/expiry
  */
 export async function GET(req: Request) {
-  const token = new URL(req.url).searchParams.get("token");
-  if (!process.env.JOB_TOKEN || token !== process.env.JOB_TOKEN) {
-    return new Response("Forbidden", { status: 403 });
-  }
+  const denied = requireJobToken(req);
+  if (denied) return denied;
   const todayStr = new Date().toISOString().slice(0, 10);
 
   const expired = await db()

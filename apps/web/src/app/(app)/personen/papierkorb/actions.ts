@@ -7,6 +7,7 @@ import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { hasPermission } from "@/lib/rbac";
 import { audit } from "@/lib/audit";
+import { purgePersons } from "@/lib/purge";
 
 async function guardWrite() {
   const user = await getCurrentUser();
@@ -66,25 +67,6 @@ export async function hardDeletePerson(formData: FormData): Promise<void> {
 export async function emptyArchive(): Promise<void> {
   const user = await guardAdmin();
   const res = await purgePersons(sql`IN (SELECT id FROM persons WHERE deleted_at IS NOT NULL AND (retention_until IS NULL OR retention_until <= current_date))`);
-  await audit({ actorUserId: user.id, action: "person.archive.empty", entityType: "person", after: { deleted: res } });
+  await audit({ actorUserId: user.id, action: "person.archive.empty", entityType: "person", after: res });
   revalidatePath("/personen/papierkorb");
-}
-
-/**
- * Entfernt Personen (Selektor auf persons.id) samt aller referenzierenden Daten
- * in Abhängigkeitsreihenfolge, in einer Transaktion. Gibt die Anzahl gelöschter
- * Personen zurück. Anträge behalten wir (Org-Akte) – nur der Personenbezug wird gelöst.
- */
-async function purgePersons(idSel: ReturnType<typeof sql>): Promise<number> {
-  return db().transaction(async (tx) => {
-    await tx.execute(sql`UPDATE antraege SET transferred_person_id = NULL WHERE transferred_person_id ${idSel}`);
-    await tx.execute(sql`DELETE FROM duplicate_decisions WHERE created_person_id ${idSel} OR matched_person_id ${idSel}`);
-    await tx.execute(sql`DELETE FROM scan_documents WHERE person_id ${idSel}`);
-    await tx.execute(sql`DELETE FROM distributions WHERE person_id ${idSel}`);
-    await tx.execute(sql`UPDATE cards SET predecessor_card_id = NULL WHERE predecessor_card_id IN (SELECT id FROM cards WHERE person_id ${idSel})`);
-    await tx.execute(sql`DELETE FROM cards WHERE person_id ${idSel}`);
-    await tx.execute(sql`DELETE FROM person_location_assignments WHERE person_id ${idSel}`);
-    const del = await tx.execute(sql`DELETE FROM persons WHERE id ${idSel} RETURNING id`);
-    return (del as unknown as { id: string }[]).length;
-  });
 }

@@ -35,6 +35,8 @@ set -euo pipefail
 cd /opt/tdd
 
 echo "── 1/5 Entpacken nach stage ──"
+# Archive abgebrochener Laeufe wegraeumen, nur das aktuelle behalten.
+find . -maxdepth 1 -name 'deploy-*.tar.gz' ! -name "deploy-$STAND.tar.gz" -delete
 rm -rf stage && mkdir stage
 tar xzf "deploy-$STAND.tar.gz" -C stage 2>/dev/null
 sed -i 's/\r$//' stage/scripts/*.sh && chmod +x stage/scripts/*.sh

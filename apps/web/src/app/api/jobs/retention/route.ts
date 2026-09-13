@@ -11,8 +11,8 @@ import { purgePersons, deleteFiles } from "@/lib/purge";
  * 1) Rohscans, deren Aufbewahrungsfrist (90 Tage) abgelaufen ist – Zeile UND Datei.
  * 2) Archivierte Personen, deren Frist (3 Jahre) abgelaufen ist – vollständig.
  *
- * Bekannte Lücke: antrag_documents steht unter RLS und wird hier noch nicht
- * erfasst; das kommt mit einer SECURITY-DEFINER-Funktion in S3-5.
+ * 3) Antragsdokumente über alle Mandanten (RLS wird kontrolliert über eine
+ *    SECURITY-DEFINER-Funktion umgangen, die nur file_refs zurückgibt).
  */
 export async function GET(req: Request) {
   const denied = requireJobToken(req);
@@ -33,7 +33,16 @@ export async function GET(req: Request) {
       AND retention_until IS NOT NULL
       AND retention_until <= current_date)`);
 
-  const result = { scans: scanRefs.length, scanFiles, persons: purged.persons, personFiles: purged.files };
+  // 3) Antragsdokumente – Funktion statt DELETE, weil RLS den Job sonst nichts sehen ließe
+  const docs = await db().execute(sql`SELECT * FROM purge_expired_antrag_documents()`);
+  const docRefs = (docs as unknown as { file_ref: string }[]).map((d) => d.file_ref);
+  const docFiles = await deleteFiles(docRefs);
+
+  const result = {
+    scans: scanRefs.length, scanFiles,
+    persons: purged.persons, personFiles: purged.files,
+    docs: docRefs.length, docFiles,
+  };
   await audit({ action: "job.retention", entityType: "job", after: result });
   return Response.json(result);
 }

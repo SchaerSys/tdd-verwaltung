@@ -3,9 +3,8 @@
 import { persons, personLocationAssignments, duplicateDecisions } from "@tdd/db";
 import { normalizeName, normalizeAddress, koelnerPhonetik, type PersonKey } from "@tdd/core";
 import { db } from "@/lib/db";
-import { getCurrentUser } from "@/lib/auth";
-import { hasPermission } from "@/lib/rbac";
 import { audit } from "@/lib/audit";
+import { tryPermission } from "@/lib/guard";
 import { findCandidates, type Candidate } from "@/lib/dedupe";
 
 export interface CreateState {
@@ -38,15 +37,15 @@ export interface LiveInput {
 
 /** Live-Dublettensuche für das Neuaufnahme-Panel (unscharf). */
 export async function searchCandidates(input: LiveInput): Promise<Candidate[]> {
-  const user = await getCurrentUser();
-  if (!user || !hasPermission(user.role, "person:write")) return [];
+  const user = await tryPermission("person:write");
+  if (!user) return [];
   if (!input.lastName || input.lastName.trim().length < 2) return [];
   return findCandidates(input);
 }
 
 export async function createPerson(_prev: CreateState, fd: FormData): Promise<CreateState> {
-  const user = await getCurrentUser();
-  if (!user || !hasPermission(user.role, "person:write")) return { error: "Keine Berechtigung" };
+  const user = await tryPermission("person:write");
+  if (!user) return { error: "Keine Berechtigung" };
 
   const firstName = s(fd, "firstName");
   const lastName = s(fd, "lastName");

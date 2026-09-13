@@ -7,10 +7,9 @@ import { randomUUID } from "node:crypto";
 import { and, eq, isNull } from "drizzle-orm";
 import { antraege, antragDocuments, persons, personLocationAssignments, scanDocuments } from "@tdd/db";
 import { normalizeName, normalizeAddress, koelnerPhonetik } from "@tdd/core";
-import { getCurrentUser } from "@/lib/auth";
-import { hasPermission } from "@/lib/rbac";
 import { withOrg } from "@/lib/org";
 import { audit } from "@/lib/audit";
+import { requirePermission } from "@/lib/guard";
 import { generateBescheidPdf } from "@/lib/bescheid";
 import { fmtDate } from "@/lib/format";
 import { sendMail } from "@/lib/mail";
@@ -26,8 +25,8 @@ function extFor(name: string, type: string): string {
 
 /** Dokument zu einem Antrag hochladen (Ausweis/ZMR/Kontoauszüge …). RLS-gescoped. */
 export async function addAntragDocument(formData: FormData): Promise<void> {
-  const user = await getCurrentUser();
-  if (!user || !hasPermission(user.role, "antrag:manage") || !user.organizationId) throw new Error("Keine Berechtigung");
+  const user = await requirePermission("antrag:manage");
+  if (!user.organizationId) throw new Error("Keine Berechtigung"); // Portal nur mit Organisation
   const antragId = String(formData.get("antragId") ?? "");
   const docType = String(formData.get("docType") ?? "SONSTIGES");
   const file = formData.get("file");
@@ -57,8 +56,8 @@ interface TransferInfo {
 }
 
 export async function decideAntrag(formData: FormData): Promise<void> {
-  const user = await getCurrentUser();
-  if (!user || !hasPermission(user.role, "antrag:manage") || !user.organizationId) throw new Error("Keine Berechtigung");
+  const user = await requirePermission("antrag:manage");
+  if (!user.organizationId) throw new Error("Keine Berechtigung"); // Portal nur mit Organisation
 
   const antragId = String(formData.get("antragId") ?? "");
   const decision = String(formData.get("decision") ?? "");

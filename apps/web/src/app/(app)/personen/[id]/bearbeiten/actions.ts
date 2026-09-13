@@ -8,9 +8,8 @@ import { randomUUID } from "node:crypto";
 import { persons, personLocationAssignments } from "@tdd/db";
 import { normalizeName, normalizeAddress, koelnerPhonetik } from "@tdd/core";
 import { db } from "@/lib/db";
-import { getCurrentUser } from "@/lib/auth";
-import { hasPermission } from "@/lib/rbac";
 import { audit } from "@/lib/audit";
+import { requirePermission } from "@/lib/guard";
 
 function s(fd: FormData, key: string): string | null {
   const v = fd.get(key);
@@ -30,8 +29,7 @@ function householdTotal(adults: number | null, children: number | null): number 
 }
 
 export async function updatePerson(formData: FormData): Promise<void> {
-  const user = await getCurrentUser();
-  if (!user || !hasPermission(user.role, "person:write")) throw new Error("Keine Berechtigung");
+  const user = await requirePermission("person:write");
 
   const personId = String(formData.get("personId") ?? "");
   if (!personId) throw new Error("Keine Person");
@@ -86,8 +84,7 @@ const PHOTO_EXT: Record<string, string> = { "image/jpeg": "jpg", "image/png": "p
 
 /** Lädt ein Erkennungsfoto der Person hoch (für die Ausgabe am Tresen). */
 export async function uploadPersonPhoto(formData: FormData): Promise<void> {
-  const user = await getCurrentUser();
-  if (!user || !hasPermission(user.role, "person:write")) throw new Error("Keine Berechtigung");
+  const user = await requirePermission("person:write");
   const personId = String(formData.get("personId") ?? "");
   if (!personId) throw new Error("Keine Person");
   const file = formData.get("photo");
@@ -116,8 +113,7 @@ export async function uploadPersonPhoto(formData: FormData): Promise<void> {
  * nicht mehr als „aktiv" zählen; die Ausgabe-Historie bleibt erhalten.
  */
 export async function deletePerson(formData: FormData): Promise<void> {
-  const user = await getCurrentUser();
-  if (!user || !hasPermission(user.role, "person:write")) throw new Error("Keine Berechtigung");
+  const user = await requirePermission("person:write");
   const personId = String(formData.get("personId") ?? "");
   if (!personId) throw new Error("Keine Person");
   const reason = String(formData.get("reason") ?? "").trim() || null;

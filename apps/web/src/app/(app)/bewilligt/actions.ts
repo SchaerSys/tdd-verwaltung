@@ -4,14 +4,12 @@ import { revalidatePath } from "next/cache";
 import { and, eq } from "drizzle-orm";
 import { persons } from "@tdd/db";
 import { db } from "@/lib/db";
-import { getCurrentUser } from "@/lib/auth";
-import { hasPermission } from "@/lib/rbac";
 import { audit } from "@/lib/audit";
+import { requirePermission } from "@/lib/guard";
 
 /** TDD übernimmt einen bewilligten Antrag aktiv (Person wird in den TDD-Bestand aufgenommen). */
 export async function takeoverPerson(formData: FormData): Promise<void> {
-  const user = await getCurrentUser();
-  if (!user || !hasPermission(user.role, "person:write")) throw new Error("Keine Berechtigung");
+  const user = await requirePermission("person:write");
   const personId = String(formData.get("personId") ?? "");
   if (!personId) throw new Error("Keine Person");
 

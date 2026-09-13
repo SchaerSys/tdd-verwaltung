@@ -4,16 +4,11 @@ import { eq, isNull } from "drizzle-orm";
 import { persons, locations, personLocationAssignments, cards, distributions } from "@tdd/db";
 import { normalizeName, normalizeAddress, koelnerPhonetik } from "@tdd/core";
 import { db } from "@/lib/db";
-import { getCurrentUser } from "@/lib/auth";
-import { hasPermission } from "@/lib/rbac";
 import { audit } from "@/lib/audit";
+import { requirePermission } from "@/lib/guard";
 import { today } from "@/lib/cards";
 
-async function guard() {
-  const user = await getCurrentUser();
-  if (!user || !hasPermission(user.role, "admin:manage")) throw new Error("Keine Berechtigung");
-  return user;
-}
+const guard = () => requirePermission("admin:manage");
 
 /** Repariert doppelt kodiertes UTF-8 (z. B. „StrÃ¶hle" → „Ströhle"). */
 function fixMojibake(s: string): string {

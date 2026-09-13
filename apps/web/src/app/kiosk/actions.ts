@@ -4,9 +4,8 @@ import { and, eq, ilike, isNull, or, desc, sql, inArray } from "drizzle-orm";
 import { cards, persons, locations, distributions, personLocationAssignments } from "@tdd/db";
 import { normalizeName } from "@tdd/core";
 import { db } from "@/lib/db";
-import { getCurrentUser } from "@/lib/auth";
-import { hasPermission } from "@/lib/rbac";
 import { audit } from "@/lib/audit";
+import { requirePermission, tryPermission } from "@/lib/guard";
 import { ensureAusgabePlacement } from "@/lib/ausgabe";
 
 export type EligStatus = "OK" | "EXPIRED" | "BLOCKED" | "REPLACED" | "NOTFOUND" | "NOCARD";
@@ -76,11 +75,7 @@ async function tresenDetails(
   return { adults, children, amountDue, debt, lastVisit: a?.last ?? null, locationName: loc?.name, familienNr, gruppe: grp, note, visitsToday: Number(a?.today ?? 0) };
 }
 
-async function guard() {
-  const user = await getCurrentUser();
-  if (!user || !hasPermission(user.role, "distribution:record")) throw new Error("Keine Berechtigung");
-  return user;
-}
+const guard = () => requirePermission("distribution:record");
 
 /** Prüft eine gescannte Kartennummer auf Berechtigung/Gültigkeit. */
 export async function lookupCard(rawCode: string): Promise<Eligibility> {
@@ -291,10 +286,8 @@ export interface IssueResult { ok: boolean; error?: string; cardId?: string; car
 
 /** Neue Karte am Tresen ausstellen (Klient vor Ort, z. B. mit positivem Bescheid). */
 export async function issueCardKiosk(personId: string, months = 6): Promise<IssueResult> {
-  const user = await getCurrentUser();
-  if (!user || !(hasPermission(user.role, "distribution:record") || hasPermission(user.role, "card:manage"))) {
-    return { ok: false, error: "Keine Berechtigung" };
-  }
+  const user = await tryPermission("distribution:record", "card:manage");
+  if (!user) return { ok: false, error: "Keine Berechtigung" };
   const { nextCardNumber, addMonths, today } = await import("@/lib/cards");
   const p = await db().select({ first: persons.firstName, last: persons.lastName }).from(persons).where(eq(persons.id, personId)).limit(1);
   if (!p[0]) return { ok: false, error: "Person nicht gefunden" };

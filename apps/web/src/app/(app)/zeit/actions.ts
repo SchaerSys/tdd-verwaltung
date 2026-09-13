@@ -4,18 +4,13 @@ import { revalidatePath } from "next/cache";
 import { desc, eq } from "drizzle-orm";
 import { staff, timeEvents } from "@tdd/db";
 import { db } from "@/lib/db";
-import { getCurrentUser } from "@/lib/auth";
-import { hasPermission } from "@/lib/rbac";
 import { audit } from "@/lib/audit";
+import { requirePermission } from "@/lib/guard";
 import { statusFromLast, allowedActions, viennaLocalToUtc, type EventKind, type Status } from "@/lib/zeit";
 
 const KINDS: EventKind[] = ["IN", "OUT", "BREAK_START", "BREAK_END"];
 
-async function guard() {
-  const u = await getCurrentUser();
-  if (!u || !hasPermission(u.role, "staff:manage")) throw new Error("Keine Berechtigung");
-  return u;
-}
+const guard = () => requirePermission("staff:manage");
 
 async function currentStatus(staffId: string): Promise<Status> {
   const last = await db().select({ kind: timeEvents.kind }).from(timeEvents)

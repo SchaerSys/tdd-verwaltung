@@ -4,16 +4,11 @@ import { revalidatePath } from "next/cache";
 import { and, eq } from "drizzle-orm";
 import { cards, locations, personLocationAssignments } from "@tdd/db";
 import { db } from "@/lib/db";
-import { getCurrentUser } from "@/lib/auth";
-import { hasPermission } from "@/lib/rbac";
 import { audit } from "@/lib/audit";
+import { requirePermission } from "@/lib/guard";
 import { nextCardNumber, addMonths, today } from "@/lib/cards";
 
-async function guard() {
-  const user = await getCurrentUser();
-  if (!user || !hasPermission(user.role, "card:manage")) throw new Error("Keine Berechtigung");
-  return user;
-}
+const guard = () => requirePermission("card:manage");
 
 function months(fd: FormData): number {
   const m = parseInt(String(fd.get("months") ?? "6"), 10);

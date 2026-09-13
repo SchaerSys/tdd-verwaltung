@@ -6,17 +6,15 @@ import {
   persons, cards, distributions, scanDocuments, personLocationAssignments, duplicateDecisions,
 } from "@tdd/db";
 import { db } from "@/lib/db";
-import { getCurrentUser } from "@/lib/auth";
-import { hasPermission } from "@/lib/rbac";
 import { audit } from "@/lib/audit";
+import { requirePermission } from "@/lib/guard";
 
 /**
  * Führt zwei Personen zusammen: hängt Karten/Ausgaben/Scans/Zuordnung von `drop`
  * auf `keep` um, markiert `drop` als gelöscht und protokolliert die Entscheidung.
  */
 export async function mergePersons(formData: FormData): Promise<void> {
-  const user = await getCurrentUser();
-  if (!user || !hasPermission(user.role, "person:write")) throw new Error("Keine Berechtigung");
+  const user = await requirePermission("person:write");
 
   const keepId = String(formData.get("keepId") ?? "");
   const dropId = String(formData.get("dropId") ?? "");

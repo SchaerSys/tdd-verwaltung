@@ -4,15 +4,10 @@ import { revalidatePath } from "next/cache";
 import { eq, sql } from "drizzle-orm";
 import { cards, distributions } from "@tdd/db";
 import { db } from "@/lib/db";
-import { getCurrentUser } from "@/lib/auth";
-import { hasPermission } from "@/lib/rbac";
 import { audit } from "@/lib/audit";
+import { requirePermission } from "@/lib/guard";
 
-async function guard() {
-  const user = await getCurrentUser();
-  if (!user || !hasPermission(user.role, "card:manage")) throw new Error("Keine Berechtigung");
-  return user;
-}
+const guard = () => requirePermission("card:manage");
 
 /** Holt eine Karte aus dem Papierkorb zurück. */
 export async function restoreCard(formData: FormData): Promise<void> {

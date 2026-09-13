@@ -5,9 +5,8 @@ import { eq } from "drizzle-orm";
 import { hash } from "@node-rs/argon2";
 import { users, locations } from "@tdd/db";
 import { db } from "@/lib/db";
-import { getCurrentUser } from "@/lib/auth";
-import { hasPermission } from "@/lib/rbac";
 import { audit } from "@/lib/audit";
+import { requirePermission } from "@/lib/guard";
 import { sendMail } from "@/lib/mail";
 import { appUrl } from "@/lib/auth-tokens";
 import { WEEKDAYS } from "@/lib/opening-hours";
@@ -16,8 +15,7 @@ const INTERNAL_ROLES = ["ADMIN", "ERFASSUNG", "AUSGABE", "AUSWERTUNG"] as const;
 
 /** Legt einen internen TDD-Benutzer an (Zivildiener etc.) mit gewählter Rolle. */
 export async function createUser(formData: FormData): Promise<void> {
-  const admin = await getCurrentUser();
-  if (!admin || !hasPermission(admin.role, "admin:manage")) throw new Error("Keine Berechtigung");
+  const admin = await requirePermission("admin:manage");
   const email = String(formData.get("email") ?? "").toLowerCase().trim();
   const displayName = String(formData.get("displayName") ?? "").trim();
   const role = String(formData.get("role") ?? "");
@@ -38,8 +36,7 @@ export async function createUser(formData: FormData): Promise<void> {
 
 /** Ändert die Rolle eines Benutzers. */
 export async function setUserRole(formData: FormData): Promise<void> {
-  const admin = await getCurrentUser();
-  if (!admin || !hasPermission(admin.role, "admin:manage")) throw new Error("Keine Berechtigung");
+  const admin = await requirePermission("admin:manage");
   const userId = String(formData.get("userId") ?? "");
   const role = String(formData.get("role") ?? "");
   if (!userId || !(INTERNAL_ROLES as readonly string[]).includes(role)) { revalidatePath("/admin"); return; }
@@ -51,8 +48,7 @@ export async function setUserRole(formData: FormData): Promise<void> {
 
 /** Aktiviert/sperrt einen Benutzer. */
 export async function toggleUserActive(formData: FormData): Promise<void> {
-  const admin = await getCurrentUser();
-  if (!admin || !hasPermission(admin.role, "admin:manage")) throw new Error("Keine Berechtigung");
+  const admin = await requirePermission("admin:manage");
   const userId = String(formData.get("userId") ?? "");
   const active = String(formData.get("active") ?? "") === "1";
   if (!userId || userId === admin.id) { revalidatePath("/admin"); return; }
@@ -63,8 +59,7 @@ export async function toggleUserActive(formData: FormData): Promise<void> {
 
 /** Gibt eine bestätigte Registrierung frei (Login danach möglich). */
 export async function approveUser(formData: FormData): Promise<void> {
-  const admin = await getCurrentUser();
-  if (!admin || !hasPermission(admin.role, "admin:manage")) throw new Error("Keine Berechtigung");
+  const admin = await requirePermission("admin:manage");
   const userId = String(formData.get("userId") ?? "");
   const rows = await db().select({ email: users.email, name: users.displayName, active: users.isActive }).from(users).where(eq(users.id, userId)).limit(1);
   const u = rows[0];
@@ -79,8 +74,7 @@ export async function approveUser(formData: FormData): Promise<void> {
 
 /** Lehnt eine Registrierung ab (Konto wird entfernt). */
 export async function rejectUser(formData: FormData): Promise<void> {
-  const admin = await getCurrentUser();
-  if (!admin || !hasPermission(admin.role, "admin:manage")) throw new Error("Keine Berechtigung");
+  const admin = await requirePermission("admin:manage");
   const userId = String(formData.get("userId") ?? "");
   // Nur nicht-aktive (ausstehende) Registrierungen dürfen gelöscht werden
   const rows = await db().select({ active: users.isActive }).from(users).where(eq(users.id, userId)).limit(1);
@@ -92,8 +86,7 @@ export async function rejectUser(formData: FormData): Promise<void> {
 
 /** Setzt die Preisregel (Betrag je Erwachsener/Kind) einer Ausgabestelle. */
 export async function setLocationPrice(formData: FormData): Promise<void> {
-  const admin = await getCurrentUser();
-  if (!admin || !hasPermission(admin.role, "admin:manage")) throw new Error("Keine Berechtigung");
+  const admin = await requirePermission("admin:manage");
   const locId = parseInt(String(formData.get("locationId") ?? ""), 10);
   const parse = (v: FormDataEntryValue | null) => {
     const n = Number(String(v ?? "").replace(",", "."));
@@ -111,8 +104,7 @@ export async function setLocationPrice(formData: FormData): Promise<void> {
 
 /** Setzt die Öffnungszeiten (ein Zeitfenster je Wochentag) eines Standorts. */
 export async function setLocationHours(formData: FormData): Promise<void> {
-  const admin = await getCurrentUser();
-  if (!admin || !hasPermission(admin.role, "admin:manage")) throw new Error("Keine Berechtigung");
+  const admin = await requirePermission("admin:manage");
   const locId = parseInt(String(formData.get("locationId") ?? ""), 10);
   if (!locId) { revalidatePath("/admin"); return; }
 

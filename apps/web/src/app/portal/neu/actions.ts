@@ -3,9 +3,8 @@
 import { redirect } from "next/navigation";
 import { antraege } from "@tdd/db";
 import { normalizeName } from "@tdd/core";
-import { getCurrentUser } from "@/lib/auth";
-import { hasPermission } from "@/lib/rbac";
 import { withOrg } from "@/lib/org";
+import { requirePermission } from "@/lib/guard";
 import { INCOME_FIELDS, EXPENSE_FIELDS, sumValues, incomeLimit } from "@/lib/eligibility";
 
 function s(fd: FormData, k: string): string | null {
@@ -23,8 +22,8 @@ function i(fd: FormData, k: string, def = 0): number {
 }
 
 export async function createAntrag(formData: FormData): Promise<void> {
-  const user = await getCurrentUser();
-  if (!user || !hasPermission(user.role, "antrag:manage") || !user.organizationId) throw new Error("Keine Berechtigung");
+  const user = await requirePermission("antrag:manage");
+  if (!user.organizationId) throw new Error("Keine Berechtigung"); // Portal nur mit Organisation
 
   const firstName = s(formData, "firstName");
   const lastName = s(formData, "lastName");

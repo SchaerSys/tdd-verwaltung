@@ -4,21 +4,12 @@ import { revalidatePath } from "next/cache";
 import { eq, sql } from "drizzle-orm";
 import { persons } from "@tdd/db";
 import { db } from "@/lib/db";
-import { getCurrentUser } from "@/lib/auth";
-import { hasPermission } from "@/lib/rbac";
 import { audit } from "@/lib/audit";
+import { requirePermission } from "@/lib/guard";
 import { purgePersons } from "@/lib/purge";
 
-async function guardWrite() {
-  const user = await getCurrentUser();
-  if (!user || !hasPermission(user.role, "person:write")) throw new Error("Keine Berechtigung");
-  return user;
-}
-async function guardAdmin() {
-  const user = await getCurrentUser();
-  if (!user || !hasPermission(user.role, "admin:manage")) throw new Error("Keine Berechtigung");
-  return user;
-}
+const guardWrite = () => requirePermission("person:write");
+const guardAdmin = () => requirePermission("admin:manage");
 
 /** Holt eine Person aus dem Archiv zurück (inkl. ihrer archivierten Karten). */
 export async function restorePerson(formData: FormData): Promise<void> {

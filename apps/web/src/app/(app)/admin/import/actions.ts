@@ -6,9 +6,8 @@ import { isNull } from "drizzle-orm";
 import { persons, locations, personLocationAssignments } from "@tdd/db";
 import { normalizeName, normalizeAddress, koelnerPhonetik } from "@tdd/core";
 import { db } from "@/lib/db";
-import { getCurrentUser } from "@/lib/auth";
-import { hasPermission } from "@/lib/rbac";
 import { audit } from "@/lib/audit";
+import { requirePermission } from "@/lib/guard";
 
 // ── Spaltenerkennung anhand normalisierter Kopfzeilen ─────────────────────
 type Field =
@@ -159,11 +158,7 @@ async function existingKeys(): Promise<Set<string>> {
   return new Set(rows.map((r) => `${r.ln}|${r.fn}|${r.bd ?? ""}`));
 }
 
-async function guard() {
-  const user = await getCurrentUser();
-  if (!user || !hasPermission(user.role, "admin:manage")) throw new Error("Keine Berechtigung");
-  return user;
-}
+const guard = () => requirePermission("admin:manage");
 
 export interface AnalyzeResult {
   ok: boolean;

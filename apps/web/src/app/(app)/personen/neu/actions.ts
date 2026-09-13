@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { audit } from "@/lib/audit";
 import { tryPermission } from "@/lib/guard";
 import { findCandidates, type Candidate } from "@/lib/dedupe";
+import { parseForm, personSchema, text } from "@/lib/forms";
 
 export interface CreateState {
   error?: string;
@@ -13,16 +14,6 @@ export interface CreateState {
   candidates?: Candidate[]; // HIGH-Treffer, die eine bewusste Entscheidung verlangen
 }
 
-function s(fd: FormData, key: string): string | null {
-  const v = fd.get(key);
-  const str = typeof v === "string" ? v.trim() : "";
-  return str === "" ? null : str;
-}
-function toInt(v: string | null): number | null {
-  if (v == null) return null;
-  const n = parseInt(v.replace(/[^\d]/g, ""), 10);
-  return Number.isFinite(n) ? n : null;
-}
 
 /** Gesamt-Haushalt aus Erwachsenen + Kindern; null wenn beides leer. */
 function householdTotal(adults: number | null, children: number | null): number | null {
@@ -47,15 +38,11 @@ export async function createPerson(_prev: CreateState, fd: FormData): Promise<Cr
   const user = await tryPermission("person:write");
   if (!user) return { error: "Keine Berechtigung" };
 
-  const firstName = s(fd, "firstName");
-  const lastName = s(fd, "lastName");
-  if (!firstName || !lastName) return { error: "Vor- und Nachname sind Pflicht." };
-
-  const address = s(fd, "address");
-  const postalCode = s(fd, "postalCode");
-  const birthDate = s(fd, "birthDate");
+  const geprueft = parseForm(personSchema, fd);
+  if (!geprueft.ok) return { error: "Vor- und Nachname sind Pflicht." };
+  const { firstName, lastName, address, postalCode, birthDate } = geprueft.data;
   const force = fd.get("force") === "1";
-  const reason = s(fd, "reason");
+  const reason = text.parse(fd.get("reason"));
 
   const input: PersonKey = { firstName, lastName, birthDate, address, postalCode };
   const candidates = await findCandidates(input);
@@ -68,17 +55,17 @@ export async function createPerson(_prev: CreateState, fd: FormData): Promise<Cr
 
   const lastNameNorm = normalizeName(lastName);
   const firstNameNorm = normalizeName(firstName);
-  const locationId = toInt(s(fd, "locationId"));
+  const locationId = geprueft.data.locationId;
 
   const inserted = await db()
     .insert(persons)
     .values({
       firstName, lastName, address, postalCode,
-      city: s(fd, "city"), birthDate, phone: s(fd, "phone"), email: s(fd, "email"),
+      city: geprueft.data.city, birthDate, phone: geprueft.data.phone, email: geprueft.data.email,
       // "Erwachsene" wird eingegeben; gespeichert wird householdSize = Erwachsene + Kinder (Gesamt-Haushalt).
-      householdSize: householdTotal(toInt(s(fd, "adults")), toInt(s(fd, "childrenCount"))),
-      childrenCount: toInt(s(fd, "childrenCount")),
-      languageId: toInt(s(fd, "languageId")), originId: toInt(s(fd, "originId")), note: s(fd, "note"),
+      householdSize: householdTotal(geprueft.data.adults, geprueft.data.childrenCount),
+      childrenCount: geprueft.data.childrenCount,
+      languageId: geprueft.data.languageId, originId: geprueft.data.originId, note: geprueft.data.note,
       consentAt: fd.get("consent") ? new Date() : null,
       lastNameNorm, firstNameNorm, addressNorm: normalizeAddress(address),
       lastNamePhon: koelnerPhonetik(lastNameNorm), firstNamePhon: koelnerPhonetik(firstNameNorm),

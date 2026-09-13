@@ -8,19 +8,10 @@ import { randomUUID } from "node:crypto";
 import { persons, personLocationAssignments } from "@tdd/db";
 import { normalizeName, normalizeAddress, koelnerPhonetik } from "@tdd/core";
 import { db } from "@/lib/db";
+import { parseForm, personBearbeitenSchema } from "@/lib/forms";
 import { audit } from "@/lib/audit";
 import { requirePermission } from "@/lib/guard";
 
-function s(fd: FormData, key: string): string | null {
-  const v = fd.get(key);
-  const str = typeof v === "string" ? v.trim() : "";
-  return str === "" ? null : str;
-}
-function toInt(v: string | null): number | null {
-  if (v == null) return null;
-  const n = parseInt(v.replace(/[^\d]/g, ""), 10);
-  return Number.isFinite(n) ? n : null;
-}
 
 /** Gesamt-Haushalt aus Erwachsenen + Kindern; null wenn beides leer. */
 function householdTotal(adults: number | null, children: number | null): number | null {
@@ -33,21 +24,20 @@ export async function updatePerson(formData: FormData): Promise<void> {
 
   const personId = String(formData.get("personId") ?? "");
   if (!personId) throw new Error("Keine Person");
-  const firstName = s(formData, "firstName");
-  const lastName = s(formData, "lastName");
-  if (!firstName || !lastName) throw new Error("Vor- und Nachname sind Pflicht.");
-
-  const address = s(formData, "address");
+  const geprueft = parseForm(personBearbeitenSchema, formData);
+  if (!geprueft.ok) throw new Error("Vor- und Nachname sind Pflicht.");
+  const f = geprueft.data;
+  const { firstName, lastName, address } = f;
   const lastNameNorm = normalizeName(lastName);
   const firstNameNorm = normalizeName(firstName);
 
   await db().update(persons).set({
     firstName, lastName, address,
-    postalCode: s(formData, "postalCode"), city: s(formData, "city"), birthDate: s(formData, "birthDate"),
-    phone: s(formData, "phone"), email: s(formData, "email"),
-    householdSize: householdTotal(toInt(s(formData, "adults")), toInt(s(formData, "childrenCount"))), childrenCount: toInt(s(formData, "childrenCount")),
-    gruppe: toInt(s(formData, "gruppe")), ausgabeNumber: toInt(s(formData, "nummer")),
-    languageId: toInt(s(formData, "languageId")), originId: toInt(s(formData, "originId")), note: s(formData, "note"),
+    postalCode: f.postalCode, city: f.city, birthDate: f.birthDate,
+    phone: f.phone, email: f.email,
+    householdSize: householdTotal(f.adults, f.childrenCount), childrenCount: f.childrenCount,
+    gruppe: f.gruppe, ausgabeNumber: f.nummer,
+    languageId: f.languageId, originId: f.originId, note: f.note,
     consentAt: formData.get("consent") ? sql`COALESCE(${persons.consentAt}, now())` : null,
     lastNameNorm, firstNameNorm, addressNorm: normalizeAddress(address),
     lastNamePhon: koelnerPhonetik(lastNameNorm), firstNamePhon: koelnerPhonetik(firstNameNorm),
@@ -55,7 +45,7 @@ export async function updatePerson(formData: FormData): Promise<void> {
   }).where(eq(persons.id, personId));
 
   // Standortwechsel (falls geändert)
-  const newLoc = toInt(s(formData, "locationId"));
+  const newLoc = f.locationId;
   const current = await db().select({ id: personLocationAssignments.id, locationId: personLocationAssignments.locationId })
     .from(personLocationAssignments)
     .where(and(eq(personLocationAssignments.personId, personId), eq(personLocationAssignments.isActive, true)))

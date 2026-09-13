@@ -4,41 +4,26 @@ import { redirect } from "next/navigation";
 import { antraege } from "@tdd/db";
 import { normalizeName } from "@tdd/core";
 import { withOrg } from "@/lib/org";
+import { antragSchema, betrag, parseForm } from "@/lib/forms";
 import { requirePermission } from "@/lib/guard";
 import { INCOME_FIELDS, EXPENSE_FIELDS, sumValues, incomeLimit } from "@/lib/eligibility";
 
-function s(fd: FormData, k: string): string | null {
-  const v = fd.get(k);
-  const str = typeof v === "string" ? v.trim() : "";
-  return str === "" ? null : str;
-}
-function n(fd: FormData, k: string): number {
-  const v = parseFloat(String(fd.get(k) ?? "").replace(",", "."));
-  return Number.isFinite(v) ? v : 0;
-}
-function i(fd: FormData, k: string, def = 0): number {
-  const v = parseInt(String(fd.get(k) ?? ""), 10);
-  return Number.isFinite(v) ? v : def;
-}
 
 export async function createAntrag(formData: FormData): Promise<void> {
   const user = await requirePermission("antrag:manage");
   if (!user.organizationId) throw new Error("Keine Berechtigung"); // Portal nur mit Organisation
 
-  const firstName = s(formData, "firstName");
-  const lastName = s(formData, "lastName");
-  const email = s(formData, "email");
-  if (!firstName || !lastName) throw new Error("Vor- und Nachname sind Pflicht.");
+  const geprueft = parseForm(antragSchema, formData);
+  if (!geprueft.ok) throw new Error("Vor- und Nachname sind Pflicht.");
+  const f = geprueft.data;
+  const { firstName, lastName, email, adults, childrenU12, childrenO12 } = f;
   if (!email) throw new Error("E-Mail-Adresse ist Pflicht (für den Bescheid-Versand).");
 
+  // Finanzpositionen sind dynamisch benannt (income_<key>), deshalb einzeln ueber den Baustein.
   const income: Record<string, number> = {};
-  for (const [key] of INCOME_FIELDS) income[key] = n(formData, `income_${key}`);
+  for (const [key] of INCOME_FIELDS) income[key] = betrag.parse(formData.get(`income_${key}`));
   const expense: Record<string, number> = {};
-  for (const [key] of EXPENSE_FIELDS) expense[key] = n(formData, `expense_${key}`);
-
-  const adults = i(formData, "adults", 1);
-  const childrenU12 = i(formData, "childrenU12", 0);
-  const childrenO12 = i(formData, "childrenO12", 0);
+  for (const [key] of EXPENSE_FIELDS) expense[key] = betrag.parse(formData.get(`expense_${key}`));
   const incomeTotal = sumValues(income);
   const expenseTotal = sumValues(expense);
   const available = incomeTotal - expenseTotal;
@@ -48,11 +33,11 @@ export async function createAntrag(formData: FormData): Promise<void> {
   const id = await withOrg(orgId, async (tx) => {
     const ins = await tx.insert(antraege).values({
       organizationId: orgId,
-      targetType: s(formData, "targetType") ?? "AUSGABESTELLE",
-      intendedLocationId: formData.get("intendedLocationId") ? i(formData, "intendedLocationId") : null,
-      firstName, lastName, address: s(formData, "address"), postalCode: s(formData, "postalCode"),
-      city: s(formData, "city"), birthDate: s(formData, "birthDate"), phone: s(formData, "phone"), email: s(formData, "email"),
-      adults, childrenU12, childrenO12, pets: s(formData, "pets"),
+      targetType: f.targetType,
+      intendedLocationId: f.intendedLocationId,
+      firstName, lastName, address: f.address, postalCode: f.postalCode,
+      city: f.city, birthDate: f.birthDate, phone: f.phone, email,
+      adults, childrenU12, childrenO12, pets: f.pets,
       financials: { income, expense },
       incomeTotal: String(incomeTotal), expenseTotal: String(expenseTotal),
       availableIncome: String(available), incomeLimit: String(limit),

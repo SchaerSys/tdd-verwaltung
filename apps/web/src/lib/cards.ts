@@ -1,24 +1,27 @@
-import { eq, sql } from "drizzle-orm";
-import { cards } from "@tdd/db";
+import { sql } from "drizzle-orm";
 import { buildCardNumber } from "@tdd/core";
 import { db } from "./db";
 
-/** Nächste freie EAN-13-Kartennummer für eine Standort-Kennung (kollisionsfrei). */
+/**
+ * Nächste EAN-13-Kartennummer für eine Standort-Kennung.
+ * Atomar über next_card_sequence(): zwei Tresen, die gleichzeitig ausstellen,
+ * bekommen garantiert verschiedene Nummern – ohne Retry, ohne Lücke.
+ */
 export async function nextCardNumber(locationCode: number): Promise<string> {
-  const cnt = await db().select({ n: sql<number>`count(*)` }).from(cards);
-  let seq = Number(cnt[0]?.n ?? 0) + 1;
-  for (let i = 0; i < 100; i++, seq++) {
-    const num = buildCardNumber(locationCode, seq);
-    const ex = await db().select({ id: cards.id }).from(cards).where(eq(cards.cardNumber, num)).limit(1);
-    if (!ex[0]) return num;
-  }
-  throw new Error("Keine freie Kartennummer gefunden");
+  const res = await db().execute(sql`SELECT next_card_sequence(${locationCode}::smallint) AS seq`);
+  const seq = Number((res as unknown as { seq: string | number }[])[0]?.seq ?? 0);
+  if (!seq) throw new Error("Kartennummer konnte nicht vergeben werden");
+  return buildCardNumber(locationCode, seq);
 }
 
-/** Addiert Monate zu einem ISO-Datum (yyyy-mm-dd). */
+/** Addiert Monate zu einem ISO-Datum (yyyy-mm-dd), ohne Monatsende-Überlauf. */
 export function addMonths(isoDate: string, months: number): string {
   const d = new Date(`${isoDate}T00:00:00Z`);
+  const day = d.getUTCDate();
+  d.setUTCDate(1); // erst auf den 1. – verhindert den Überlauf
   d.setUTCMonth(d.getUTCMonth() + months);
+  const lastOfMonth = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate();
+  d.setUTCDate(Math.min(day, lastOfMonth)); // 31.08. + 6 Mon. → 28./29.02.
   return d.toISOString().slice(0, 10);
 }
 

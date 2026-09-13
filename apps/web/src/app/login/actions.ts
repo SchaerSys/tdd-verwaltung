@@ -5,6 +5,7 @@ import { and, asc, eq } from "drizzle-orm";
 import { hash } from "@node-rs/argon2";
 import { organizations, users } from "@tdd/db";
 import { db } from "@/lib/db";
+import { MIN_PASSWORD_LENGTH } from "@/lib/constants";
 import { login, landingFor } from "@/lib/auth";
 import { audit } from "@/lib/audit";
 import { createAuthToken, consumeAuthToken, appUrl } from "@/lib/auth-tokens";
@@ -52,7 +53,7 @@ export async function requestPasswordReset(_prev: FormState, formData: FormData)
 export async function resetPassword(_prev: FormState, formData: FormData): Promise<FormState> {
   const token = String(formData.get("token") ?? "");
   const pw = String(formData.get("password") ?? "");
-  if (pw.length < 8) return { error: "Das Passwort muss mindestens 8 Zeichen haben." };
+  if (pw.length < MIN_PASSWORD_LENGTH) return { error: `Das Passwort muss mindestens ${MIN_PASSWORD_LENGTH} Zeichen haben.` };
   const userId = await consumeAuthToken(token, "RESET");
   if (!userId) return { error: "Der Link ist ungültig oder abgelaufen." };
   await db().update(users).set({ passwordHash: await hash(pw), failedAttempts: 0, lockedUntil: null }).where(eq(users.id, userId));
@@ -67,7 +68,7 @@ export async function registerSachbearbeiter(_prev: FormState, formData: FormDat
   const pw = String(formData.get("password") ?? "");
   const orgId = parseInt(String(formData.get("orgId") ?? ""), 10);
   if (!email || !displayName || !orgId) return { error: "Bitte alle Felder ausfüllen und Organisation wählen." };
-  if (pw.length < 8) return { error: "Das Passwort muss mindestens 8 Zeichen haben." };
+  if (pw.length < MIN_PASSWORD_LENGTH) return { error: `Das Passwort muss mindestens ${MIN_PASSWORD_LENGTH} Zeichen haben.` };
 
   const exists = await db().select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
   if (exists[0]) return { error: "Für diese E-Mail existiert bereits ein Konto." };

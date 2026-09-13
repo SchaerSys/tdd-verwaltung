@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq, ilike, isNull, or, desc, sql, inArray } from "drizzle-orm";
+import { and, eq, ilike, isNull, or, sql, inArray } from "drizzle-orm";
 import { cards, persons, locations, distributions, personLocationAssignments } from "@tdd/db";
 import { normalizeName } from "@tdd/core";
 import { db } from "@/lib/db";
@@ -166,15 +166,25 @@ export async function searchByName(q: string): Promise<Eligibility[]> {
     .orderBy(persons.lastName)
     .limit(10);
 
+  // Juengste Karte je Person in EINER Abfrage statt einer je Treffer (war N+1).
+  // Nur echte, nicht im Papierkorb liegende Karten. Ohne solche Karte
+  // erscheint die Person am Kiosk NICHT (gelöschte/kartenlose ausblenden).
+  const ids = people.map((p) => p.id);
+  if (ids.length === 0) return [];
+  const cardRows = await db().execute(sql`
+    SELECT DISTINCT ON (person_id) person_id, id, card_number, status, valid_to
+    FROM cards
+    WHERE person_id = ANY(${ids}::uuid[]) AND deleted_at IS NULL
+    ORDER BY person_id, created_at DESC`);
+  const byPerson = new Map(
+    (cardRows as unknown as { person_id: string; id: string; card_number: string; status: string; valid_to: string }[])
+      .map((c) => [c.person_id, { id: c.id, number: c.card_number, status: c.status, validTo: c.valid_to }]),
+  );
+
   const results: Eligibility[] = [];
   const todayStr = new Date().toISOString().slice(0, 10);
   for (const p of people) {
-    // Nur echte, nicht im Papierkorb liegende Karten. Ohne solche Karte
-    // erscheint die Person am Kiosk NICHT (gelöschte/kartenlose ausblenden).
-    const card = await db()
-      .select({ id: cards.id, number: cards.cardNumber, status: cards.status, validTo: cards.validTo })
-      .from(cards).where(and(eq(cards.personId, p.id), isNull(cards.deletedAt))).orderBy(desc(cards.createdAt)).limit(1);
-    const c = card[0];
+    const c = byPerson.get(p.id);
     if (!c) continue;
     const name = `${p.first} ${p.last}`;
     const base = { cardId: c.id, cardNumber: c.number, personId: p.id, name, validTo: c.validTo };

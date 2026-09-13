@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { hash, verify } from "@node-rs/argon2";
 import { users } from "@tdd/db";
 import { db } from "@/lib/db";
+import { MIN_PASSWORD_LENGTH } from "@/lib/constants";
 import { getCurrentUser } from "@/lib/auth";
 import { audit } from "@/lib/audit";
 
@@ -18,7 +19,7 @@ export async function changePassword(_prev: PwState, formData: FormData): Promis
   const next = String(formData.get("next") ?? "");
   const confirm = String(formData.get("confirm") ?? "");
 
-  if (next.length < 10) return { ok: false, error: "Das neue Passwort muss mindestens 10 Zeichen haben." };
+  if (next.length < MIN_PASSWORD_LENGTH) return { ok: false, error: `Das neue Passwort muss mindestens ${MIN_PASSWORD_LENGTH} Zeichen haben.` };
   if (next !== confirm) return { ok: false, error: "Die neuen Passwörter stimmen nicht überein." };
   if (next === current) return { ok: false, error: "Das neue Passwort muss sich vom bisherigen unterscheiden." };
 

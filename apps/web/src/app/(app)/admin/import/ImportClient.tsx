@@ -38,12 +38,12 @@ export function ImportClient() {
           <label className="dropzone cursor-pointer block">
             <input
               type="file"
-              accept=".xlsx,.xls,.csv"
+              accept=".xlsx,.csv"
               className="hidden"
               onChange={(e) => { setFile(e.target.files?.[0] ?? null); setResult(null); setCommit(null); }}
             />
             {file ? <b className="text-[color:var(--text)]">{file.name}</b> : "📄 Klicken und .xlsx auswählen"}
-            <div className="text-[.72rem] mt-1">Erwartete Spalten: Nachname, Vorname, Adresse, PLZ, Ort, Geburtsdatum, Telefon, E-Mail, Haushalt, Kinder, Standort</div>
+            <div className="text-[.72rem] mt-1">Erwartete Spalten: Nachname, Vorname, Adresse, PLZ, Ort, Geburtsdatum, Telefon, E-Mail, Haushalt, Kinder, Standort. Alte .xls-Dateien bitte vorher in Excel als .xlsx speichern.</div>
           </label>
           <div className="flex gap-2">
             <button className="btn primary" onClick={analyze} disabled={!file || busy}>

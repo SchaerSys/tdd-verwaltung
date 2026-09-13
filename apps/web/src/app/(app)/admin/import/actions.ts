@@ -1,6 +1,7 @@
 "use server";
 
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
+import { Readable } from "node:stream";
 import { isNull } from "drizzle-orm";
 import { persons, locations, personLocationAssignments } from "@tdd/db";
 import { normalizeName, normalizeAddress, koelnerPhonetik } from "@tdd/core";
@@ -76,10 +77,53 @@ interface ParsedRow {
   key: string; error: string | null;
 }
 
-function parseWorkbook(buf: Buffer): { headers: string[]; cols: Record<Field, string | null>; rows: ParsedRow[] } {
-  const wb = XLSX.read(buf, { cellDates: true });
-  const sheet = wb.Sheets[wb.SheetNames[0]!]!;
-  const json = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: null });
+/** Zellwert auf einen einfachen Wert reduzieren (Formeln, RichText, Hyperlinks). */
+function cellValue(v: ExcelJS.CellValue): unknown {
+  if (v == null) return null;
+  if (v instanceof Date) return v;
+  if (typeof v === "object") {
+    if ("richText" in v) return v.richText.map((r) => r.text).join("");
+    if ("result" in v) return v.result ?? null;
+    if ("text" in v) return v.text;
+    return null;
+  }
+  return v;
+}
+
+/** Liest das erste Blatt als Liste von {Spaltenüberschrift: Wert}. */
+async function readSheet(buf: Buffer, isCsv: boolean): Promise<Record<string, unknown>[]> {
+  const wb = new ExcelJS.Workbook();
+  const sheet = isCsv
+    ? await wb.csv.read(Readable.from(buf.toString("utf8")))
+    // exceljs' eigener Buffer-Typ passt nicht zu Nodes Buffer<ArrayBufferLike>; ein
+    // sauber zugeschnittener ArrayBuffer ist fuer beide Seiten eindeutig.
+    : (await wb.xlsx.load(buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer)).worksheets[0];
+  if (!sheet) return [];
+
+  const headers: string[] = [];
+  sheet.getRow(1).eachCell({ includeEmpty: false }, (cell, col) => {
+    headers[col] = String(cellValue(cell.value) ?? "").trim();
+  });
+
+  const out: Record<string, unknown>[] = [];
+  sheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+    if (rowNumber === 1) return;
+    const obj: Record<string, unknown> = {};
+    let empty = true;
+    for (let col = 1; col < headers.length; col++) {
+      const key = headers[col];
+      if (!key) continue;
+      const value = cellValue(row.getCell(col).value);
+      obj[key] = value;
+      if (value != null && String(value).trim() !== "") empty = false;
+    }
+    if (!empty) out.push(obj);
+  });
+  return out;
+}
+
+async function parseWorkbook(buf: Buffer, filename: string): Promise<{ headers: string[]; cols: Record<Field, string | null>; rows: ParsedRow[] }> {
+  const json = await readSheet(buf, filename.toLowerCase().endsWith(".csv"));
   const headers = json.length ? Object.keys(json[0]!) : [];
   const cols = detectColumns(headers);
 
@@ -140,7 +184,7 @@ export async function analyzeImport(formData: FormData): Promise<AnalyzeResult> 
     return { ok: false, message: "Keine Datei", headers: [], detected: {}, total: 0, newCount: 0, dupCount: 0, errorCount: 0, sample: [] };
   }
   const buf = Buffer.from(await file.arrayBuffer());
-  const { headers, cols, rows } = parseWorkbook(buf);
+  const { headers, cols, rows } = await parseWorkbook(buf, file.name);
   if (!cols.lastName || !cols.firstName) {
     return {
       ok: false,
@@ -170,7 +214,7 @@ export async function commitImport(formData: FormData): Promise<CommitResult> {
   if (!(file instanceof File)) return { ok: false, message: "Keine Datei", inserted: 0, skipped: 0 };
 
   const buf = Buffer.from(await file.arrayBuffer());
-  const { cols, rows } = parseWorkbook(buf);
+  const { cols, rows } = await parseWorkbook(buf, file.name);
   if (!cols.lastName || !cols.firstName) return { ok: false, message: "Pflichtspalten fehlen", inserted: 0, skipped: 0 };
 
   const existing = await existingKeys();

@@ -55,7 +55,7 @@ export async function resetPassword(_prev: FormState, formData: FormData): Promi
   if (pw.length < 8) return { error: "Das Passwort muss mindestens 8 Zeichen haben." };
   const userId = await consumeAuthToken(token, "RESET");
   if (!userId) return { error: "Der Link ist ungültig oder abgelaufen." };
-  await db().update(users).set({ passwordHash: await hash(pw) }).where(eq(users.id, userId));
+  await db().update(users).set({ passwordHash: await hash(pw), failedAttempts: 0, lockedUntil: null }).where(eq(users.id, userId));
   await audit({ actorUserId: userId, action: "password.reset.done", entityType: "user", entityId: userId });
   redirect("/login?reset=1");
 }

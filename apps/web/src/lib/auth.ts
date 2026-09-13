@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { verify } from "@node-rs/argon2";
 import { users, organizations } from "@tdd/db";
 import { db } from "./db";
+import { audit } from "./audit";
 import { verifySession, signSession, SESSION_COOKIE, SESSION_MAX_AGE } from "./session";
 import type { Role } from "./rbac";
 
@@ -45,19 +46,39 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   return loadUser(eq(users.id, session.uid));
 }
 
+const MAX_ATTEMPTS = 5;
+const LOCK_MINUTES = 15;
+
 /**
  * Prüft E-Mail/Passwort (und optional die gewählte Organisation) und setzt die Session.
+ * Nach MAX_ATTEMPTS Fehlversuchen wird das Konto LOCK_MINUTES lang gesperrt.
+ * Die Rückmeldung nach außen bleibt immer generisch (keine Konto-Aufzählung).
  */
 export async function login(email: string, password: string, orgId?: number | null): Promise<CurrentUser | null> {
   const rows = await db().select().from(users).where(eq(users.email, email.toLowerCase())).limit(1);
   const u = rows[0];
   if (!u || !u.isActive) return null;
 
+  // Gesperrt? Dann gar nicht erst prüfen (kostet auch keine argon2-Zeit).
+  if (u.lockedUntil && u.lockedUntil > new Date()) return null;
+
   // Gewählte Organisation muss zur Person gehören (verhindert falschen Org-Kontext)
   if (orgId != null && u.organizationId !== orgId) return null;
 
   const ok = await verify(u.passwordHash, password).catch(() => false);
-  if (!ok) return null;
+  if (!ok) {
+    const attempts = u.failedAttempts + 1;
+    const locked = attempts >= MAX_ATTEMPTS;
+    await db().update(users).set({
+      failedAttempts: locked ? 0 : attempts, // nach der Sperre wieder bei 0 zählen
+      lockedUntil: locked ? new Date(Date.now() + LOCK_MINUTES * 60_000) : null,
+    }).where(eq(users.id, u.id));
+    await audit({
+      actorUserId: u.id, action: locked ? "login.locked" : "login.failed",
+      entityType: "user", entityId: u.id, after: { attempts },
+    });
+    return null;
+  }
 
   const store = await cookies();
   store.set(SESSION_COOKIE, signSession({ uid: u.id, role: u.role, orgId: u.organizationId ?? null }), {
@@ -67,7 +88,7 @@ export async function login(email: string, password: string, orgId?: number | nu
     path: "/",
     maxAge: SESSION_MAX_AGE,
   });
-  await db().update(users).set({ lastLogin: new Date(), failedAttempts: 0 }).where(eq(users.id, u.id));
+  await db().update(users).set({ lastLogin: new Date(), failedAttempts: 0, lockedUntil: null }).where(eq(users.id, u.id));
 
   return loadUser(eq(users.id, u.id));
 }

@@ -11,6 +11,12 @@ RUN npm ci
 
 # Quellcode
 COPY . .
+
+# Qualitaetsnetz: Typecheck, Lint und Unit-Tests laufen bei JEDEM Image-Build.
+# Ist etwas rot, entsteht kein Image – kaputter Code kommt so nie auf den Server.
+# Die Integrationstests (echte Postgres) laufen davor in scripts/verify-integration.sh.
+RUN npm run typecheck && npm run lint && npm test
+
 RUN npm run build -w @tdd/web
 
 # ── Runtime-Stage (Next.js standalone) ────────────────────────────────────

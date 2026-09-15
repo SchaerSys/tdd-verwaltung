@@ -14,7 +14,7 @@ export function Einladen({ standorte, organisationen, vorgabeOrg, vorgabeRolle }
         <select name="role" className="inp" defaultValue={vorgabeRolle ?? "ERFASSUNG"}>
           <option value="ADMIN">ADMIN – Büro, alles</option><option value="ERFASSUNG">ERFASSUNG – Personen/Karten</option>
           <option value="AUSGABE">AUSGABE – Tresen/Kiosk</option><option value="AUSWERTUNG">AUSWERTUNG – nur Berichte</option>
-          <option value="SACHBEARBEITER">SACHBEARBEITER – Portal Gemeinde/Institution</option>
+          <option value="SACHBEARBEITER">SACHBEARBEITER – Portal Gemeinde/Institution</option><option value="FAHRER">FAHRER – Tour am Handy</option>
         </select></div>
       <div className="field"><label className="lbl">Standort (TDD-Rollen)</label>
         <select name="locationId" className="inp"><option value="">—</option>{standorte.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></div>

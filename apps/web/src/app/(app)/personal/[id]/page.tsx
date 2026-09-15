@@ -2,7 +2,8 @@ import Link from "next/link";
 import { NfcZuweisen } from "../NfcZuweisen";
 import { redirect, notFound } from "next/navigation";
 import { asc, eq } from "drizzle-orm";
-import { staff, locations } from "@tdd/db";
+import { staff, locations, users } from "@tdd/db";
+import { WOCHENTAGE_KURZ } from "@/lib/touren";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { hasPermission } from "@/lib/rbac";
@@ -14,9 +15,10 @@ export default async function StaffEditPage({ params }: { params: Promise<{ id: 
   if (!user || !hasPermission(user.role, "staff:manage")) redirect("/dashboard");
   const { id } = await params;
 
-  const [rows, locs] = await Promise.all([
+  const [rows, locs, fahrerLogins] = await Promise.all([
     db().select().from(staff).where(eq(staff.id, id)).limit(1),
     db().select({ id: locations.id, name: locations.name }).from(locations).where(eq(locations.isActive, true)).orderBy(asc(locations.name)),
+    db().select({ id: users.id, name: users.displayName, email: users.email }).from(users).where(eq(users.role, "FAHRER")).orderBy(asc(users.displayName)),
   ]);
   const p = rows[0];
   if (!p) notFound();
@@ -63,6 +65,14 @@ export default async function StaffEditPage({ params }: { params: Promise<{ id: 
             <div className="mt-1"><NfcZuweisen feldId="nfcCardId" /></div>
           </div>
           <div className="field sm:col-span-2 lg:col-span-3"><label className="lbl">Notiz</label><input name="note" className="inp" defaultValue={p.note ?? ""} /></div>
+          <div className="sm:col-span-2 lg:col-span-3 border-t border-[color:var(--border)] pt-3 text-[.8125rem] font-semibold">Fahrdienst (A4 Touren)</div>
+          <div className="field"><label className="lbl">Fährt Touren</label><label className="flex items-center gap-2 text-[.8125rem] mt-2"><input type="checkbox" name="kannFahren" defaultChecked={p.kannFahren} /> kann als Fahrer:in eingeteilt werden</label></div>
+          <div className="field"><label className="lbl">Führerschein</label><input name="fuehrerschein" className="inp" defaultValue={p.fuehrerschein ?? ""} placeholder="z. B. B, C1" /></div>
+          <div className="field"><label className="lbl">Fahrertage (leer = alle)</label>
+            <div className="flex gap-2 flex-wrap mt-2 text-[.8125rem]">{[1, 2, 3, 4, 5, 6, 7].map((t) => <label key={t} className="flex items-center gap-1"><input type="checkbox" name="fahrerTage" value={t} defaultChecked={p.fahrerTage.includes(t)} />{WOCHENTAGE_KURZ[t]}</label>)}</div></div>
+          <div className="field sm:col-span-2"><label className="lbl">Login für die Tour am Handy (Benutzer mit Rolle FAHRER)</label>
+            <select name="userId" className="inp" defaultValue={p.userId ?? ""}><option value="">— kein Login —</option>{fahrerLogins.map((u) => <option key={u.id} value={u.id}>{u.name} · {u.email}</option>)}</select>
+            <div className="text-[.72rem] text-muted mt-1">Benutzer mit Rolle FAHRER werden in der Benutzerverwaltung angelegt; hier wird die Person verknüpft.</div></div>
         </div>
         <div className="p-4 border-t border-[color:var(--border)]"><button type="submit" className="btn primary">Speichern</button></div>
       </form>

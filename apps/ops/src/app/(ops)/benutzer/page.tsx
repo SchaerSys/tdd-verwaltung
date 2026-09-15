@@ -7,7 +7,7 @@ import { aktivSchalten, entsperren, rolleSetzen, zfaZuruecksetzen } from "./acti
 
 export const dynamic = "force-dynamic";
 
-const ROLLEN = ["ADMIN", "ERFASSUNG", "AUSGABE", "AUSWERTUNG", "SACHBEARBEITER"];
+const ROLLEN = ["ADMIN", "ERFASSUNG", "AUSGABE", "AUSWERTUNG", "SACHBEARBEITER", "FAHRER"];
 const fmt = (d: Date | null) => (d ? d.toLocaleString("de-AT", { timeZone: "Europe/Vienna", dateStyle: "short", timeStyle: "short" }) : "—");
 
 /**

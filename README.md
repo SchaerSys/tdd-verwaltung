@@ -103,6 +103,12 @@ graph TD
 - Rückkanal: Stand bei TDD je Antrag (übergeben → übernommen → Karte → Bezug → läuft ab), Verlängerungsantrag vorbefüllt aus dem Vorgänger, Vollständigkeits-Checkliste (Einwilligung/E-Mail Pflicht für den positiven Bescheid).
 - Rückfragen/Verlauf je Antrag zwischen Organisation und TDD-Büro (`/rueckfragen`); Statistik je Organisation (druckbar); eigene Startseiten für Gemeinde (Antragsliste, Aufgaben) und Institution (Klient:innen nach Betreuungsstand, Wohnort).
 
+**A4 · Touren & Disposition** (Zentralsystem)
+- Stammdaten: Abholstellen (Betriebe mit Abholtagen, Fenster, Kühlbedarf, Hinweisen), Fahrzeuge (Kühlung, elektrisch, Pickerl, Werkstatt), Fahrer:innen am Personal (Führerschein, Fahrertage, Login-Verknüpfung).
+- Wochenplan (Tourvorlagen je Wochentag mit Stopp-Abfolge) → Tagesdisposition (`/touren`): Touren erzeugen, Fahrer/Fahrzeug zuweisen, Konflikte live (abwesend, Werkstatt, Kühlware ohne Kühlung, Doppelbelegung, Pickerl), Abwesenheiten, Laufzettel-Druck.
+- Fahrer-Handy (`/fahrt`, Rolle FAHRER): Tour des Tages, Stopps abhaken, Kisten/kg erfassen (gerettete Lebensmittel), Navigation, km-Stand.
+- Posteingang der Abholangebote von der Homepage (`/touren/angebote`, Job `/api/jobs/angebote`; braucht `HOMEPAGE_API_URL` + `UEBERGABE_TOKEN`).
+
 **Wartungsplattform** (`apps/ops`, nur Betreiber)
 - Eigene Anmeldung (Passwort + TOTP), Datenbankrolle `tdd_ops` ohne Leserecht auf Personendaten. Systemstatus (Fach-App, DB, Zertifikat, Platte, Backup, Migrationen), Kennzahlen aus PII-freien Views, Benutzer einladen/sperren/2FA-Reset/Passwort-Link (über SECURITY-DEFINER-Funktionen, Migration 032), Konfiguration (Standorte, Löschfristen, Auswahllisten, Organisationen), Protokoll ohne Personenbezug, Backup jetzt / Neustart (Host-Agent `scripts/ops-agent.sh`), Wartungsmodus (Datei-Schalter, Caddy liefert 503-Hinweisseite).
 - Mandanten & Support: jede Gemeinde/Institution als Mandant (Konten, Aktivität, Anträge/Rückfragen als Zahlen, Fehler), je Benutzer Zustand (zuletzt gesehen, Version, Browser, Kiosk-Warteschlange), Fehler mit Kennung, Aktionen ohne Datensatz-Bezug. Die Fach-App meldet dafür selbst (`instrumentation.ts`, `components/Lebenszeichen.tsx`, `/api/ereignis` → `app_events`, bereinigt, 30 Tage).

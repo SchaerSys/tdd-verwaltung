@@ -160,5 +160,6 @@ export async function logout(): Promise<void> {
 export function landingFor(role: Role): string {
   if (role === "SACHBEARBEITER") return "/portal"; // Antragsportal (Gemeinde/Institution)
   if (role === "AUSGABE") return "/kiosk";           // Zivildiener: nur Tresen-Kiosk
+  if (role === "FAHRER") return "/fahrt";            // Fahrer: Tour des Tages am Handy
   return "/dashboard";
 }

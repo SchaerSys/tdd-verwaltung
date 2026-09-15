@@ -42,6 +42,10 @@ export async function updateStaff(fd: FormData): Promise<void> {
     employmentStart: str(fd, "employmentStart"), employmentEnd: str(fd, "employmentEnd"),
     weeklyHours: dec(fd, "weeklyHours"), vacationDaysYear: dec(fd, "vacationDaysYear"),
     nfcCardId: normalizeNfcId(str(fd, "nfcCardId")), note: str(fd, "note"), updatedAt: new Date(),
+    // A4: Fahrer-Eigenschaften und Login-Verknuepfung (fuer die Tour am Handy)
+    kannFahren: fd.get("kannFahren") === "on", fuehrerschein: str(fd, "fuehrerschein"),
+    fahrerTage: fd.getAll("fahrerTage").map(Number).filter((n) => n >= 1 && n <= 7),
+    userId: str(fd, "userId") || null,
   }).where(eq(staff.id, id));
   await audit({ actorUserId: u.id, action: "staff.update", entityType: "staff", entityId: id });
   redirect("/personal");

@@ -16,6 +16,8 @@ import {
   jsonb,
   real,
   numeric,
+  time,
+  doublePrecision,
   bigint,
   index,
   uniqueIndex,
@@ -395,6 +397,10 @@ export const staff = pgTable("staff", {
   weeklyHours: numeric("weekly_hours", { precision: 5, scale: 2 }),
   vacationDaysYear: numeric("vacation_days_year", { precision: 5, scale: 1 }),
   nfcCardId: text("nfc_card_id").unique(),
+  userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }), // Login des Fahrers (A4)
+  kannFahren: boolean("kann_fahren").notNull().default(false),
+  fuehrerschein: text("fuehrerschein"),
+  fahrerTage: smallint("fahrer_tage").array().notNull().default([]),
   isActive: boolean("is_active").notNull().default(true),
   note: text("note"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -413,3 +419,129 @@ export const timeEvents = pgTable("time_events", {
   createdBy: uuid("created_by").references(() => users.id),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => ({ staffAtIdx: index("idx_time_events_staff_at").on(t.staffId, t.at) }));
+
+// ── A4 · Touren & Disposition (Migration 034) ──────────────────────────────
+export const abwesenheiten = pgTable("abwesenheiten", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  staffId: uuid("staff_id").notNull().references(() => staff.id, { onDelete: "cascade" }),
+  art: text("art").notNull(), // URLAUB | KRANK | SONSTIG
+  von: date("von").notNull(),
+  bis: date("bis").notNull(),
+  notiz: text("notiz"),
+  createdBy: uuid("created_by").references(() => users.id),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({ staffIdx: index("idx_abwesenheiten_staff").on(t.staffId, t.von, t.bis) }));
+
+export const abholstellen = pgTable("abholstellen", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  name: text("name").notNull(),
+  art: text("art").notNull().default("SONSTIGES"),
+  strasse: text("strasse"),
+  plz: text("plz"),
+  ort: text("ort"),
+  ansprechperson: text("ansprechperson"),
+  telefon: text("telefon"),
+  email: text("email"),
+  kuehlbedarf: boolean("kuehlbedarf").notNull().default(false),
+  abholtage: smallint("abholtage").array().notNull().default([]),
+  fensterVon: time("fenster_von"),
+  fensterBis: time("fenster_bis"),
+  hinweise: text("hinweise"),
+  lat: doublePrecision("lat"),
+  lng: doublePrecision("lng"),
+  isActive: boolean("is_active").notNull().default(true),
+  angebotId: integer("angebot_id"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const fahrzeuge = pgTable("fahrzeuge", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  kennzeichen: text("kennzeichen").notNull().unique(),
+  bezeichnung: text("bezeichnung").notNull(),
+  kuehlung: boolean("kuehlung").notNull().default(false),
+  elektrisch: boolean("elektrisch").notNull().default(false),
+  reichweiteKm: integer("reichweite_km"),
+  ladevolumen: text("ladevolumen"),
+  locationId: integer("location_id").references(() => locations.id),
+  pickerlBis: date("pickerl_bis"),
+  ausserBetriebVon: date("ausser_betrieb_von"),
+  ausserBetriebBis: date("ausser_betrieb_bis"),
+  hinweise: text("hinweise"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const tourVorlagen = pgTable("tour_vorlagen", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  name: text("name").notNull(),
+  wochentag: smallint("wochentag").notNull(), // 1=Mo … 7=So
+  startzeit: time("startzeit"),
+  startLocationId: integer("start_location_id").references(() => locations.id),
+  fahrzeugId: integer("fahrzeug_id").references(() => fahrzeuge.id),
+  fahrerId: uuid("fahrer_id").references(() => staff.id),
+  hinweise: text("hinweise"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const tourVorlageStopps = pgTable("tour_vorlage_stopps", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  vorlageId: integer("vorlage_id").notNull().references(() => tourVorlagen.id, { onDelete: "cascade" }),
+  reihenfolge: integer("reihenfolge").notNull(),
+  art: text("art").notNull(), // ABHOLUNG | LIEFERUNG
+  abholstelleId: integer("abholstelle_id").references(() => abholstellen.id),
+  locationId: integer("location_id").references(() => locations.id),
+  hinweis: text("hinweis"),
+});
+
+export const touren = pgTable("touren", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  datum: date("datum").notNull(),
+  vorlageId: integer("vorlage_id").references(() => tourVorlagen.id, { onDelete: "set null" }),
+  name: text("name").notNull(),
+  startzeit: time("startzeit"),
+  startLocationId: integer("start_location_id").references(() => locations.id),
+  fahrzeugId: integer("fahrzeug_id").references(() => fahrzeuge.id),
+  fahrerId: uuid("fahrer_id").references(() => staff.id),
+  beifahrerId: uuid("beifahrer_id").references(() => staff.id),
+  status: text("status").notNull().default("GEPLANT"), // GEPLANT | UNTERWEGS | ABGESCHLOSSEN | AUSGEFALLEN
+  gestartetAt: timestamp("gestartet_at", { withTimezone: true }),
+  beendetAt: timestamp("beendet_at", { withTimezone: true }),
+  kmStart: integer("km_start"),
+  kmEnde: integer("km_ende"),
+  hinweise: text("hinweise"),
+  createdBy: uuid("created_by").references(() => users.id),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({ datumIdx: index("idx_touren_datum").on(t.datum), fahrerIdx: index("idx_touren_fahrer").on(t.fahrerId, t.datum) }));
+
+export const tourStopps = pgTable("tour_stopps", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tourId: uuid("tour_id").notNull().references(() => touren.id, { onDelete: "cascade" }),
+  reihenfolge: integer("reihenfolge").notNull(),
+  art: text("art").notNull(),
+  abholstelleId: integer("abholstelle_id").references(() => abholstellen.id),
+  locationId: integer("location_id").references(() => locations.id),
+  hinweis: text("hinweis"),
+  status: text("status").notNull().default("OFFEN"), // OFFEN | ERLEDIGT | NICHT_MOEGLICH
+  erledigtAt: timestamp("erledigt_at", { withTimezone: true }),
+  mengeKisten: integer("menge_kisten"),
+  mengeKg: numeric("menge_kg", { precision: 8, scale: 1 }),
+  bemerkung: text("bemerkung"),
+});
+
+export const angeboteEingang = pgTable("angebote_eingang", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  homepageId: integer("homepage_id").notNull().unique(),
+  betrieb: text("betrieb").notNull(),
+  daten: jsonb("daten").notNull(),
+  eingegangen: timestamp("eingegangen", { withTimezone: true }).notNull(),
+  abgeholtAt: timestamp("abgeholt_at", { withTimezone: true }).notNull().defaultNow(),
+  stand: text("stand").notNull().default("NEU"), // NEU | UEBERNOMMEN | ABGELEHNT
+  abholstelleId: integer("abholstelle_id").references(() => abholstellen.id),
+  entschiedenBy: uuid("entschieden_by").references(() => users.id),
+  entschiedenAt: timestamp("entschieden_at", { withTimezone: true }),
+  rueckgemeldet: boolean("rueckgemeldet").notNull().default(false),
+});

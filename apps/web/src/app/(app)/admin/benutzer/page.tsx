@@ -8,12 +8,13 @@ import { hasPermission } from "@/lib/rbac";
 import { approveUser, rejectUser, createUser, setUserRole, toggleUserActive, resetUserTotp } from "../actions";
 
 const ROLE_LABEL: Record<string, string> = {
-  ADMIN: "Admin", ERFASSUNG: "Erfassung", AUSGABE: "Kasse", AUSWERTUNG: "Auswertung",
+  ADMIN: "Admin", ERFASSUNG: "Erfassung", AUSGABE: "Kasse", AUSWERTUNG: "Auswertung", FAHRER: "Fahrer",
 };
 const INTERNAL_ROLES: { value: string; label: string; desc: string }[] = [
   { value: "AUSGABE", label: "Kasse (Zivildiener)", desc: "nur Tresen-Kiosk" },
   { value: "ERFASSUNG", label: "Erfassung", desc: "Personen/Karten, kein Dokumenteneinblick" },
   { value: "AUSWERTUNG", label: "Auswertung", desc: "nur Auswertungen" },
+  { value: "FAHRER", label: "Fahrer", desc: "nur eigene Tour am Handy (A4)" },
   { value: "ADMIN", label: "Admin", desc: "alles inkl. Dokumente & Stammdaten" },
 ];
 

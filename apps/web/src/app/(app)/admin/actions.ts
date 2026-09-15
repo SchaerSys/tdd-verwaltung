@@ -11,7 +11,7 @@ import { sendMail } from "@/lib/mail";
 import { appUrl } from "@/lib/auth-tokens";
 import { WEEKDAYS } from "@/lib/opening-hours";
 
-const INTERNAL_ROLES = ["ADMIN", "ERFASSUNG", "AUSGABE", "AUSWERTUNG"] as const;
+const INTERNAL_ROLES = ["ADMIN", "ERFASSUNG", "AUSGABE", "AUSWERTUNG", "FAHRER"] as const;
 
 /** Legt einen internen TDD-Benutzer an (Zivildiener etc.) mit gewählter Rolle. */
 export async function createUser(formData: FormData): Promise<void> {

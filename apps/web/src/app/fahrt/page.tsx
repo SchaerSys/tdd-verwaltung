@@ -1,0 +1,110 @@
+import Link from "next/link";
+import { getCurrentUser } from "@/lib/auth";
+import { datumPlus, heuteIso, WOCHENTAGE, wochentag, zeitKurz } from "@/lib/touren";
+import { fahrerZuBenutzer, ladeTouren } from "@/lib/touren-daten";
+import { fmtDate } from "@/lib/format";
+import { stoppMelden, tourBeenden, tourStarten } from "@/app/(app)/touren/actions";
+
+export const dynamic = "force-dynamic";
+
+/**
+ * Tour des Tages fuer die angemeldete Fahrerin / den Fahrer: Stopps abhaken, Mengen
+ * eintragen, Navigation starten. Grosse Knoepfe, eine Spalte, funktioniert am Handy.
+ */
+export default async function FahrtSeite({ searchParams }: { searchParams: Promise<{ datum?: string }> }) {
+  const user = (await getCurrentUser())!;
+  const sp = await searchParams;
+  const datum = /^\d{4}-\d{2}-\d{2}$/.test(sp.datum ?? "") ? sp.datum! : heuteIso();
+  const me = await fahrerZuBenutzer(user.id);
+  const alle = user.role !== "FAHRER";
+  const liste = me ? (await ladeTouren({ datum })).filter((t) => alle || t.fahrerId === me.id || t.beifahrerId === me.id) : alle ? await ladeTouren({ datum }) : [];
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center gap-2">
+        <Link href={`/fahrt?datum=${datumPlus(datum, -1)}`} className="btn ghost sm">←</Link>
+        <div className="flex-1 text-center"><b>{WOCHENTAGE[wochentag(datum)]}</b><div className="text-xs text-muted">{fmtDate(datum)}</div></div>
+        <Link href={`/fahrt?datum=${datumPlus(datum, 1)}`} className="btn ghost sm">→</Link>
+      </div>
+
+      {!me && !alle ? <div className="panel"><div className="p-4 text-[.9rem]">Dein Login ist noch keiner Person im Personal-Verzeichnis zugeordnet. Bitte im Büro melden.</div></div> : null}
+      {liste.length === 0 ? <div className="panel"><div className="empty">Keine Tour für dich an diesem Tag.</div></div> : null}
+
+      {liste.map((t) => {
+        const offen = t.stopps.filter((s) => s.status === "OFFEN");
+        const naechster = offen[0];
+        return (
+          <div key={t.id} className="panel" style={{ borderLeft: `5px solid var(--${t.status === "ABGESCHLOSSEN" ? "good" : t.status === "UNTERWEGS" ? "accent" : "border"})` }}>
+            <div className="p-3 border-b border-[color:var(--border)]">
+              <div className="flex items-center gap-2 flex-wrap">
+                <b style={{ fontSize: "1.05rem" }}>{t.name}</b>
+                <span className="mono text-sm text-muted">{zeitKurz(t.startzeit)}</span>
+                <span className={`pill ${t.status === "ABGESCHLOSSEN" ? "good" : t.status === "UNTERWEGS" ? "tag-out" : t.status === "AUSGEFALLEN" ? "bad" : "muted"}`}>{t.status === "GEPLANT" ? "geplant" : t.status === "UNTERWEGS" ? "unterwegs" : t.status === "ABGESCHLOSSEN" ? "fertig" : "ausgefallen"}</span>
+              </div>
+              <div className="text-sm text-muted mt-1">{t.fahrzeug ?? "kein Fahrzeug"}{t.fahrzeugKuehlung ? " ❄" : ""}{t.beifahrer ? ` · mit ${t.beifahrer}` : ""}{t.start ? ` · Start ${t.start}` : ""}</div>
+              {t.hinweise ? <div className="text-sm mt-1 p-2 rounded" style={{ background: "var(--warn-bg)" }}>{t.hinweise}</div> : null}
+              {t.konflikte.some((k) => k.schwere === "FEHLER") ? <div className="text-sm mt-1" style={{ color: "var(--bad)" }}>{t.konflikte.filter((k) => k.schwere === "FEHLER").map((k) => k.text).join(" · ")}</div> : null}
+            </div>
+
+            {t.status === "GEPLANT" ? (
+              <form action={tourStarten} className="p-3 flex gap-2 items-end border-b border-[color:var(--border)]">
+                <input type="hidden" name="id" value={t.id} />
+                <div className="field flex-1"><label className="lbl">Kilometerstand Start</label><input name="kmStart" inputMode="numeric" className="inp mono" style={{ fontSize: "1.1rem" }} placeholder="optional" /></div>
+                <button className="btn primary" type="submit" style={{ fontSize: "1.05rem", padding: "12px 18px" }}>▶ Tour starten</button>
+              </form>
+            ) : null}
+
+            <ol className="flex flex-col">
+              {t.stopps.map((s, i) => {
+                const aktiv = naechster?.id === s.id && t.status !== "ABGESCHLOSSEN";
+                const navi = s.lat && s.lng ? `geo:${s.lat},${s.lng}?q=${s.lat},${s.lng}(${encodeURIComponent(s.name)})` : s.adresse ? `geo:0,0?q=${encodeURIComponent(`${s.name}, ${s.adresse}`)}` : null;
+                return (
+                  <li key={s.id} className="p-3 border-b border-[color:var(--border)]" style={s.status === "ERLEDIGT" ? { background: "var(--good-bg)", opacity: .8 } : s.status === "NICHT_MOEGLICH" ? { background: "var(--bad-bg)" } : aktiv ? { background: "var(--surface-2)" } : undefined}>
+                    <div className="flex gap-3 items-start">
+                      <div className="mono font-bold grid place-items-center rounded-full" style={{ width: 34, height: 34, background: s.status === "ERLEDIGT" ? "var(--good)" : s.status === "NICHT_MOEGLICH" ? "var(--bad)" : aktiv ? "var(--accent)" : "var(--surface-2)", color: s.status !== "OFFEN" || aktiv ? "#fff" : "inherit", flex: "none" }}>{s.status === "ERLEDIGT" ? "✓" : s.status === "NICHT_MOEGLICH" ? "✕" : i + 1}</div>
+                      <div className="flex-1">
+                        <div className="flex gap-2 items-center flex-wrap"><b style={{ fontSize: "1rem" }}>{s.name}</b><span className={`pill ${s.art === "LIEFERUNG" ? "tag-shop" : "tag-out"}`}>{s.art === "LIEFERUNG" ? "Lieferung" : "Abholung"}</span>{s.kuehlbedarf ? "❄" : ""}{s.fenster ? <span className="mono text-xs text-muted">{s.fenster}</span> : null}</div>
+                        <div className="text-sm text-muted">{s.adresse}</div>
+                        {s.ansprechperson || s.telefon ? <div className="text-sm">{s.ansprechperson ?? ""}{s.telefon ? <> · <a href={`tel:${s.telefon.replace(/\s/g, "")}`} className="text-accent">☎ {s.telefon}</a></> : null}</div> : null}
+                        {s.stellenHinweis ? <div className="text-sm mt-1">{s.stellenHinweis}</div> : null}
+                        {s.hinweis ? <div className="text-sm mt-1 font-semibold">{s.hinweis}</div> : null}
+                        {s.status !== "OFFEN" ? <div className="text-sm mt-1">{s.mengeKisten != null ? `${s.mengeKisten} Kisten` : ""}{s.mengeKg != null ? ` · ${s.mengeKg} kg` : ""}{s.bemerkung ? ` · ${s.bemerkung}` : ""}</div> : null}
+                        <div className="flex gap-2 mt-2 flex-wrap">
+                          {navi ? <a href={navi} className="btn ghost sm">🧭 Navigation</a> : null}
+                        </div>
+                        {s.status === "OFFEN" && t.status !== "ABGESCHLOSSEN" ? (
+                          <details className="mt-2" open={aktiv}>
+                            <summary className="btn sm cursor-pointer list-none inline-block">{s.art === "ABHOLUNG" ? "Abgeholt – Mengen eintragen" : "Abgeliefert"}</summary>
+                            <form action={stoppMelden} className="mt-2 grid gap-2 grid-cols-2">
+                              <input type="hidden" name="id" value={s.id} /><input type="hidden" name="tourId" value={t.id} />
+                              {s.art === "ABHOLUNG" ? <>
+                                <div className="field"><label className="lbl">Kisten</label><input name="mengeKisten" inputMode="numeric" className="inp mono" style={{ fontSize: "1.2rem" }} /></div>
+                                <div className="field"><label className="lbl">kg (geschätzt)</label><input name="mengeKg" inputMode="decimal" className="inp mono" style={{ fontSize: "1.2rem" }} /></div>
+                              </> : null}
+                              <div className="field col-span-2"><label className="lbl">Bemerkung</label><input name="bemerkung" className="inp" placeholder="optional" /></div>
+                              <button className="btn primary col-span-2" type="submit" name="status" value="ERLEDIGT" style={{ fontSize: "1.05rem", padding: "12px" }}>✓ Erledigt</button>
+                              <button className="btn ghost col-span-2" type="submit" name="status" value="NICHT_MOEGLICH">✕ Nicht möglich (geschlossen, nichts da …)</button>
+                            </form>
+                          </details>
+                        ) : null}
+                      </div>
+                    </div>
+                  </li>
+                );
+              })}
+            </ol>
+
+            {t.status === "UNTERWEGS" ? (
+              <form action={tourBeenden} className="p-3 flex gap-2 items-end">
+                <input type="hidden" name="id" value={t.id} />
+                <div className="field flex-1"><label className="lbl">Kilometerstand Ende</label><input name="kmEnde" inputMode="numeric" className="inp mono" style={{ fontSize: "1.1rem" }} placeholder="optional" /></div>
+                <button className="btn primary" type="submit" style={{ fontSize: "1.05rem", padding: "12px 18px" }} disabled={offen.length > 0} title={offen.length ? `${offen.length} Stopps noch offen` : undefined}>■ Tour beenden</button>
+              </form>
+            ) : null}
+            {t.status === "ABGESCHLOSSEN" ? <div className="p-3 text-sm text-muted">Fertig{t.kmStart != null && t.kmEnde != null ? ` · ${t.kmEnde - t.kmStart} km` : ""}. Danke!</div> : null}
+          </div>
+        );
+      })}
+    </div>
+  );
+}

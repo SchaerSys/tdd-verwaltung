@@ -33,7 +33,9 @@ export async function findCandidates(input: PersonKey, excludeId?: string): Prom
   // sich stillschweigend aendern. SET LOCAL gilt nur in dieser Transaktion, der
   // GIN-Index bleibt nutzbar (similarity() >= x waere nicht indexgestuetzt).
   const res = await db().transaction(async (tx) => {
-    await tx.execute(sql`SET LOCAL pg_trgm.similarity_threshold = ${TRGM_THRESHOLD}`);
+    // SET nimmt keinen Bind-Parameter ($1 waere ein Syntaxfehler) – die Konstante
+    // kommt aus @tdd/core, deshalb ist sql.raw hier sicher.
+    await tx.execute(sql`SET LOCAL pg_trgm.similarity_threshold = ${sql.raw(String(TRGM_THRESHOLD))}`);
     return tx.execute(sql`
     SELECT p.id, p.first_name, p.last_name, p.birth_date, p.address, p.postal_code,
            l.name AS loc_name, l.type AS loc_type

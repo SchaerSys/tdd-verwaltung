@@ -26,7 +26,8 @@ echo "Stand $STAND ($(git log -1 --format=%s "$REF"))"
 
 TAR=$(mktemp -t tdd-deploy-XXXXXX.tar.gz)
 git archive --format=tar.gz -o "$TAR" "$REF" \
-  apps/web packages/core packages/db scripts docker package.json package-lock.json tsconfig.base.json \n  eslint.config.mjs .prettierrc.json
+  apps/web packages/core packages/db scripts docker package.json package-lock.json tsconfig.base.json \
+  eslint.config.mjs .prettierrc.json
 scp -o BatchMode=yes -q "$TAR" "$SERVER:/opt/tdd/deploy-$STAND.tar.gz"
 rm -f "$TAR"
 

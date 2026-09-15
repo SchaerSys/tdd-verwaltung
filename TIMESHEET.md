@@ -31,3 +31,4 @@
 | 15.09.2026 | Deploy 30: Sprint 4+5 ausgerollt (zwei Stopps durch das Netz: zerbrochene Zeile in deploy.sh, Lint auf scripts/), Health verifiziert | Deployment | TDD Verwaltung | 0,5 |
 | 15.09.2026 | Personen- und Personal-Liste: Name verlinkt; Aufnahme und Bewertung der sieben neuen Anforderungen (NFC, Zeiterfassung, Standorte, Anträge-Panel, 2FA) | Konzept | TDD Verwaltung | 0,5 |
 | 15.09.2026 | 2FA: TOTP-Bibliothek nach RFC ohne Fremdpaket (25 Tests gegen RFC-Vektoren), zweistufiger Login mit Vor-Cookie und Wiederholungsschutz, Einrichtung im Konto mit QR und Wiederherstellungscodes, Admin-Reset, Migration 028 mit Spaltenrechten für tdd_ops (Passwort-Hash und Geheimnis nicht lesbar), Integrationstest erweitert, 5/5 grün | Backend | TDD Verwaltung | 2,4 |
+| 15.09.2026 | Deploy 31: 2FA auf Produktion (Migration 028), Spaltenrechte und 2FA-Seite verifiziert | Deployment | TDD Verwaltung | 0,2 |

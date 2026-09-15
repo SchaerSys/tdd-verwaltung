@@ -26,7 +26,7 @@ echo "Stand $STAND ($(git log -1 --format=%s "$REF"))"
 
 TAR=$(mktemp -t tdd-deploy-XXXXXX.tar.gz)
 git archive --format=tar.gz -o "$TAR" "$REF" \
-  apps/web packages/core packages/db scripts package.json package-lock.json tsconfig.base.json   eslint.config.mjs .prettierrc.json
+  apps/web packages/core packages/db scripts docker package.json package-lock.json tsconfig.base.json \n  eslint.config.mjs .prettierrc.json
 scp -o BatchMode=yes -q "$TAR" "$SERVER:/opt/tdd/deploy-$STAND.tar.gz"
 rm -f "$TAR"
 
@@ -49,11 +49,13 @@ docker build -q -f stage/apps/web/Dockerfile -t tdd-web:candidate stage/ >/dev/n
   || { echo "Image-Build ROT (Typecheck, Tests oder Build) – Abbruch"; exit 1; }
 
 echo "── 4/5 Uebernehmen, migrieren, tauschen ──"
-rsync -a --delete --exclude=.env --exclude=Caddyfile --exclude='docker-compose.server.yml' \
+rsync -a --delete --exclude=.env --exclude=Caddyfile \
   --exclude=backup-stage --exclude='*.log' --exclude=stage --exclude='deploy*.tar.gz' \
   --exclude=age-recipient.txt --exclude='*.bak' --exclude='*.alt*' \
   stage/apps/ apps/ && rsync -a --delete stage/packages/ packages/ && rsync -a stage/scripts/ scripts/
 cp stage/package.json stage/package-lock.json stage/tsconfig.base.json .
+# Die Compose-Datei ist seit Sprint 4 versioniert; Aenderungen greifen beim up -d unten.
+cp stage/docker/docker-compose.server.yml docker-compose.server.yml
 
 # Nur Migrationen einspielen, die noch nicht liefen (Buchfuehrung in /opt/tdd/migrations.done).
 touch migrations.done

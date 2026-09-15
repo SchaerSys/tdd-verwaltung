@@ -22,3 +22,4 @@
 | 13.09.2026 | S3-4 Kleinkram: Middleware-Matcher auf Ausnahmeliste umgedreht (kiosk/zeit/personal/stempeln waren nie gematcht), Client-IP im Audit-Log, Passwort-Mindestlänge zentral 10, N+1 in der Tresen-Suche durch DISTINCT ON ersetzt | Backend | TDD Verwaltung | 0,6 |
 | 13.09.2026 | S3-5 Antragsdokumente in den Löschjob (SECURITY-DEFINER-Funktion unter RLS), Migration 027; Integrationstests für ganz Sprint 3 auf dem Server (4/4 grün) | Backend | TDD Verwaltung | 0,5 |
 | 15.09.2026 | Deploy 29: Sprint-Branches nach main, Sprint 3 über deploy.sh ausgerollt (Migrationen 026, 027), Middleware-Wirkung und Sequenzen verifiziert | Deployment | TDD Verwaltung | 0,3 |
+| 15.09.2026 | S4-2 Healthcheck: /api/health (DB-Ping, Version, no-store), Web-Healthcheck in beiden Compose-Dateien, Postgres-Healthcheck im Repo-Compose, Server-Compose ins Repo geholt (Drift beseitigt) und über deploy.sh versioniert | Backend | TDD Verwaltung | 0,5 |

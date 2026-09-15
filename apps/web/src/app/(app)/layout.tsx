@@ -1,11 +1,14 @@
 import { redirect } from "next/navigation";
-import { eq } from "drizzle-orm";
-import { locations } from "@tdd/db";
+import { and, desc, eq, isNull } from "drizzle-orm";
+import { locations, persons, personLocationAssignments, organizations } from "@tdd/db";
 import { getCurrentUser, logout } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { navGroups } from "@/lib/nav";
 import { getPrefs } from "@/lib/dashboard-prefs";
 import { AppShell } from "@/components/AppShell";
+import { hasPermission } from "@/lib/rbac";
+import { fmtDate } from "@/lib/format";
+import type { Uebernahme } from "@/components/UebernahmenReiter";
 
 async function logoutAction() {
   "use server";
@@ -31,6 +34,27 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   const initials = user.displayName.split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase();
 
+  // Bewilligte, noch nicht uebernommene Antraege fuer den Reiter rechts – nur wer uebernehmen darf.
+  let uebernahmen: Uebernahme[] = [];
+  if (hasPermission(user.role, "person:write")) {
+    const rows = await db()
+      .select({
+        id: persons.id, first: persons.firstName, last: persons.lastName, createdAt: persons.createdAt,
+        loc: locations.name, locTyp: locations.type, org: organizations.name, orgTyp: organizations.type,
+      })
+      .from(persons)
+      .leftJoin(personLocationAssignments, and(eq(personLocationAssignments.personId, persons.id), eq(personLocationAssignments.isActive, true)))
+      .leftJoin(locations, eq(personLocationAssignments.locationId, locations.id))
+      .leftJoin(organizations, eq(persons.sourceOrganizationId, organizations.id))
+      .where(and(eq(persons.takeoverPending, true), isNull(persons.deletedAt)))
+      .orderBy(desc(persons.createdAt))
+      .limit(50);
+    uebernahmen = rows.map((r) => ({
+      id: r.id, name: `${r.last}, ${r.first}`, org: r.org ?? null, orgTyp: r.orgTyp ?? null,
+      loc: r.loc ?? null, locTyp: r.locTyp ?? null, seit: fmtDate(r.createdAt),
+    }));
+  }
+
   return (
     <AppShell
       groups={groups}
@@ -41,6 +65,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       favorites={prefs.favorites}
       collapsedInit={prefs.navCollapsed}
       logout={logoutAction}
+      uebernahmen={uebernahmen}
     >
       {children}
     </AppShell>

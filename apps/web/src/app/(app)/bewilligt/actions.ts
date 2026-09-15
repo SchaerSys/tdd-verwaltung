@@ -19,4 +19,5 @@ export async function takeoverPerson(formData: FormData): Promise<void> {
   await audit({ actorUserId: user.id, action: "person.takeover", entityType: "person", entityId: personId });
   revalidatePath("/bewilligt");
   revalidatePath("/personen");
+  revalidatePath("/", "layout"); // Reiter rechts aktualisieren
 }

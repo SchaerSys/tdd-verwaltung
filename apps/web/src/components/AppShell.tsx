@@ -7,6 +7,7 @@ import { AppSidebar, type NavGroup } from "./AppSidebar";
 import { ThemeToggle } from "./ThemeToggle";
 import { Footer } from "./Footer";
 import { InstallButton } from "./InstallButton";
+import { UebernahmenReiter, type Uebernahme } from "./UebernahmenReiter";
 import { UpdateChecker } from "./UpdateChecker";
 import { setNavCollapsed } from "@/app/(app)/dashboard/prefs-actions";
 
@@ -19,6 +20,7 @@ export function AppShell({
   favorites,
   collapsedInit,
   logout,
+  uebernahmen = [],
   children,
 }: {
   groups: NavGroup[];
@@ -29,6 +31,7 @@ export function AppShell({
   favorites: string[];
   collapsedInit: boolean;
   logout: () => Promise<void>;
+  uebernahmen?: Uebernahme[];
   children: React.ReactNode;
 }) {
   const [collapsed, setCollapsed] = useState(collapsedInit);
@@ -117,6 +120,7 @@ export function AppShell({
           <main className="p-6"><UpdateChecker />{children}<Footer /></main>
         </div>
       </div>
+      <UebernahmenReiter eintraege={uebernahmen} />
     </div>
   );
 }

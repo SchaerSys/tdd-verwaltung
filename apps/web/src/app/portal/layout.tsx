@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getCurrentUser, logout } from "@/lib/auth";
 import { hasPermission } from "@/lib/rbac";
 import { Footer } from "@/components/Footer";
+import { Lebenszeichen } from "@/components/Lebenszeichen";
 
 async function logoutAction() {
   "use server";
@@ -20,6 +21,7 @@ export default async function PortalLayout({ children }: { children: React.React
 
   return (
     <div className="min-h-screen">
+      <Lebenszeichen bereich="portal" />
       <div className="flex items-center gap-4 px-6 py-4 border-b border-[color:var(--border)] bg-[color:var(--surface)]">
         <Link href="/portal" className="flex items-center gap-3 no-underline">
           <div className="w-8 h-8 rounded-lg bg-accent text-white grid place-items-center font-bold text-sm">A</div>

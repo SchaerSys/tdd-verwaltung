@@ -362,6 +362,25 @@ export const antragNachrichten = pgTable(
   (t) => ({ antragIdx: index("idx_antrag_nachrichten_antrag").on(t.antragId, t.createdAt) }),
 );
 
+/** Fehler und Lebenszeichen der Fach-App fuer die Support-Sicht der Wartung (033). Ohne PII. */
+export const appEvents = pgTable(
+  "app_events",
+  {
+    id: bigint("id", { mode: "number" }).primaryKey().generatedAlwaysAsIdentity(),
+    at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
+    kind: text("kind").notNull(), // FEHLER | LEBENSZEICHEN
+    userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+    role: text("role"),
+    locationId: integer("location_id"),
+    organizationId: integer("organization_id"),
+    route: text("route"),
+    message: text("message"),
+    digest: text("digest"),
+    detail: jsonb("detail").notNull().default({}),
+  },
+  (t) => ({ userAtIdx: index("idx_app_events_user_at").on(t.userId, t.at) }),
+);
+
 // ── A2 · Personal-Verzeichnis (Zentralsystem, getrennt von A1 persons) ─────
 export const staff = pgTable("staff", {
   id: uuid("id").primaryKey().defaultRandom(),

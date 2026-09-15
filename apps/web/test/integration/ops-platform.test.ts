@@ -49,6 +49,21 @@ test("Wartungsrolle: Einladen per Funktion, Log nur aggregiert, ops_users nur fu
     await ops`INSERT INTO ops_users (email, password_hash, display_name) VALUES (${"betreiber-" + email}, '!', 'Betreiber')`;
     await expect(app`SELECT * FROM ops_users LIMIT 1`).rejects.toThrow(/permission denied/i);
 
+    // 033: Support-Sicht – Fach-App meldet, Wartung liest Ereignisse und Mandanten-Aggregate.
+    await app`INSERT INTO app_events (kind, user_id, role, route, message, digest, detail)
+              VALUES ('FEHLER', ${u[0]!.id}, 'ERFASSUNG', 'GET /personen', 'TypeError: kaputt', 'abc123', '{"version":"t"}')`;
+    await app`INSERT INTO app_events (kind, user_id, role, route, detail) VALUES ('LEBENSZEICHEN', ${u[0]!.id}, 'ERFASSUNG', 'backoffice /dashboard', '{"version":"t","online":true,"queue":2}')`;
+    const ev = await ops<{ kind: string }[]>`SELECT kind FROM app_events WHERE user_id = ${u[0]!.id} ORDER BY at`;
+    expect(ev.map((e) => e.kind)).toEqual(["FEHLER", "LEBENSZEICHEN"]);
+    const sb = await ops<{ fehler_24h: number; warteschlange: number; version: string }[]>`SELECT fehler_24h, warteschlange, version FROM v_support_benutzer WHERE id = ${u[0]!.id}`;
+    expect(Number(sb[0]?.fehler_24h)).toBe(1);
+    expect(Number(sb[0]?.warteschlange)).toBe(2);
+    expect(sb[0]?.version).toBe("t");
+    const md = await ops`SELECT id, konten, antraege, antraege_offen FROM v_support_mandanten LIMIT 3`;
+    expect(md.length).toBeGreaterThan(0);
+    await expect(app`SELECT * FROM v_support_mandanten`).rejects.toThrow(/permission denied/i);
+    await expect(ops`UPDATE app_events SET message = 'x'`).rejects.toThrow(/permission denied/i);
+
     // Die PII-Sperre bleibt.
     await expect(ops`SELECT * FROM persons LIMIT 1`).rejects.toThrow(/permission denied/i);
     await expect(ops`SELECT * FROM antrag_nachrichten LIMIT 1`).rejects.toThrow(/permission denied/i);

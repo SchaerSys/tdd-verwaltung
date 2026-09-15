@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { asc, eq } from "drizzle-orm";
 import { locations, organizations, users } from "@tdd/db";
 import { db } from "@/lib/db";
@@ -36,7 +37,7 @@ export default async function BenutzerSeite() {
         const gesperrt = !!u.lockedUntil && u.lockedUntil > jetzt;
         return (
           <tr key={u.id} style={u.isActive ? undefined : { opacity: .55 }}>
-            <td><b>{u.name}</b><div className="text-xs text-muted mono">{u.email}</div></td>
+            <td><Link href={`/support/${u.id}`} className="font-semibold hover:underline" title="Support-Sicht">{u.name}</Link><div className="text-xs text-muted mono">{u.email}</div></td>
             <td>
               <form action={rolleSetzen} className="inline-flex gap-1">
                 <input type="hidden" name="userId" value={u.id} />

@@ -5,6 +5,7 @@ import { wartungsmodus } from "@/lib/host";
 
 const NAV = [
   { href: "/", label: "Status" },
+  { href: "/mandanten", label: "Mandanten & Support" },
   { href: "/kennzahlen", label: "Kennzahlen" },
   { href: "/benutzer", label: "Benutzer" },
   { href: "/konfiguration", label: "Konfiguration" },

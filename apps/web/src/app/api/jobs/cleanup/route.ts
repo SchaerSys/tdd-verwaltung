@@ -23,6 +23,8 @@ export async function GET(req: Request) {
       AND valid_to < current_date - interval '6 months'
     RETURNING id`);
   const moved = (res as unknown as { id: string }[]).length;
+  // Support-Meldungen (Fehler/Lebenszeichen) sind Betriebsdaten: 30 Tage reichen.
+  await db().execute(sql`DELETE FROM app_events WHERE at < now() - interval '30 days'`);
 
   await audit({ action: "job.card.trash", entityType: "job", after: { moved } });
   return Response.json({ moved });

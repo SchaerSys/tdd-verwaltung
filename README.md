@@ -105,6 +105,7 @@ graph TD
 
 **Wartungsplattform** (`apps/ops`, nur Betreiber)
 - Eigene Anmeldung (Passwort + TOTP), Datenbankrolle `tdd_ops` ohne Leserecht auf Personendaten. Systemstatus (Fach-App, DB, Zertifikat, Platte, Backup, Migrationen), Kennzahlen aus PII-freien Views, Benutzer einladen/sperren/2FA-Reset/Passwort-Link (über SECURITY-DEFINER-Funktionen, Migration 032), Konfiguration (Standorte, Löschfristen, Auswahllisten, Organisationen), Protokoll ohne Personenbezug, Backup jetzt / Neustart (Host-Agent `scripts/ops-agent.sh`), Wartungsmodus (Datei-Schalter, Caddy liefert 503-Hinweisseite).
+- Mandanten & Support: jede Gemeinde/Institution als Mandant (Konten, Aktivität, Anträge/Rückfragen als Zahlen, Fehler), je Benutzer Zustand (zuletzt gesehen, Version, Browser, Kiosk-Warteschlange), Fehler mit Kennung, Aktionen ohne Datensatz-Bezug. Die Fach-App meldet dafür selbst (`instrumentation.ts`, `components/Lebenszeichen.tsx`, `/api/ereignis` → `app_events`, bereinigt, 30 Tage).
 
 **Verwaltung & Dashboard**
 - Stammdaten (Standorte, Preise, Öffnungszeiten, Listen), getrennte Benutzerverwaltung (Rollen, Freigaben).

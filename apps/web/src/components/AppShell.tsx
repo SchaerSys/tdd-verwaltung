@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Lebenszeichen } from "./Lebenszeichen";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AppSidebar, type NavGroup } from "./AppSidebar";
@@ -70,6 +71,8 @@ export function AppShell({
   };
 
   return (
+    <>
+    <Lebenszeichen bereich="backoffice" />
     <div className="approot">
       {/* Marken-Header (rotes Kopfband über die ganze App) */}
       <header className="topbar">
@@ -122,5 +125,6 @@ export function AppShell({
       </div>
       <UebernahmenReiter eintraege={uebernahmen} />
     </div>
+    </>
   );
 }

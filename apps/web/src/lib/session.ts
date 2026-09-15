@@ -24,14 +24,15 @@ function secret(): string {
   return s;
 }
 
-export function signSession(data: Omit<SessionData, "exp">): string {
-  const payload: SessionData = { ...data, exp: Math.floor(Date.now() / 1000) + MAX_AGE };
+/** Signiert beliebige Daten mit Ablauf. Basis fuer Session und Vor-Anmeldung (2FA). */
+export function signToken<T extends object>(data: T, maxAgeSeconds: number): string {
+  const payload = { ...data, exp: Math.floor(Date.now() / 1000) + maxAgeSeconds };
   const body = b64url(JSON.stringify(payload));
   const sig = createHmac("sha256", secret()).update(body).digest("base64url");
   return `${body}.${sig}`;
 }
 
-export function verifySession(token: string | undefined): SessionData | null {
+export function verifyToken<T extends object>(token: string | undefined): (T & { exp: number }) | null {
   if (!token) return null;
   const [body, sig] = token.split(".");
   if (!body || !sig) return null;
@@ -40,12 +41,25 @@ export function verifySession(token: string | undefined): SessionData | null {
   const b = Buffer.from(expected);
   if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
   try {
-    const data = JSON.parse(Buffer.from(body, "base64url").toString()) as SessionData;
+    const data = JSON.parse(Buffer.from(body, "base64url").toString()) as T & { exp: number };
     if (data.exp < Math.floor(Date.now() / 1000)) return null;
     return data;
   } catch {
     return null;
   }
 }
+
+export function signSession(data: Omit<SessionData, "exp">): string {
+  return signToken(data, MAX_AGE);
+}
+
+export function verifySession(token: string | undefined): SessionData | null {
+  return verifyToken<Omit<SessionData, "exp">>(token);
+}
+
+/** Vor-Anmeldung: Passwort war richtig, der zweite Faktor fehlt noch. Fuenf Minuten. */
+export const PRE_AUTH_COOKIE = "tdd_preauth";
+export const PRE_AUTH_MAX_AGE = 5 * 60;
+export interface PreAuthData { uid: string; orgId?: number | null; }
 
 export { SESSION_COOKIE, SESSION_MAX_AGE } from "./constants";

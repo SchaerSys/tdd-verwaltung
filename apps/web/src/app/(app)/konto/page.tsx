@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { KontoForm } from "./KontoForm";
+import { TotpSetup } from "./TotpSetup";
 
 const ROLE_LABEL: Record<string, string> = {
   ADMIN: "Admin", ERFASSUNG: "Erfassung", AUSGABE: "Kasse", AUSWERTUNG: "Auswertung", SACHBEARBEITER: "Sachbearbeiter",
@@ -23,6 +24,13 @@ export default async function KontoPage() {
         <div className="panel-h"><h3>Passwort ändern</h3></div>
         <div className="p-4">
           <KontoForm />
+        </div>
+      </div>
+
+      <div className="panel" style={{ maxWidth: 520, marginTop: 16 }}>
+        <div className="panel-h"><h3>Zweiter Faktor (Authenticator-App)</h3></div>
+        <div className="p-4">
+          <TotpSetup enabled={user.totpEnabled} />
         </div>
       </div>
     </div>

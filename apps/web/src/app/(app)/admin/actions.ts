@@ -120,3 +120,17 @@ export async function setLocationHours(formData: FormData): Promise<void> {
   await audit({ actorUserId: admin.id, action: "location.hours", entityType: "location", entityId: String(locId), after: value });
   revalidatePath("/admin");
 }
+
+/**
+ * Setzt den zweiten Faktor eines anderen Benutzers zurueck – fuer den Fall, dass das
+ * Geraet mit der Authenticator-App weg ist und keine Wiederherstellungscodes mehr da sind.
+ * Das eigene Konto ist ausgenommen; dort geht es nur ueber Konto mit gueltigem Code.
+ */
+export async function resetUserTotp(formData: FormData): Promise<void> {
+  const admin = await requirePermission("admin:manage");
+  const userId = String(formData.get("userId") ?? "");
+  if (!userId || userId === admin.id) { revalidatePath("/admin/benutzer"); return; }
+  await db().update(users).set({ totpEnabled: false, totpSecret: null, totpRecovery: [], totpLastWindow: null }).where(eq(users.id, userId));
+  await audit({ actorUserId: admin.id, action: "user.2fa.reset", entityType: "user", entityId: userId });
+  revalidatePath("/admin/benutzer");
+}

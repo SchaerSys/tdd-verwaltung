@@ -5,7 +5,7 @@ import { locations, users, organizations } from "@tdd/db";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { hasPermission } from "@/lib/rbac";
-import { approveUser, rejectUser, createUser, setUserRole, toggleUserActive } from "../actions";
+import { approveUser, rejectUser, createUser, setUserRole, toggleUserActive, resetUserTotp } from "../actions";
 
 const ROLE_LABEL: Record<string, string> = {
   ADMIN: "Admin", ERFASSUNG: "Erfassung", AUSGABE: "Kasse", AUSWERTUNG: "Auswertung",
@@ -26,7 +26,7 @@ export default async function BenutzerPage() {
   const usrs = await d
     .select({
       id: users.id, email: users.email, displayName: users.displayName,
-      role: users.role, isActive: users.isActive, locName: locations.name,
+      role: users.role, isActive: users.isActive, totpEnabled: users.totpEnabled, locName: locations.name,
     })
     .from(users)
     .leftJoin(locations, eq(users.locationId, locations.id))
@@ -126,6 +126,14 @@ export default async function BenutzerPage() {
                           <input type="hidden" name="active" value={u.isActive ? "0" : "1"} />
                           <button className="btn ghost sm" type="submit">{u.isActive ? "Sperren" : "Aktivieren"}</button>
                         </form>
+                      ) : null}
+                      {u.totpEnabled ? (
+                        u.id !== user.id ? (
+                          <form action={resetUserTotp}>
+                            <input type="hidden" name="userId" value={u.id} />
+                            <button className="btn ghost sm" type="submit" title="Zweiten Faktor zurücksetzen, wenn das Gerät verloren ging">2FA zurücksetzen</button>
+                          </form>
+                        ) : <span className="pill muted" title="Zweiter Faktor aktiv">2FA</span>
                       ) : null}
                     </div>
                   </td>

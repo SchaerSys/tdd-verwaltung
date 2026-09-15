@@ -34,3 +34,65 @@ export async function changePassword(_prev: PwState, formData: FormData): Promis
   await audit({ actorUserId: user.id, action: "user.password_change", entityType: "user", entityId: user.id });
   return { ok: true };
 }
+
+// ── Zweiter Faktor (TOTP) ─────────────────────────────────────────────────
+
+export interface TotpSetup { secret: string; otpauth: string; qrDataUrl: string }
+export interface TotpState { ok: boolean; error?: string; recoveryCodes?: string[] }
+
+/**
+ * Schritt 1: neues Geheimnis erzeugen und als "noch nicht bestaetigt" speichern.
+ * Aktiv wird der Faktor erst, wenn ein Code aus der App stimmt (confirmTotp).
+ * Ein bereits aktiver Faktor wird hier nicht angefasst.
+ */
+export async function startTotpSetup(): Promise<TotpSetup | { error: string }> {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Nicht angemeldet." };
+  if (user.totpEnabled) return { error: "Der zweite Faktor ist bereits aktiv." };
+
+  const { generateSecret, otpauthUrl } = await import("@/lib/totp");
+  const QR = (await import("qrcode")).default;
+  const secret = generateSecret();
+  const otpauth = otpauthUrl(secret, user.email);
+  // PNG als Data-URL fuer ein <img>: kein innerHTML, keine Angriffsflaeche.
+  const qrDataUrl = await QR.toDataURL(otpauth, { margin: 1, width: 220 });
+  await db().update(users).set({ totpSecret: secret, totpEnabled: false }).where(eq(users.id, user.id));
+  return { secret, otpauth, qrDataUrl };
+}
+
+/** Schritt 2: Code aus der App bestaetigt das Geheimnis, Wiederherstellungscodes werden einmalig gezeigt. */
+export async function confirmTotp(_prev: TotpState, formData: FormData): Promise<TotpState> {
+  const user = await getCurrentUser();
+  if (!user) return { ok: false, error: "Nicht angemeldet." };
+  const { verifyTotp, generateRecoveryCodes, hashRecoveryCode } = await import("@/lib/totp");
+
+  const rows = await db().select({ secret: users.totpSecret, enabled: users.totpEnabled }).from(users).where(eq(users.id, user.id)).limit(1);
+  const u = rows[0];
+  if (!u?.secret || u.enabled) return { ok: false, error: "Bitte die Einrichtung zuerst starten." };
+
+  const fenster = verifyTotp(u.secret, String(formData.get("code") ?? ""));
+  if (fenster === null) return { ok: false, error: "Der Code stimmt nicht. Prüfen Sie die Uhrzeit des Geräts und versuchen Sie es erneut." };
+
+  const codes = generateRecoveryCodes();
+  await db().update(users).set({
+    totpEnabled: true, totpLastWindow: fenster, totpRecovery: codes.map(hashRecoveryCode),
+  }).where(eq(users.id, user.id));
+  await audit({ actorUserId: user.id, action: "user.2fa.enabled", entityType: "user", entityId: user.id });
+  return { ok: true, recoveryCodes: codes };
+}
+
+/** Abschalten verlangt einen gueltigen Code, damit es niemand mit einer offenen Sitzung tun kann. */
+export async function disableTotp(_prev: TotpState, formData: FormData): Promise<TotpState> {
+  const user = await getCurrentUser();
+  if (!user) return { ok: false, error: "Nicht angemeldet." };
+  const { verifyTotp } = await import("@/lib/totp");
+
+  const rows = await db().select({ secret: users.totpSecret, enabled: users.totpEnabled }).from(users).where(eq(users.id, user.id)).limit(1);
+  const u = rows[0];
+  if (!u?.secret || !u.enabled) return { ok: false, error: "Der zweite Faktor ist nicht aktiv." };
+  if (verifyTotp(u.secret, String(formData.get("code") ?? "")) === null) return { ok: false, error: "Der Code stimmt nicht." };
+
+  await db().update(users).set({ totpEnabled: false, totpSecret: null, totpRecovery: [], totpLastWindow: null }).where(eq(users.id, user.id));
+  await audit({ actorUserId: user.id, action: "user.2fa.disabled", entityType: "user", entityId: user.id });
+  return { ok: true };
+}

@@ -6,7 +6,7 @@ import { hash } from "@node-rs/argon2";
 import { organizations, users } from "@tdd/db";
 import { db } from "@/lib/db";
 import { MIN_PASSWORD_LENGTH } from "@/lib/constants";
-import { login, landingFor } from "@/lib/auth";
+import { login, landingFor, completeSecondFactor } from "@/lib/auth";
 import { audit } from "@/lib/audit";
 import { createAuthToken, consumeAuthToken, appUrl } from "@/lib/auth-tokens";
 import { sendMail } from "@/lib/mail";
@@ -28,9 +28,20 @@ export async function loginAction(_prev: LoginState, formData: FormData): Promis
   const orgRaw = formData.get("orgId");
   const orgId = orgRaw ? parseInt(String(orgRaw), 10) : null;
 
-  const user = await login(email, password, orgId);
-  if (!user) return { error: "E-Mail, Passwort oder Organisation ist falsch." };
+  const ergebnis = await login(email, password, orgId);
+  if (!ergebnis) return { error: "E-Mail, Passwort oder Organisation ist falsch." };
+  if (ergebnis.needsSecondFactor) redirect("/login/2fa");
+  const user = ergebnis.user!;
   await audit({ actorUserId: user.id, action: "login", entityType: "user", entityId: user.id });
+  redirect(landingFor(user.role));
+}
+
+/** Zweiter Schritt: Einmalcode oder Wiederherstellungscode. */
+export async function secondFactorAction(_prev: LoginState, formData: FormData): Promise<LoginState> {
+  const code = String(formData.get("code") ?? "");
+  const user = await completeSecondFactor(code);
+  if (!user) return { error: "Der Code ist ungültig oder abgelaufen. Bitte neu anmelden, falls es weiter nicht klappt." };
+  await audit({ actorUserId: user.id, action: "login", entityType: "user", entityId: user.id, after: { zweiterFaktor: true } });
   redirect(landingFor(user.role));
 }
 

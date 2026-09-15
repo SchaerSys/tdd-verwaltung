@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { asc } from "drizzle-orm";
+import { asc, sql } from "drizzle-orm";
 import { locations, lookupLists, lookupValues } from "@tdd/db";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { hasPermission } from "@/lib/rbac";
 import { WEEKDAYS, WEEKDAY_LABEL, asOpeningHours, hasAnyHours } from "@/lib/opening-hours";
 import { setLocationPrice, setLocationHours } from "./actions";
+import { StandortAnlegen, StandortAktionen } from "./StandortePflege";
 
 export default async function AdminPage() {
   const user = await getCurrentUser();
@@ -14,6 +15,9 @@ export default async function AdminPage() {
 
   const d = db();
   const locs = await d.select().from(locations).orderBy(asc(locations.type), asc(locations.name));
+  // Wie viele Karten tragen die Kennung? Dann darf sie nicht mehr geaendert werden.
+  const kartenJeStandort = await d.execute(sql`SELECT location_id, count(*)::int AS n FROM cards GROUP BY location_id`);
+  const karten = new Map((kartenJeStandort as unknown as { location_id: number; n: number }[]).map((r) => [r.location_id, r.n]));
   const lists = await d.select().from(lookupLists).orderBy(asc(lookupLists.code));
   const values = await d.select().from(lookupValues).orderBy(asc(lookupValues.listId), asc(lookupValues.sort));
   const valuesByList = (listId: number) => values.filter((v) => v.listId === listId);
@@ -34,9 +38,10 @@ export default async function AdminPage() {
       {/* Standorte + Preise */}
       <div className="panel mb-4">
         <div className="panel-h"><h3>Standorte &amp; Preise</h3><span className="pill muted">{locs.length}</span></div>
+        <div className="p-3"><StandortAnlegen /></div>
         <div className="twrap">
           <table className="data">
-            <thead><tr><th>Name</th><th>Typ</th><th>Ort</th><th>Kennung</th><th>Preis (Erw. / Kind) &amp; Gruppen</th><th>Status</th></tr></thead>
+            <thead><tr><th>Name</th><th>Typ</th><th>Ort</th><th>Kennung</th><th>Preis (Erw. / Kind) &amp; Gruppen</th><th>Status</th><th></th></tr></thead>
             <tbody>
               {locs.map((l) => (
                 <tr key={l.id}>
@@ -58,6 +63,10 @@ export default async function AdminPage() {
                     )}
                   </td>
                   <td>{l.isActive ? <span className="pill good"><span className="dot" />Aktiv</span> : <span className="pill muted">Inaktiv</span>}</td>
+                  <td>
+                    <StandortAktionen z={{ id: l.id, name: l.name, city: l.city, type: l.type, locationCode: l.locationCode, isActive: l.isActive, karten: karten.get(l.id) ?? 0 }}
+                                      eigeneZeile={user.locationId === l.id} />
+                  </td>
                 </tr>
               ))}
             </tbody>

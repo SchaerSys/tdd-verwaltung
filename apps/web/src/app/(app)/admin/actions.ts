@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { hash } from "@node-rs/argon2";
 import { users, locations } from "@tdd/db";
 import { db } from "@/lib/db";
@@ -133,4 +133,112 @@ export async function resetUserTotp(formData: FormData): Promise<void> {
   await db().update(users).set({ totpEnabled: false, totpSecret: null, totpRecovery: [], totpLastWindow: null }).where(eq(users.id, userId));
   await audit({ actorUserId: admin.id, action: "user.2fa.reset", entityType: "user", entityId: userId });
   revalidatePath("/admin/benutzer");
+}
+
+// ── Standorte anlegen, bearbeiten, deaktivieren, loeschen ─────────────────
+
+export interface LocationState { ok: boolean; error?: string }
+
+function textFeld(fd: FormData, k: string): string {
+  const v = fd.get(k);
+  return typeof v === "string" ? v.trim() : "";
+}
+
+/** Neuen Standort anlegen. Kennung 0–999, eindeutig; sie steckt spaeter in jeder EAN-Karte. */
+export async function createLocation(_prev: LocationState, formData: FormData): Promise<LocationState> {
+  const admin = await requirePermission("admin:manage");
+  const name = textFeld(formData, "name");
+  const city = textFeld(formData, "city");
+  const type = textFeld(formData, "type") === "LADEN" ? "LADEN" : "AUSGABESTELLE";
+  const code = parseInt(textFeld(formData, "locationCode"), 10);
+  if (!name || !city) return { ok: false, error: "Name und Ort sind Pflicht." };
+  if (!Number.isInteger(code) || code < 0 || code > 999) return { ok: false, error: "Die Kennung muss eine Zahl von 0 bis 999 sein." };
+
+  const belegt = await db().select({ id: locations.id, name: locations.name, code: locations.locationCode }).from(locations)
+    .where(sql`${locations.name} = ${name} OR ${locations.locationCode} = ${code}`).limit(1);
+  if (belegt[0]) {
+    return { ok: false, error: belegt[0].name === name ? "Ein Standort mit diesem Namen existiert schon." : `Die Kennung ${code} ist schon vergeben (${belegt[0].name}).` };
+  }
+  const ins = await db().insert(locations).values({ name, city, type, locationCode: code }).returning({ id: locations.id });
+  await audit({ actorUserId: admin.id, action: "location.create", entityType: "location", entityId: String(ins[0]!.id), after: { name, city, type, code } });
+  revalidatePath("/admin");
+  return { ok: true };
+}
+
+/** Name, Ort und Typ aendern. Die Kennung bleibt, sobald Karten darauf ausgestellt sind. */
+export async function updateLocation(_prev: LocationState, formData: FormData): Promise<LocationState> {
+  const admin = await requirePermission("admin:manage");
+  const id = parseInt(textFeld(formData, "locationId"), 10);
+  const name = textFeld(formData, "name");
+  const city = textFeld(formData, "city");
+  const type = textFeld(formData, "type") === "LADEN" ? "LADEN" : "AUSGABESTELLE";
+  const codeRaw = textFeld(formData, "locationCode");
+  if (!id || !name || !city) return { ok: false, error: "Name und Ort sind Pflicht." };
+
+  const vorher = await db().select().from(locations).where(eq(locations.id, id)).limit(1);
+  const alt = vorher[0];
+  if (!alt) return { ok: false, error: "Standort nicht gefunden." };
+
+  const patch: Partial<typeof locations.$inferInsert> = { name, city, type };
+  if (codeRaw !== "" && parseInt(codeRaw, 10) !== alt.locationCode) {
+    const code = parseInt(codeRaw, 10);
+    if (!Number.isInteger(code) || code < 0 || code > 999) return { ok: false, error: "Die Kennung muss eine Zahl von 0 bis 999 sein." };
+    const karten = await db().execute(sql`SELECT count(*)::int AS n FROM cards WHERE location_id = ${id}`);
+    if (Number((karten as unknown as { n: number }[])[0]?.n) > 0) {
+      return { ok: false, error: "Die Kennung kann nicht mehr geaendert werden: sie steckt in bereits ausgestellten Karten." };
+    }
+    const belegt = await db().select({ id: locations.id }).from(locations).where(eq(locations.locationCode, code)).limit(1);
+    if (belegt[0] && belegt[0].id !== id) return { ok: false, error: `Die Kennung ${code} ist schon vergeben.` };
+    patch.locationCode = code;
+  }
+  const gleich = await db().select({ id: locations.id }).from(locations).where(eq(locations.name, name)).limit(1);
+  if (gleich[0] && gleich[0].id !== id) return { ok: false, error: "Ein anderer Standort traegt diesen Namen schon." };
+
+  await db().update(locations).set(patch).where(eq(locations.id, id));
+  await audit({ actorUserId: admin.id, action: "location.update", entityType: "location", entityId: String(id),
+    before: { name: alt.name, city: alt.city, type: alt.type, code: alt.locationCode }, after: patch });
+  revalidatePath("/admin");
+  return { ok: true };
+}
+
+/** Deaktivieren nimmt den Standort aus allen Auswahlen, laesst aber alles Bestehende unberuehrt. */
+export async function toggleLocationActive(formData: FormData): Promise<void> {
+  const admin = await requirePermission("admin:manage");
+  const id = parseInt(textFeld(formData, "locationId"), 10);
+  const active = textFeld(formData, "active") === "1";
+  if (!id) { revalidatePath("/admin"); return; }
+  await db().update(locations).set({ isActive: active }).where(eq(locations.id, id));
+  await audit({ actorUserId: admin.id, action: active ? "location.activate" : "location.deactivate", entityType: "location", entityId: String(id) });
+  revalidatePath("/admin");
+}
+
+/**
+ * Loeschen nur, wenn nichts darauf zeigt: keine Personen zugeordnet, keine Karten,
+ * keine Ausgaben, kein Personal, keine Antraege. Sonst: deaktivieren.
+ */
+export async function deleteLocation(_prev: LocationState, formData: FormData): Promise<LocationState> {
+  const admin = await requirePermission("admin:manage");
+  const id = parseInt(textFeld(formData, "locationId"), 10);
+  if (!id) return { ok: false, error: "Standort fehlt." };
+  const ref = await db().execute(sql`
+    SELECT
+      (SELECT count(*) FROM person_location_assignments WHERE location_id = ${id})::int AS personen,
+      (SELECT count(*) FROM cards WHERE location_id = ${id})::int AS karten,
+      (SELECT count(*) FROM distributions WHERE location_id = ${id})::int AS ausgaben,
+      (SELECT count(*) FROM staff WHERE location_id = ${id})::int AS personal,
+      (SELECT count(*) FROM users WHERE location_id = ${id})::int AS benutzer`);
+  const r = (ref as unknown as { personen: number; karten: number; ausgaben: number; personal: number; benutzer: number }[])[0]!;
+  const gruende: string[] = [];
+  if (r.personen) gruende.push(`${r.personen} zugeordnete Personen`);
+  if (r.karten) gruende.push(`${r.karten} Karten`);
+  if (r.ausgaben) gruende.push(`${r.ausgaben} Ausgaben`);
+  if (r.personal) gruende.push(`${r.personal} Mitarbeitende`);
+  if (r.benutzer) gruende.push(`${r.benutzer} Benutzerkonten`);
+  if (gruende.length) return { ok: false, error: `Nicht loeschbar, es haengen daran: ${gruende.join(", ")}. Stattdessen deaktivieren.` };
+
+  const alt = await db().select({ name: locations.name }).from(locations).where(eq(locations.id, id)).limit(1);
+  await db().delete(locations).where(eq(locations.id, id));
+  await audit({ actorUserId: admin.id, action: "location.delete", entityType: "location", entityId: String(id), before: { name: alt[0]?.name } });
+  revalidatePath("/admin");
+  return { ok: true };
 }

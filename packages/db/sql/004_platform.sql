@@ -33,8 +33,11 @@ ON CONFLICT (name) DO NOTHING;
 -- ── users: Organisation + neue Rolle SACHBEARBEITER ───────────────────────
 ALTER TABLE users ADD COLUMN IF NOT EXISTS organization_id integer REFERENCES organizations(id);
 ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
+-- Rollenliste hier vollstaendig halten (auch spaetere Rollen wie FAHRER aus 034):
+-- die Migrationen laufen in den Integrationstests je Datei parallel und idempotent,
+-- ein Wieder-Anlegen mit kuerzerer Liste wuerde an bestehenden Zeilen scheitern.
 ALTER TABLE users ADD CONSTRAINT users_role_check
-  CHECK (role IN ('ADMIN','ERFASSUNG','AUSGABE','AUSWERTUNG','SACHBEARBEITER'));
+  CHECK (role IN ('ADMIN','ERFASSUNG','AUSGABE','AUSWERTUNG','SACHBEARBEITER','FAHRER'));
 -- bestehende Nutzer der TDD-Organisation zuordnen
 UPDATE users SET organization_id = (SELECT id FROM organizations WHERE type='TDD' LIMIT 1)
 WHERE organization_id IS NULL;

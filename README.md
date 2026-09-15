@@ -11,6 +11,10 @@ zur Antragsverwaltung durch Gemeinden und Sozial­institutionen.
 > Dies ist ein reales Produktivsystem, hier als Referenz-/Portfolio-Projekt veröffentlicht.
 > Es enthält bewusst **keine** Zugangsdaten, Schlüssel oder personenbezogenen Daten.
 
+**Warum der Code so aussieht:** [`docs/BEGRUENDUNGEN.md`](docs/BEGRUENDUNGEN.md) begründet jede
+tragende technische Entscheidung inklusive verworfener Alternativen und offener Schwachstellen.
+Die Abarbeitung dieser Schwachstellen steht in [`docs/SPRINTPLAN.md`](docs/SPRINTPLAN.md).
+
 ---
 
 ## Highlights
@@ -134,8 +138,18 @@ Voraussetzungen: Node ≥ 20, eine PostgreSQL-16-Instanz.
 
 ```bash
 npm install
-npm test                     # Domänenlogik (Dubletten-Engine)
+npm test                     # Unit-Tests: Dubletten-Engine, EAN, Anspruch, Zeit, Urlaub, Rechtematrix, Formulare
 npm run typecheck            # strikter Typecheck über alle Workspaces
+npm run lint                 # ESLint mit Typinformation (no-floating-promises als Fehler)
+```
+
+Die Integrationstests brauchen eine echte, leere PostgreSQL 16 (Migrationen, RLS-Mandantentrennung,
+PII-Barriere der Wartungsrolle, Idempotenz der Ausgabe, Kartennummern-Sequenz):
+
+```bash
+docker run -d --name tdd-test-db -p 5432:5432   -e POSTGRES_USER=tdd_owner -e POSTGRES_PASSWORD=test -e POSTGRES_DB=tdd_test postgres:16-alpine
+npm run test:integration -w @tdd/web
+docker rm -f tdd-test-db
 ```
 
 Datenbank aufsetzen und App starten:
@@ -160,17 +174,27 @@ Alle Konfigurationswerte sind in [`.env.example`](.env.example) dokumentiert (nu
 
 ## Deployment
 
-Isolierter Container-Stack mit eigenem PostgreSQL und automatischem HTTPS über Caddy:
+Isolierter Container-Stack mit eigenem PostgreSQL und automatischem HTTPS über Caddy
+([`docker/docker-compose.server.yml`](docker/docker-compose.server.yml)).
+
+Ausgerollt wird ausschließlich über [`scripts/deploy.sh`](scripts/deploy.sh). Bewusst **keine CI bei
+einem Fremdanbieter** – die Prüfung läuft dort, wo ohnehin gebaut wird:
+
+1. Quellstand aus Git packen und auf dem Server in ein Stage-Verzeichnis entpacken (nicht in die Produktion)
+2. Integrationstests gegen eine Wegwerf-Postgres ([`scripts/verify-integration.sh`](scripts/verify-integration.sh))
+3. Kandidaten-Image bauen – Typecheck, Lint und Unit-Tests laufen **im Dockerfile**; ist etwas rot, entsteht kein Image
+4. Erst bei Grün: Code übernehmen, nur neue Migrationen einspielen, Container tauschen
+5. Nachweis: Login-Seite antwortet, Job-Autorisierung greift
 
 ```bash
-cp .env.example .env         # Secrets & Domains ausfüllen (openssl rand -hex 32 für SESSION_SECRET)
-cd docker
-docker compose --env-file ../.env up -d --build
-# danach einmalig: Migrationen einspielen, Rollen-Passwörter setzen, Admin anlegen
+scripts/deploy.sh            # Stand HEAD; dauert etwa zwei Minuten
 ```
 
-Produktiv läuft das System auf einem gehärteten Server (Firewall, fail2ban, automatische
-Sicherheitsupdates, SSH nur per Schlüssel) mit täglichen, verschlüsselten Offsite-Backups.
+Betrieb: gehärteter Server (Firewall, fail2ban, automatische Sicherheitsupdates, SSH nur per Schlüssel),
+täglich mit [`age`](https://age-encryption.org) verschlüsselte Backups von Datenbank, Uploads und Konfiguration
+auf eine Storage Box – der private Schlüssel liegt nicht auf dem Server. Rückspiel-Test über
+[`scripts/restore-test.sh`](scripts/restore-test.sh), Healthcheck unter `/api/health`. Nächtliche Jobs
+(Kartenablauf, Papierkorb, DSGVO-Löschfristen) laufen tokengeschützt über [`scripts/jobs-cron.sh`](scripts/jobs-cron.sh).
 
 ---
 

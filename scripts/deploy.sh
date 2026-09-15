@@ -73,7 +73,7 @@ done
 docker tag tdd-web:candidate tdd-web:latest
 docker tag tdd-ops:candidate tdd-ops:latest
 # Wartungsplattform: Anfrage-Verzeichnis fuer den Host-Agenten + Hinweisseite fuer Caddy.
-mkdir -p ops && cp docker/ops/wartung.html ops/wartung.html
+mkdir -p ops && cp stage/docker/ops/wartung.html ops/wartung.html
 docker compose --env-file .env -f docker-compose.server.yml up -d --no-build web ops >/dev/null 2>&1
 cp scripts/jobs-cron.sh jobs-cron.sh 2>/dev/null; cp scripts/backup.sh backup.sh 2>/dev/null; cp scripts/ops-agent.sh ops-agent.sh 2>/dev/null; chmod +x *.sh
 

@@ -43,6 +43,12 @@ const WEIGHTS = {
 export const HIGH_THRESHOLD = 0.85;
 export const MID_THRESHOLD = 0.6;
 
+/**
+ * Schwelle fuer den pg_trgm-Operator % in der Kandidatensuche. Entspricht dem
+ * Postgres-Default, steht aber hier, damit sie nicht vom Server abhaengt.
+ */
+export const TRGM_THRESHOLD = 0.3;
+
 /** Trigramm-Menge eines Strings (mit Randmarkierung, wie pg_trgm). */
 export function trigrams(input: string): Set<string> {
   const s = `  ${input.trim()} `;
@@ -98,14 +104,25 @@ export function scoreCandidate(input: PersonKey, candidate: PersonKey): Candidat
   const phoneticMatch =
     koelnerPhonetik(inLast) !== "" && koelnerPhonetik(inLast) === koelnerPhonetik(caLast);
 
-  const score =
+  // Renormalisierung: Ein Merkmal, das auf einer Seite fehlt, kann weder fuer noch
+  // gegen eine Dublette sprechen – es faellt aus dem Nenner. Ohne das laege der
+  // migrierte Bestand (5.486 von 5.487 ohne Geburtsdatum, fast alle ohne Adresse)
+  // bei identischem Namen auf 0,55, also unter MID: keine Warnung, nie.
+  const birthComparable = !!input.birthDate && !!candidate.birthDate;
+  const addrComparable = !!input.address && !!candidate.address;
+  const denominator =
+    WEIGHTS.lastName + WEIGHTS.firstName + WEIGHTS.phonetic +
+    (birthComparable ? WEIGHTS.birthDate : 0) +
+    (addrComparable ? WEIGHTS.address : 0);
+
+  const raw =
     WEIGHTS.lastName * lastSim +
     WEIGHTS.firstName * firstSim +
     WEIGHTS.birthDate * (birthDateExact ? 1 : 0) +
     WEIGHTS.address * addrSim +
     WEIGHTS.phonetic * (phoneticMatch ? 1 : 0);
 
-  const rounded = Math.round(score * 100) / 100;
+  const rounded = Math.round((raw / denominator) * 100) / 100;
 
   return {
     score: rounded,

@@ -78,3 +78,44 @@ describe("rankCandidates", () => {
     expect(ranked.some((r) => r.candidate.lastName === "Rahimi")).toBe(false);
   });
 });
+
+describe("Renormalisierung bei fehlenden Merkmalen (migrierter Bestand)", () => {
+  // Der Altbestand hat kein Geburtsdatum und fast nie eine Adresse.
+  const altA: PersonKey = { firstName: "Maria", lastName: "Müller" };
+  const altB: PersonKey = { firstName: "Maria", lastName: "Mueller" };
+
+  it("identischer Name ohne Geburtsdatum und Adresse ist HIGH, nicht 0,55", () => {
+    const r = scoreCandidate(altA, altB);
+    expect(r.score).toBe(1);
+    expect(r.band).toBe("HIGH");
+  });
+
+  it("aehnlicher Name ohne weitere Merkmale bleibt eine Warnung (MID), keine Sperre", () => {
+    const r = scoreCandidate({ firstName: "Hans", lastName: "Maier" }, { firstName: "Hans", lastName: "Mayer" });
+    expect(r.band).toBe("MID");
+    expect(r.score).toBeGreaterThanOrEqual(0.6);
+    expect(r.score).toBeLessThan(0.85);
+  });
+
+  it("nur eine Seite mit Geburtsdatum: das Datum faellt aus dem Nenner", () => {
+    const neu: PersonKey = { firstName: "Maria", lastName: "Müller", birthDate: "1970-01-01" };
+    const r = scoreCandidate(neu, altB);
+    expect(r.score).toBe(1);
+    expect(r.band).toBe("HIGH");
+  });
+
+  it("beide Seiten mit Geburtsdatum: verschiedene Daten druecken wie bisher", () => {
+    const a: PersonKey = { firstName: "Maria", lastName: "Müller", birthDate: "1970-01-01" };
+    const b: PersonKey = { firstName: "Maria", lastName: "Müller", birthDate: "1985-05-05" };
+    const r = scoreCandidate(a, b);
+    // 0,35 + 0,15 + 0,05 von 0,85 moeglichen -> 0,65, also MID
+    expect(r.band).toBe("MID");
+    expect(r.parts.birthDateExact).toBe(false);
+  });
+
+  it("voll vergleichbare Personen bewerten sich exakt wie ohne Renormalisierung", () => {
+    const a: PersonKey = { firstName: "Amir", lastName: "Rahimi", birthDate: "1990-01-01", address: "Weg 1", postalCode: "6800" };
+    const b: PersonKey = { firstName: "Amir", lastName: "Rahimi", birthDate: "1990-01-01", address: "Weg 1", postalCode: "6800" };
+    expect(scoreCandidate(a, b).score).toBe(1);
+  });
+});

@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { normalizeName, koelnerPhonetik, scoreCandidate, type PersonKey, type Band } from "@tdd/core";
+import { normalizeName, koelnerPhonetik, scoreCandidate, type PersonKey, type Band, TRGM_THRESHOLD } from "@tdd/core";
 import { db } from "./db";
 
 export interface Candidate {
@@ -29,7 +29,12 @@ export async function findCandidates(input: PersonKey, excludeId?: string): Prom
   const phon = koelnerPhonetik(ln);
   const bd = input.birthDate ?? null;
 
-  const res = await db().execute(sql`
+  // Die Schwelle des %-Operators kommt sonst vom Server-Default (0.3) und koennte
+  // sich stillschweigend aendern. SET LOCAL gilt nur in dieser Transaktion, der
+  // GIN-Index bleibt nutzbar (similarity() >= x waere nicht indexgestuetzt).
+  const res = await db().transaction(async (tx) => {
+    await tx.execute(sql`SET LOCAL pg_trgm.similarity_threshold = ${TRGM_THRESHOLD}`);
+    return tx.execute(sql`
     SELECT p.id, p.first_name, p.last_name, p.birth_date, p.address, p.postal_code,
            l.name AS loc_name, l.type AS loc_type
     FROM persons p
@@ -44,6 +49,7 @@ export async function findCandidates(input: PersonKey, excludeId?: string): Prom
       )
     LIMIT 50
   `);
+  });
 
   const rows = res as unknown as CandidateRow[];
   const scored = rows.map((r) => {

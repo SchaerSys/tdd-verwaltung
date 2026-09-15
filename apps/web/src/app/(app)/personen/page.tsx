@@ -140,7 +140,7 @@ export default async function PersonenPage({
                   <td>
                     <div className="cell-name">
                       <span className="av-sm">{initials(r.firstName, r.lastName)}</span>
-                      <b>{r.lastName}, {r.firstName}</b>
+                      <Link href={`/personen/${r.id}`} className="font-semibold hover:underline">{r.lastName}, {r.firstName}</Link>
                     </div>
                   </td>
                   <td className="mono">{fmtDate(r.birthDate)}</td>

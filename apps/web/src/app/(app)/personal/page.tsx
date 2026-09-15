@@ -64,7 +64,7 @@ export default async function PersonalPage() {
             <tbody>
               {rows.map((r) => (
                 <tr key={r.id} style={r.isActive ? undefined : { opacity: .55 }}>
-                  <td><b>{r.lastName}, {r.firstName}</b></td>
+                  <td><Link href={`/personal/${r.id}`} className="font-semibold hover:underline">{r.lastName}, {r.firstName}</Link></td>
                   <td><span className="pill muted">{STAFF_TYPE_LABEL[r.staffType] ?? r.staffType}</span></td>
                   <td>{locs.find((l) => l.id === r.locationId)?.name ?? "—"}</td>
                   <td className="mono">{fmtDate(r.employmentStart)}</td>

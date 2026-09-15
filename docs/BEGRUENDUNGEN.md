@@ -496,10 +496,17 @@ Framework-Bezug**, mit Paragraphenverweisen im Code (§ 9, § 11 AZG; § 2 Abs 2
 Die ehrliche Kehrseite: Nicht jede Stelle im Code ist so begründbar wie die oben. Diese
 Punkte sind bekannt, priorisiert und nicht schöngeredet.
 
-1. **Dubletten-Gewichte sind nicht empirisch kalibriert.** Die Zahlen in
-   `packages/core/src/dedupe.ts` sind fachlich plausibel und getestet, aber gegen den Echtbestand
-   nur stichprobenhaft validiert (Müller/Mueller). Sauber wäre: markierte Trainingspaare aus dem
-   Altbestand, dann Schwellen auf Precision/Recall justieren.
+1. **Dubletten-Gewichte sind nicht empirisch kalibriert — und beim Ist-Bestand kann die
+   HIGH-Schwelle gar nicht erreicht werden.** Befund vom 15.09.2026 (S4-1): Von 5.487
+   Personen hat **eine** ein Geburtsdatum, 133 haben eine Adresse, keine eine PLZ. Die
+   Altsoftware kannte kein Geburtsdatum. Damit fallen 0,45 der Gewichtung weg; das Maximum
+   liegt bei 0,70 = MID. Die Prüfung kann beim migrierten Bestand nur warnen, nie blockieren.
+   162 normalisierte Namen kommen mehrfach vor. Werkzeug und Kandidatenliste liegen bereit
+   (`scripts/dedupe-eval.ts`, `scripts/dedupe-pairs.sh`, Datei auf dem Server, nur root),
+   markiert ist noch nichts. **Vorher zu entscheiden:** Renormalisierung der Gewichte, wenn
+   Geburtsdatum/Adresse auf beiden Seiten fehlen (dann erreicht ein identischer Name HIGH),
+   und Nacherfassung des Geburtsdatums beim ersten Kontakt am Tresen. Sonst ist jede
+   Kalibrierung eine Kalibrierung auf einem Datenbestand, den es so nicht mehr geben sollte.
 2. **Der Middleware-Matcher deckt nicht alle Bereiche ab** (`apps/web/src/middleware.ts:21`):
    `/kiosk`, `/zeit`, `/personal`, `/stempeln` fehlen. Sicherheitsrelevant ist das nicht — diese
    Routen prüfen serverseitig selbst —, aber die Liste sieht aus, als sollte sie vollständig sein,

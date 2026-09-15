@@ -28,7 +28,7 @@ export default [
   // Tests und Werkzeug-Konfigurationen liegen ausserhalb der tsconfig-Projekte:
   // ohne Typinformation pruefen, sonst gar nicht.
   {
-    files: ["**/test/**/*.ts", "**/*.config.ts"],
+    files: ["**/test/**/*.ts", "**/*.config.ts", "scripts/**/*.ts"],
     ...ts.configs.disableTypeChecked,
   },
 ];

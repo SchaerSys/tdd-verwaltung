@@ -18,7 +18,7 @@ export interface Ereignis {
 export function saeubern(text: string | null | undefined, max = 300): string | null {
   if (!text) return null;
   return text
-    .replace(/[^\s@"'<>]+@[^\s@"'<>]+\.[^\s@"'<>]+/g, "[mail]")
+    .replace(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g, "[mail]")
     .replace(/\d{5,}/g, "[zahl]")
     .replace(/\s+/g, " ")
     .trim()

@@ -71,3 +71,5 @@ SELECT o.id, o.name, o.type, o.is_active,
 FROM organizations o;
 
 GRANT SELECT ON v_support_mandanten TO tdd_ops;
+-- Die Sichten gehoeren der Wartung; die Fach-App braucht sie nicht (Default-Privilegien aus 002 zuruecknehmen).
+REVOKE ALL ON v_support_mandanten, v_support_benutzer, v_support_aktionen FROM tdd_app;

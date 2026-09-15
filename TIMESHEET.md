@@ -21,3 +21,4 @@
 | 13.09.2026 | S3-2 Eingabevalidierung mit zod: lib/forms.ts mit Bausteinen, die die alten s()/n()/i()-Helfer exakt nachbilden, Schemata für Person, Bearbeiten und Antrag, drei Actions umgestellt, duplizierte Helfer entfernt, 6 Tests belegen gleiches Verhalten | Backend | TDD Verwaltung | 1,1 |
 | 13.09.2026 | S3-4 Kleinkram: Middleware-Matcher auf Ausnahmeliste umgedreht (kiosk/zeit/personal/stempeln waren nie gematcht), Client-IP im Audit-Log, Passwort-Mindestlänge zentral 10, N+1 in der Tresen-Suche durch DISTINCT ON ersetzt | Backend | TDD Verwaltung | 0,6 |
 | 13.09.2026 | S3-5 Antragsdokumente in den Löschjob (SECURITY-DEFINER-Funktion unter RLS), Migration 027; Integrationstests für ganz Sprint 3 auf dem Server (4/4 grün) | Backend | TDD Verwaltung | 0,5 |
+| 15.09.2026 | Deploy 29: Sprint-Branches nach main, Sprint 3 über deploy.sh ausgerollt (Migrationen 026, 027), Middleware-Wirkung und Sequenzen verifiziert | Deployment | TDD Verwaltung | 0,3 |

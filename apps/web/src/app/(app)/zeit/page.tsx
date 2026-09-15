@@ -55,6 +55,7 @@ export default async function ZeitPage({ searchParams }: { searchParams: Promise
         <div className="flex gap-2">
           <a href="/stempeln" target="_blank" rel="noopener" className="btn">⏱ Stempel-Terminal</a>
           <a href={`/zeit/export?month=${month}`} className="btn ghost">⬇ Monats-Export</a>
+          <a href={`/druck/zeit?monat=${month}`} className="btn ghost">🖨 Monatsübersicht</a>
         </div>
       </div>
 

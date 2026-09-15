@@ -34,6 +34,7 @@ export default async function StaffEditPage({ params }: { params: Promise<{ id: 
             <button className="btn ghost" type="submit">{p.isActive ? "Deaktivieren" : "Aktivieren"}</button>
           </form>
           <Link href="/personal" className="btn ghost">← Personal</Link>
+          <a href={`/druck/zeit?staff=${p.id}`} className="btn ghost">🖨 Monatsübersicht</a>
         </div>
       </div>
 

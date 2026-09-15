@@ -25,7 +25,9 @@ if (!url) {
 
 async function passwortAbfragen() {
   if (!stdin.isTTY) {
-    // Pipe: erste Zeile ist das Passwort
+    // Pipe (oder ssh ohne -tt): erste Zeile ist das Passwort. Ohne Hinweis sieht
+    // man sonst nur einen leeren Bildschirm und wartet.
+    console.error("Kein Terminal erkannt – Passwort eingeben und Enter druecken (Eingabe ist dann sichtbar; sonst ssh -tt verwenden):");
     let data = "";
     for await (const chunk of stdin) data += chunk;
     return data.split(/\r?\n/)[0] ?? "";

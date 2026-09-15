@@ -10,6 +10,7 @@ export interface NavItem {
   href: string;
   label: string;
   badge?: string;
+  children?: { href: string; label: string }[];
 }
 export interface NavGroup {
   title: string;
@@ -21,6 +22,7 @@ const ICONS: Record<string, string> = {
   "/bewilligt": "✅", "/karten": "💳", "/karten/papierkorb": "🗑", "/auswertungen": "📊",
   "/kiosk": "📷", "/ausgaben": "📦", "/admin": "🛠", "/admin/benutzer": "👥", "/admin/import": "⬆️",
   "/admin/migration": "🔄", "/personal": "🧑‍💼", "/zeit": "⏱️", "/urlaub": "🌴",
+  "/touren": "🚚", "/touren/vorlagen": "📅", "/touren/abholstellen": "🏪", "/touren/fahrzeuge": "🚐", "/touren/angebote": "📥", "/touren/standorte": "🗺️",
 };
 
 export function AppSidebar({
@@ -35,9 +37,10 @@ export function AppSidebar({
   const pathname = usePathname();
   const router = useRouter();
   const [menu, setMenu] = useState<{ x: number; y: number; href: string } | null>(null);
+  const [offen, setOffen] = useState<Record<string, boolean>>({});
 
   const activeHref = groups
-    .flatMap((g) => g.items.map((i) => i.href))
+    .flatMap((g) => g.items.flatMap((i) => [i.href, ...(i.children?.map((c) => c.href) ?? [])]))
     .filter((h) => pathname === h || (h !== "/dashboard" && pathname.startsWith(h + "/")))
     .sort((a, b) => b.length - a.length)[0];
   const isActive = (href: string) => href === activeHref;
@@ -78,22 +81,39 @@ export function AppSidebar({
           <div className="nav-group">{g.title}</div>
           {g.items.map((it) => {
             const newWindow = it.href !== "/dashboard";
+            // Untermenue: offen, wenn ein Kind oder der Eintrag selbst aktiv ist, oder per Pfeil aufgeklappt.
+            const kinderAktiv = !!it.children?.some((c) => isActive(c.href)) || isActive(it.href);
+            const aufgeklappt = it.children ? (offen[it.href] ?? kinderAktiv) : false;
             return (
-              <Link
-                key={it.href}
-                href={it.href}
-                target={newWindow ? "_blank" : undefined}
-                rel={newWindow ? "noopener" : undefined}
-                className={`nav${isActive(it.href) ? " active" : ""}`}
-                onContextMenu={(e) => onCtx(e, it.href)}
-                title={newWindow ? "Öffnet in eigenem Fenster · Rechtsklick: als Favorit" : undefined}
-              >
-                <span className="ic" aria-hidden>{ICONS[it.href] ?? "•"}</span>
-                {isFav(it.href) ? <span aria-hidden className="fav-mark">★</span> : null}
-                <span className="nav-label">{it.label}</span>
-                {it.badge ? <span className="badge">{it.badge}</span> : null}
-                {newWindow ? <span aria-hidden className="nav-ext">↗</span> : null}
-              </Link>
+              <div key={it.href}>
+                <div className="flex items-center">
+                  <Link
+                    href={it.href}
+                    target={newWindow ? "_blank" : undefined}
+                    rel={newWindow ? "noopener" : undefined}
+                    className={`nav flex-1${isActive(it.href) ? " active" : ""}`}
+                    onContextMenu={(e) => onCtx(e, it.href)}
+                    title={newWindow ? "Öffnet in eigenem Fenster · Rechtsklick: als Favorit" : undefined}
+                  >
+                    <span className="ic" aria-hidden>{ICONS[it.href] ?? "•"}</span>
+                    {isFav(it.href) ? <span aria-hidden className="fav-mark">★</span> : null}
+                    <span className="nav-label">{it.label}</span>
+                    {it.badge ? <span className="badge">{it.badge}</span> : null}
+                    {newWindow ? <span aria-hidden className="nav-ext">↗</span> : null}
+                  </Link>
+                  {it.children ? (
+                    <button type="button" className="btn ghost sm" aria-expanded={aufgeklappt} aria-label="Untermenü" style={{ padding: "2px 6px" }}
+                      onClick={() => setOffen((o) => ({ ...o, [it.href]: !aufgeklappt }))}>{aufgeklappt ? "▾" : "▸"}</button>
+                  ) : null}
+                </div>
+                {it.children && aufgeklappt ? it.children.map((c) => (
+                  <Link key={c.href} href={c.href} target="_blank" rel="noopener" className={`nav nav-sub${isActive(c.href) ? " active" : ""}`} onContextMenu={(e) => onCtx(e, c.href)}>
+                    <span className="ic" aria-hidden>{ICONS[c.href] ?? "•"}</span>
+                    {isFav(c.href) ? <span aria-hidden className="fav-mark">★</span> : null}
+                    <span className="nav-label">{c.label}</span>
+                  </Link>
+                )) : null}
+              </div>
             );
           })}
         </div>

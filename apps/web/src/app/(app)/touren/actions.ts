@@ -3,11 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { and, asc, eq, inArray, max, sql } from "drizzle-orm";
-import { abholstellen, abwesenheiten, angeboteEingang, fahrzeuge, staff, tourStopps, tourVorlageStopps, tourVorlagen, touren } from "@tdd/db";
+import { abholstellen, abwesenheiten, angeboteEingang, fahrzeuge, locations, staff, tourStopps, tourVorlageStopps, tourVorlagen, touren } from "@tdd/db";
 import { db } from "@/lib/db";
 import { audit } from "@/lib/audit";
 import { requirePermission } from "@/lib/guard";
 import { wochentag } from "@/lib/touren";
+import { geocode } from "@/lib/geo";
 
 const str = (fd: FormData, k: string): string | null => { const v = String(fd.get(k) ?? "").trim(); return v || null; };
 const num = (fd: FormData, k: string): number | null => { const v = str(fd, k); if (!v) return null; const n = Number(v.replace(",", ".")); return Number.isFinite(n) ? n : null; };
@@ -58,8 +59,9 @@ export async function abholstelleAnlegen(fd: FormData): Promise<void> {
   const u = await requirePermission("tour:manage");
   const w = abholstelleWerte(fd);
   if (!w.name) throw new Error("Name ist Pflicht.");
-  const r = await db().insert(abholstellen).values(w).returning({ id: abholstellen.id });
-  await audit({ actorUserId: u.id, action: "abholstelle.create", entityType: "abholstelle", entityId: String(r[0]!.id) });
+  const geo = await geocode([w.strasse, [w.plz, w.ort].filter(Boolean).join(" ")].filter(Boolean).join(", "));
+  const r = await db().insert(abholstellen).values({ ...w, lat: geo?.lat ?? null, lng: geo?.lng ?? null }).returning({ id: abholstellen.id });
+  await audit({ actorUserId: u.id, action: "abholstelle.create", entityType: "abholstelle", entityId: String(r[0]!.id), after: { geocodiert: !!geo } });
   revalidatePath("/touren/abholstellen");
   redirect(`/touren/abholstellen/${r[0]!.id}`);
 }
@@ -68,19 +70,29 @@ export async function abholstelleSpeichern(fd: FormData): Promise<void> {
   const id = Number(fd.get("id"));
   const w = abholstelleWerte(fd);
   if (!id || !w.name) throw new Error("Name ist Pflicht.");
-  await db().update(abholstellen).set({ ...w, isActive: fd.get("isActive") === "on" }).where(eq(abholstellen.id, id));
+  // Adresse geaendert -> Koordinaten neu suchen (von Hand gesetzte Marker bleiben sonst stehen).
+  const alt = (await db().select({ strasse: abholstellen.strasse, plz: abholstellen.plz, ort: abholstellen.ort, lat: abholstellen.lat }).from(abholstellen).where(eq(abholstellen.id, id)).limit(1))[0];
+  const adresseNeu = !alt || alt.strasse !== w.strasse || alt.plz !== w.plz || alt.ort !== w.ort || alt.lat == null;
+  const geo = adresseNeu ? await geocode([w.strasse, [w.plz, w.ort].filter(Boolean).join(" ")].filter(Boolean).join(", ")) : null;
+  await db().update(abholstellen).set({ ...w, isActive: fd.get("isActive") === "on", ...(geo ? { lat: geo.lat, lng: geo.lng } : {}) }).where(eq(abholstellen.id, id));
   await audit({ actorUserId: u.id, action: "abholstelle.update", entityType: "abholstelle", entityId: String(id) });
   revalidatePath("/touren/abholstellen");
   revalidatePath(`/touren/abholstellen/${id}`);
 }
 
 // ── Wochenplan (Vorlagen) ─────────────────────────────────────────────────
+/** Start jeder Tour ist das Lager (Vandans), wenn nichts anderes gewaehlt wird. */
+async function lagerId(): Promise<number | null> {
+  const l = (await db().select({ id: locations.id }).from(locations).where(and(eq(locations.type, "LAGER"), eq(locations.isActive, true))).limit(1))[0];
+  return l?.id ?? null;
+}
+
 export async function vorlageAnlegen(fd: FormData): Promise<void> {
   const u = await requirePermission("tour:manage");
   const name = str(fd, "name"); const wt = num(fd, "wochentag");
   if (!name || !wt || wt < 1 || wt > 7) throw new Error("Name und Wochentag sind Pflicht.");
   const r = await db().insert(tourVorlagen).values({
-    name, wochentag: wt, startzeit: str(fd, "startzeit"), startLocationId: num(fd, "startLocationId"),
+    name, wochentag: wt, startzeit: str(fd, "startzeit"), startLocationId: num(fd, "startLocationId") ?? (await lagerId()),
     fahrzeugId: num(fd, "fahrzeugId"), fahrerId: str(fd, "fahrerId"), hinweise: str(fd, "hinweise"),
   }).returning({ id: tourVorlagen.id });
   await audit({ actorUserId: u.id, action: "tourvorlage.create", entityType: "tourvorlage", entityId: String(r[0]!.id) });
@@ -157,7 +169,7 @@ export async function tourAnlegen(fd: FormData): Promise<void> {
   const u = await requirePermission("tour:manage");
   const datum = str(fd, "datum"); const name = str(fd, "name");
   if (!datum || !name) throw new Error("Datum und Name sind Pflicht.");
-  const r = await db().insert(touren).values({ datum, name, startzeit: str(fd, "startzeit"), createdBy: u.id }).returning({ id: touren.id });
+  const r = await db().insert(touren).values({ datum, name, startzeit: str(fd, "startzeit"), startLocationId: await lagerId(), createdBy: u.id }).returning({ id: touren.id });
   await audit({ actorUserId: u.id, action: "tour.create", entityType: "tour", entityId: r[0]!.id });
   redirect(`/touren/${r[0]!.id}`);
 }

@@ -107,6 +107,7 @@ graph TD
 - Stammdaten: Abholstellen (Betriebe mit Abholtagen, Fenster, Kühlbedarf, Hinweisen), Fahrzeuge (Kühlung, elektrisch, Pickerl, Werkstatt), Fahrer:innen am Personal (Führerschein, Fahrertage, Login-Verknüpfung).
 - Wochenplan (Tourvorlagen je Wochentag mit Stopp-Abfolge) → Tagesdisposition (`/touren`): Touren erzeugen, Fahrer/Fahrzeug zuweisen, Konflikte live (abwesend, Werkstatt, Kühlware ohne Kühlung, Doppelbelegung, Pickerl), Abwesenheiten, Laufzettel-Druck.
 - Fahrer-Handy (`/fahrt`, Rolle FAHRER): Tour des Tages, Stopps abhaken, Kisten/kg erfassen (gerettete Lebensmittel), Navigation, km-Stand.
+- Karte & Routenoptimierung: Abholstellen/Standorte werden beim Speichern geocodiert (Photon/komoot, DE; Marker von Hand nachziehbar), Touren und Vorlagen zeigen die Strecke, „Reihenfolge optimieren“ berechnet die kürzeste Runde ab Lager Vandans mit fester letzter Lieferung – Routing über eigenen OSRM auf dem Server (`scripts/osrm-setup.sh`, OSM-Auszug Vorarlberg), Kartenkacheln von OpenStreetMap.
 - Posteingang der Abholangebote von der Homepage (`/touren/angebote`, Job `/api/jobs/angebote`; braucht `HOMEPAGE_API_URL` + `UEBERGABE_TOKEN`).
 
 **Wartungsplattform** (`apps/ops`, nur Betreiber)

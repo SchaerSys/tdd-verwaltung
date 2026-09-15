@@ -7,6 +7,14 @@ function pad(n: number): string {
 }
 
 /** Formatiert ein Datum als „TT.MM.JJJJ". Leer/ungültig → „—". */
+/** Anzeigename eines Standorttyps (LADEN | AUSGABESTELLE | LAGER). */
+export function standortTyp(t: string | null | undefined): string {
+  return t === "LADEN" ? "Laden" : t === "LAGER" ? "Lager" : "Ausgabestelle";
+}
+export function standortPill(t: string | null | undefined): string {
+  return t === "LADEN" ? "tag-shop" : t === "LAGER" ? "muted" : "tag-out";
+}
+
 export function fmtDate(v: string | Date | null | undefined): string {
   if (v == null || v === "") return "—";
   if (typeof v === "string") {

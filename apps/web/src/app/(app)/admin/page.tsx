@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { standortPill, standortTyp } from "@/lib/format";
 import { redirect } from "next/navigation";
 import { asc, sql } from "drizzle-orm";
 import { locations, lookupLists, lookupValues } from "@tdd/db";
@@ -46,7 +47,7 @@ export default async function AdminPage() {
               {locs.map((l) => (
                 <tr key={l.id}>
                   <td><b>{l.name}</b></td>
-                  <td><span className={`pill ${l.type === "LADEN" ? "tag-shop" : "tag-out"}`}>{l.type === "LADEN" ? "Laden" : "Ausgabestelle"}</span></td>
+                  <td><span className={`pill ${standortPill(l.type)}`}>{standortTyp(l.type)}</span></td>
                   <td>{l.city}</td>
                   <td className="mono">{l.locationCode}</td>
                   <td>

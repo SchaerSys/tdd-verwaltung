@@ -42,6 +42,9 @@ services:
       SMTP_USER: ${SMTP_USER}
       SMTP_PASS: ${SMTP_PASS}
       SMTP_FROM: ${SMTP_FROM}
+      OSRM_URL: http://osrm:5000
+      HOMEPAGE_API_URL: ${HOMEPAGE_API_URL:-}
+      UEBERGABE_TOKEN: ${UEBERGABE_TOKEN:-}
     volumes:
       - tdd-uploads:/data/uploads
     ports:
@@ -93,6 +96,15 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+  osrm:
+    # Routing fuer A4 (Karte, Reihenfolge-Optimierung). Daten: scripts/osrm-setup.sh.
+    image: ghcr.io/project-osrm/osrm-backend:latest
+    container_name: tdd-osrm
+    restart: unless-stopped
+    command: osrm-routed --algorithm mld --max-trip-size 60 --max-table-size 200 /data/vorarlberg-latest.osrm
+    volumes:
+      - ./osrm:/data:ro
+    networks: [tdd-net]
   caddy:
     image: caddy:2-alpine
     container_name: tdd-caddy

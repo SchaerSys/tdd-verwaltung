@@ -7,6 +7,8 @@ export interface NavDef {
   label: string;
   perm: Permission | null;
   group: NavGroupTitle;
+  /** Untermenue: href des Eltern-Eintrags (haelt die Leiste kurz, z. B. Disposition). */
+  parent?: string;
 }
 
 /** Zentraler Navigations-Katalog – Quelle für Sidebar UND Dashboard-Favoriten. */
@@ -25,11 +27,12 @@ export const NAV: NavDef[] = [
   { href: "/personal", label: "A2 · Personal", perm: "staff:manage", group: "Zentralsystem" },
   { href: "/zeit", label: "A2 · Zeiterfassung", perm: "staff:manage", group: "Zentralsystem" },
   { href: "/urlaub", label: "A3 · Urlaub", perm: "staff:manage", group: "Zentralsystem" },
-  { href: "/touren", label: "A4 · Touren (Disposition)", perm: "tour:manage", group: "Zentralsystem" },
-  { href: "/touren/vorlagen", label: "A4 · Wochenplan", perm: "tour:manage", group: "Zentralsystem" },
-  { href: "/touren/abholstellen", label: "A4 · Abholstellen", perm: "tour:manage", group: "Zentralsystem" },
-  { href: "/touren/fahrzeuge", label: "A4 · Fahrzeuge", perm: "tour:manage", group: "Zentralsystem" },
-  { href: "/touren/angebote", label: "A4 · Angebote (Homepage)", perm: "tour:manage", group: "Zentralsystem" },
+  { href: "/touren", label: "A4 · Disposition", perm: "tour:manage", group: "Zentralsystem" },
+  { href: "/touren/vorlagen", label: "Wochenplan", perm: "tour:manage", group: "Zentralsystem", parent: "/touren" },
+  { href: "/touren/abholstellen", label: "Abholstellen", perm: "tour:manage", group: "Zentralsystem", parent: "/touren" },
+  { href: "/touren/fahrzeuge", label: "Fahrzeuge", perm: "tour:manage", group: "Zentralsystem", parent: "/touren" },
+  { href: "/touren/angebote", label: "Angebote (Homepage)", perm: "tour:manage", group: "Zentralsystem", parent: "/touren" },
+  { href: "/touren/standorte", label: "Standorte (Karte)", perm: "tour:manage", group: "Zentralsystem", parent: "/touren" },
   { href: "/admin", label: "Stammdaten", perm: "admin:manage", group: "Verwaltung" },
   { href: "/admin/benutzer", label: "Benutzerverwaltung", perm: "admin:manage", group: "Verwaltung" },
   { href: "/admin/import", label: "Import", perm: "admin:manage", group: "Verwaltung" },
@@ -42,11 +45,19 @@ export function navFor(role: Role): NavDef[] {
 }
 
 /** Sichtbare Nav-Einträge nach Gruppen (leere Gruppen entfallen). */
-export function navGroups(role: Role): { title: NavGroupTitle; items: { href: string; label: string }[] }[] {
+export interface NavEintrag { href: string; label: string; children?: { href: string; label: string }[] }
+
+export function navGroups(role: Role): { title: NavGroupTitle; items: NavEintrag[] }[] {
   const order: NavGroupTitle[] = ["Backoffice", "Tresen-Kiosk", "Zentralsystem", "Verwaltung"];
   const visible = navFor(role);
   return order
-    .map((title) => ({ title, items: visible.filter((n) => n.group === title).map((n) => ({ href: n.href, label: n.label })) }))
+    .map((title) => ({
+      title,
+      items: visible.filter((n) => n.group === title && !n.parent).map((n): NavEintrag => {
+        const children = visible.filter((c) => c.parent === n.href).map((c) => ({ href: c.href, label: c.label }));
+        return children.length ? { href: n.href, label: n.label, children } : { href: n.href, label: n.label };
+      }),
+    }))
     .filter((g) => g.items.length > 0);
 }
 

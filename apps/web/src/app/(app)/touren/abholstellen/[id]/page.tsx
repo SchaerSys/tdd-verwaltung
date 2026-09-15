@@ -9,6 +9,7 @@ import { WOCHENTAGE } from "@/lib/touren";
 import { fmtDate } from "@/lib/format";
 import { abholstelleSpeichern } from "../../actions";
 import { AbholstelleFelder } from "../AbholstelleFelder";
+import { PunktPanel } from "../../KartePanel";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +37,7 @@ export default async function AbholstelleSeite({ params }: { params: Promise<{ i
           <form action={abholstelleSpeichern} className="p-4 flex flex-col gap-3"><input type="hidden" name="id" value={a.id} /><AbholstelleFelder a={a} /><div><button className="btn primary" type="submit">Speichern</button></div></form>
         </div>
         <div className="flex flex-col gap-4">
+          <PunktPanel art="abholstelle" id={a.id} name={a.name} adresse={[a.strasse, [a.plz, a.ort].filter(Boolean).join(" ")].filter(Boolean).join(", ")} lat={a.lat} lng={a.lng} />
           <div className="panel">
             <div className="panel-h"><h3>Im Wochenplan</h3><span className="pill muted">{vorlagen.length}</span></div>
             <ul className="p-3 text-[.8125rem] flex flex-col gap-1">

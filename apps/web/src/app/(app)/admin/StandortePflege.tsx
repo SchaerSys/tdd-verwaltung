@@ -19,6 +19,7 @@ export function StandortAnlegen() {
         <select name="type" className="inp" defaultValue="AUSGABESTELLE">
           <option value="AUSGABESTELLE">Ausgabestelle</option>
           <option value="LADEN">Laden</option>
+          <option value="LAGER">Lager (Start der Touren)</option>
         </select>
       </label>
       <label className="flex flex-col text-xs gap-1">Kennung (0–999)<input name="locationCode" className="inp mono" style={{ width: 90 }} inputMode="numeric" required placeholder="213" /></label>
@@ -45,6 +46,7 @@ export function StandortAktionen({ z, eigeneZeile }: { z: StandortZeile; eigeneZ
         <select name="type" className="inp" defaultValue={z.type} aria-label="Typ">
           <option value="AUSGABESTELLE">Ausgabestelle</option>
           <option value="LADEN">Laden</option>
+          <option value="LAGER">Lager (Start der Touren)</option>
         </select>
         <input name="locationCode" className="inp mono" defaultValue={z.locationCode} style={{ width: 64 }} inputMode="numeric"
                aria-label="Kennung" disabled={z.karten > 0} title={z.karten > 0 ? `Nicht aenderbar: ${z.karten} Karten tragen diese Kennung` : undefined} />

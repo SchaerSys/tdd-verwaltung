@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq, ne } from "drizzle-orm";
 import { locations as locTable } from "@tdd/db";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
@@ -21,7 +21,7 @@ export default async function DashboardPage() {
   const locs = await db()
     .select({ id: locTable.id, name: locTable.name, type: locTable.type, openingHours: locTable.openingHours })
     .from(locTable)
-    .where(eq(locTable.isActive, true))
+    .where(and(eq(locTable.isActive, true), ne(locTable.type, "LAGER")))
     .orderBy(asc(locTable.type), asc(locTable.name));
 
   return (

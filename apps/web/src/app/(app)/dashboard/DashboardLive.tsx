@@ -277,7 +277,7 @@ function LocationBody({ loc }: { loc: LocLite | undefined }) {
     <div>
       <div className="mb-2">{open ? <span className="pill good"><span className="dot" />jetzt geöffnet</span> : <span className="pill bad"><span className="dot" />geschlossen</span>}</div>
       <div className="text-[.85rem]"><span className="muted">Heute:</span> <b>{todayText(oh)}</b></div>
-      <div className="text-[.8rem] muted mt-1">{loc.type === "LADEN" ? "Laden" : "Ausgabestelle"}</div>
+      <div className="text-[.8rem] muted mt-1">{loc.type === "LADEN" ? "Laden" : loc.type === "LAGER" ? "Lager" : "Ausgabestelle"}</div>
     </div>
   );
 }

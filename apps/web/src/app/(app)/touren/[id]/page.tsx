@@ -10,6 +10,10 @@ import { ladeTouren, planStammdaten } from "@/lib/touren-daten";
 import { fmtDate, fmtDateTime } from "@/lib/format";
 import { ConfirmButton } from "@/components/ConfirmButton";
 import { stoppMelden, tourLoeschen, tourStoppEntfernen, tourStoppHinzufuegen, tourStoppVerschieben, tourZuweisen } from "../actions";
+import { streckeBerechnen } from "../karte-actions";
+import { osrmVerfuegbar } from "@/lib/geo";
+import { TourKartePanel } from "../KartePanel";
+import { locations } from "@tdd/db";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +28,15 @@ export default async function TourSeite({ params }: { params: Promise<{ id: stri
   const [sd, stellen] = await Promise.all([planStammdaten(), db().select({ id: abholstellen.id, name: abholstellen.name, ort: abholstellen.ort, kuehl: abholstellen.kuehlbedarf }).from(abholstellen).where(eq(abholstellen.isActive, true)).orderBy(asc(abholstellen.name))]);
   const a = ampel(t.konflikte);
   const offen = t.status === "GEPLANT";
+  // Karte: Startstandort + Stopps mit Koordinaten, Strecke in aktueller Reihenfolge
+  const start = t.startLocationId ? (await db().select({ name: locations.name, lat: locations.lat, lng: locations.lng }).from(locations).where(eq(locations.id, t.startLocationId)).limit(1))[0] : undefined;
+  const [osrm, strecke] = await Promise.all([osrmVerfuegbar(), streckeBerechnen("tour", t.id)]);
+  const punkte = [
+    ...(start?.lat && start.lng ? [{ lat: start.lat, lng: start.lng, nr: "S", label: start.name, untertitel: "Start", farbe: "#1d4ed8" }] : []),
+    ...t.stopps.filter((s) => s.lat != null && s.lng != null).map((s, i) => ({ lat: s.lat!, lng: s.lng!, nr: String(t.stopps.indexOf(s) + 1), label: s.name, untertitel: s.adresse, farbe: s.art === "LIEFERUNG" ? "#0f766e" : "#981313", i })),
+  ];
+  const ohneKoordinaten = t.stopps.filter((s) => s.art === "ABHOLUNG" && (s.lat == null || s.lng == null)).map((s) => s.name);
+  const optimierbar = offen && t.stopps.filter((s) => s.art === "ABHOLUNG" && s.lat != null).length >= 2;
   const kisten = t.stopps.reduce((s, x) => s + (x.mengeKisten ?? 0), 0);
   const kg = t.stopps.reduce((s, x) => s + Number(x.mengeKg ?? 0), 0);
 
@@ -39,6 +52,7 @@ export default async function TourSeite({ params }: { params: Promise<{ id: stri
 
       <div className="grid gap-4 lg:grid-cols-[2fr_1fr] items-start">
         <div className="flex flex-col gap-4">
+          <TourKartePanel art="tour" id={t.id} punkte={punkte} route={strecke?.geometrie} km={strecke?.km ?? null} minuten={strecke?.minuten ?? null} ohneKoordinaten={ohneKoordinaten} optimierbar={optimierbar} osrm={osrm} />
           <div className="panel">
             <div className="panel-h"><h3>Stopps</h3><span className="pill muted">{t.stopps.length}</span>{kisten || kg ? <span className="pill good">{kisten} Kisten · {kg.toLocaleString("de-AT")} kg</span> : null}</div>
             {t.stopps.length === 0 ? <div className="empty">Noch keine Stopps.</div> : (
@@ -81,7 +95,7 @@ export default async function TourSeite({ params }: { params: Promise<{ id: stri
                 </form>
                 <form action={tourStoppHinzufuegen} className="flex gap-2 items-end flex-wrap">
                   <input type="hidden" name="tourId" value={t.id} /><input type="hidden" name="art" value="LIEFERUNG" />
-                  <div className="field flex-1"><label className="lbl">Lieferung an</label><select name="locationId" className="inp" required><option value="">—</option>{sd.orte.map((o) => <option key={o.id} value={o.id}>{o.name} ({o.type === "LADEN" ? "Laden" : "Ausgabestelle"})</option>)}</select></div>
+                  <div className="field flex-1"><label className="lbl">Lieferung an</label><select name="locationId" className="inp" required><option value="">—</option>{sd.orte.filter((o) => o.type !== "LAGER").map((o) => <option key={o.id} value={o.id}>{o.name} ({o.type === "LADEN" ? "Laden" : "Ausgabestelle"})</option>)}</select></div>
                   <button className="btn sm" type="submit">Hinzufügen</button>
                 </form>
               </div>

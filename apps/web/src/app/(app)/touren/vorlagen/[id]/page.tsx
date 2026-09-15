@@ -8,6 +8,9 @@ import { hasPermission } from "@/lib/rbac";
 import { WOCHENTAGE, WOCHENTAGE_KURZ, zeitKurz } from "@/lib/touren";
 import { planStammdaten } from "@/lib/touren-daten";
 import { vorlageSpeichern, vorlageStoppEntfernen, vorlageStoppHinzufuegen, vorlageStoppVerschieben } from "../../actions";
+import { streckeBerechnen } from "../../karte-actions";
+import { osrmVerfuegbar } from "@/lib/geo";
+import { TourKartePanel } from "../../KartePanel";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +22,7 @@ export default async function VorlageSeite({ params }: { params: Promise<{ id: s
   const v = (await db().select().from(tourVorlagen).where(eq(tourVorlagen.id, id)).limit(1))[0];
   if (!v) notFound();
   const [stopps, sd, stellen] = await Promise.all([
-    db().select({ s: tourVorlageStopps, aName: abholstellen.name, aOrt: abholstellen.ort, aKuehl: abholstellen.kuehlbedarf, aTage: abholstellen.abholtage, aVon: abholstellen.fensterVon, aBis: abholstellen.fensterBis, lName: locations.name })
+    db().select({ s: tourVorlageStopps, aName: abholstellen.name, aOrt: abholstellen.ort, aKuehl: abholstellen.kuehlbedarf, aTage: abholstellen.abholtage, aVon: abholstellen.fensterVon, aBis: abholstellen.fensterBis, aLat: abholstellen.lat, aLng: abholstellen.lng, lName: locations.name, lLat: locations.lat, lLng: locations.lng })
       .from(tourVorlageStopps).leftJoin(abholstellen, eq(tourVorlageStopps.abholstelleId, abholstellen.id)).leftJoin(locations, eq(tourVorlageStopps.locationId, locations.id))
       .where(eq(tourVorlageStopps.vorlageId, id)).orderBy(asc(tourVorlageStopps.reihenfolge)),
     planStammdaten(),
@@ -27,6 +30,15 @@ export default async function VorlageSeite({ params }: { params: Promise<{ id: s
   ]);
   const kuehl = stopps.some((s) => s.s.art === "ABHOLUNG" && s.aKuehl);
   const wagen = sd.wagen.find((w) => w.id === v.fahrzeugId);
+  const start = v.startLocationId ? (await db().select({ name: locations.name, lat: locations.lat, lng: locations.lng }).from(locations).where(eq(locations.id, v.startLocationId)).limit(1))[0] : undefined;
+  const [osrm, strecke] = await Promise.all([osrmVerfuegbar(), streckeBerechnen("vorlage", id)]);
+  const koord = (s: typeof stopps[number]) => (s.s.art === "ABHOLUNG" ? { lat: s.aLat, lng: s.aLng } : { lat: s.lLat, lng: s.lLng });
+  const punkte = [
+    ...(start?.lat && start.lng ? [{ lat: start.lat, lng: start.lng, nr: "S", label: start.name, untertitel: "Start", farbe: "#1d4ed8" }] : []),
+    ...stopps.map((s, i) => ({ ...koord(s), nr: String(i + 1), label: (s.s.art === "ABHOLUNG" ? s.aName : s.lName) ?? "?", untertitel: s.aOrt ?? "", farbe: s.s.art === "LIEFERUNG" ? "#0f766e" : "#981313" })).filter((p): p is typeof p & { lat: number; lng: number } => p.lat != null && p.lng != null),
+  ];
+  const ohneKoordinaten = stopps.filter((s) => s.s.art === "ABHOLUNG" && s.aLat == null).map((s) => s.aName ?? "?");
+  const optimierbar = stopps.filter((s) => s.s.art === "ABHOLUNG" && s.aLat != null).length >= 2;
 
   return (
     <div>
@@ -36,6 +48,8 @@ export default async function VorlageSeite({ params }: { params: Promise<{ id: s
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[2fr_1fr] items-start">
+        <div className="flex flex-col gap-4">
+        <TourKartePanel art="vorlage" id={id} punkte={punkte} route={strecke?.geometrie} km={strecke?.km ?? null} minuten={strecke?.minuten ?? null} ohneKoordinaten={ohneKoordinaten} optimierbar={optimierbar} osrm={osrm} />
         <div className="panel">
           <div className="panel-h"><h3>Stopps in Reihenfolge</h3>{kuehl ? <span className="pill tag-out">❄ Kühlware</span> : null}{kuehl && wagen && !wagen.kuehlung ? <span className="pill bad">Standard-Fahrzeug ohne Kühlung</span> : null}</div>
           {stopps.length === 0 ? <div className="empty">Noch keine Stopps – unten hinzufügen. Zuerst Abholungen, zum Schluss die Lieferung an Lager/Ausgabestelle.</div> : (
@@ -72,11 +86,12 @@ export default async function VorlageSeite({ params }: { params: Promise<{ id: s
             </form>
             <form action={vorlageStoppHinzufuegen} className="flex gap-2 items-end flex-wrap">
               <input type="hidden" name="vorlageId" value={id} /><input type="hidden" name="art" value="LIEFERUNG" />
-              <div className="field flex-1"><label className="lbl">Lieferung an</label><select name="locationId" className="inp" required><option value="">—</option>{sd.orte.map((o) => <option key={o.id} value={o.id}>{o.name} ({o.type === "LADEN" ? "Laden" : "Ausgabestelle"})</option>)}</select></div>
+              <div className="field flex-1"><label className="lbl">Lieferung an</label><select name="locationId" className="inp" required><option value="">—</option>{sd.orte.filter((o) => o.type !== "LAGER").map((o) => <option key={o.id} value={o.id}>{o.name} ({o.type === "LADEN" ? "Laden" : "Ausgabestelle"})</option>)}</select></div>
               <div className="field"><label className="lbl">Hinweis</label><input name="hinweis" className="inp" placeholder="optional" /></div>
               <button className="btn sm" type="submit">＋ Lieferung</button>
             </form>
           </div>
+        </div>
         </div>
 
         <div className="panel">

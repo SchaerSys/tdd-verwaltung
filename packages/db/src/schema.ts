@@ -35,6 +35,10 @@ export const locations = pgTable("locations", {
   groupSize: integer("group_size").notNull().default(20),
   groupCount: integer("group_count").notNull().default(8),
   openingHours: jsonb("opening_hours"),
+  strasse: text("strasse"),
+  plz: text("plz"),
+  lat: doublePrecision("lat"),
+  lng: doublePrecision("lng"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -483,6 +487,8 @@ export const tourVorlagen = pgTable("tour_vorlagen", {
   fahrerId: uuid("fahrer_id").references(() => staff.id),
   hinweise: text("hinweise"),
   isActive: boolean("is_active").notNull().default(true),
+  streckeKm: numeric("strecke_km", { precision: 7, scale: 1 }),
+  fahrzeitMin: integer("fahrzeit_min"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -512,6 +518,8 @@ export const touren = pgTable("touren", {
   kmStart: integer("km_start"),
   kmEnde: integer("km_ende"),
   hinweise: text("hinweise"),
+  streckeKm: numeric("strecke_km", { precision: 7, scale: 1 }),
+  fahrzeitMin: integer("fahrzeit_min"),
   createdBy: uuid("created_by").references(() => users.id),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),

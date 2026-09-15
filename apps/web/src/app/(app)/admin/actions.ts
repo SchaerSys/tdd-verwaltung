@@ -149,7 +149,7 @@ export async function createLocation(_prev: LocationState, formData: FormData): 
   const admin = await requirePermission("admin:manage");
   const name = textFeld(formData, "name");
   const city = textFeld(formData, "city");
-  const type = textFeld(formData, "type") === "LADEN" ? "LADEN" : "AUSGABESTELLE";
+  const typRoh = textFeld(formData, "type"); const type = typRoh === "LADEN" || typRoh === "LAGER" ? typRoh : "AUSGABESTELLE";
   const code = parseInt(textFeld(formData, "locationCode"), 10);
   if (!name || !city) return { ok: false, error: "Name und Ort sind Pflicht." };
   if (!Number.isInteger(code) || code < 0 || code > 999) return { ok: false, error: "Die Kennung muss eine Zahl von 0 bis 999 sein." };
@@ -171,7 +171,7 @@ export async function updateLocation(_prev: LocationState, formData: FormData): 
   const id = parseInt(textFeld(formData, "locationId"), 10);
   const name = textFeld(formData, "name");
   const city = textFeld(formData, "city");
-  const type = textFeld(formData, "type") === "LADEN" ? "LADEN" : "AUSGABESTELLE";
+  const typRoh = textFeld(formData, "type"); const type = typRoh === "LADEN" || typRoh === "LAGER" ? typRoh : "AUSGABESTELLE";
   const codeRaw = textFeld(formData, "locationCode");
   if (!id || !name || !city) return { ok: false, error: "Name und Ort sind Pflicht." };
 

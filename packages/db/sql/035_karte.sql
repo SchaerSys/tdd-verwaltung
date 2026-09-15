@@ -25,7 +25,7 @@ WHERE plz IS NULL;
 ALTER TABLE locations DROP CONSTRAINT IF EXISTS locations_type_check;
 ALTER TABLE locations ADD CONSTRAINT locations_type_check CHECK (type IN ('LADEN','AUSGABESTELLE','LAGER'));
 INSERT INTO locations (name, type, city, location_code, is_active, plz)
-SELECT 'Lager Vandans', 'LAGER', 'Vandans', 999, true, '6773'
+SELECT 'Lager Vandans', 'LAGER', 'Vandans', 990, true, '6773'
 WHERE NOT EXISTS (SELECT 1 FROM locations WHERE type = 'LAGER');
 -- Bestehende Vorlagen/Touren ohne Start bekommen das Lager.
 UPDATE tour_vorlagen SET start_location_id = (SELECT id FROM locations WHERE type = 'LAGER' LIMIT 1) WHERE start_location_id IS NULL;

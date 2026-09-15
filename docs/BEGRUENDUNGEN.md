@@ -166,12 +166,21 @@ CREATE UNIQUE INDEX uq_active_assignment
   SQL-Zeichenkette ohne Test.
 - **Preis:** Zwei Implementierungen derselben Metrik, die auseinanderlaufen können.
 
-### 3.4 Gewichtung 0.35 / 0.30 / 0.15 / 0.15 / 0.05 und Schwellen 0.85 / 0.60
+### 3.4 Gewichtung 0.35 / 0.15 / 0.30 / 0.15 / 0.05 und Schwellen 0.85 / 0.60
+- **Korrektur 15.09.2026:** Dieses Dokument nannte den Vornamen mit 0.30 – im Code steht
+  0.15 (Nachname 0.35, Vorname 0.15, Geburtsdatum 0.30, Adresse 0.15, Phonetik 0.05). Es gilt
+  der Code.
 - **Begründung:** Nachname und Geburtsdatum tragen zusammen 65 % — das sind die beiden Merkmale,
-  die im Bestand am stabilsten erfasst sind. Vorname ist schwächer gewichtet (Rufnamen,
+  die im Bestand am stabilsten erfasst sein *sollten*. Vorname ist schwächer gewichtet (Rufnamen,
   Abkürzungen, Zweitnamen), Adresse ebenfalls (Umzüge), die Phonetik nur 0.05 als Bonus, weil sie
   bereits in der Kandidatenauswahl gewirkt hat. Ein exakt gleiches Geburtsdatum allein (0.30)
   löst nie eine Warnung aus; Nachname + Geburtsdatum zusammen erreichen HIGH.
+- **Renormalisierung (seit 15.09.2026, Sprint 5):** Ein Merkmal, das auf einer der beiden Seiten
+  fehlt, kann weder für noch gegen eine Dublette sprechen und fällt aus dem Nenner. Anlass war
+  der Befund unter 12.1: Der migrierte Bestand hat praktisch kein Geburtsdatum und kaum Adressen;
+  ohne Renormalisierung lag ein identischer Name bei 0.55 – unter MID, also **keine Warnung**.
+  Jetzt: identischer Name ohne weitere Merkmale = 1.0 (HIGH), ähnlicher Name = MID. Sind beide
+  Seiten vollständig, ist das Ergebnis exakt wie vorher (Nenner 1.0).
 - **PLZ-Faktor:** Adressähnlichkeit wird bei abweichender PLZ halbiert — „Bahnhofstraße 12" gibt
   es in jeder Gemeinde.
 - **Ehrlich:** Die Zahlen sind fachlich begründet, aber **nicht empirisch gegen den Echtbestand
@@ -540,10 +549,10 @@ Punkte sind bekannt, priorisiert und nicht schöngeredet.
 12. **`zod` ist als Abhängigkeit deklariert, aber nirgends verwendet.** Formularvalidierung
     passiert mit handgeschriebenen Helfern (`s()`, `n()`, `i()` in den Actions). Entweder das
     Paket entfernen oder — besser — die Eingabevalidierung damit vereinheitlichen.
-13. **Die pg_trgm-Ähnlichkeitsschwelle wird nicht gesetzt.** Der Operator `%` in
-    `lib/dedupe.ts:41` hängt am Server-Default (0.3); wird der auf der Instanz geändert, ändert
-    sich das Verhalten der Kandidatensuche stillschweigend. `set_limit()` bzw. ein expliziter
-    `similarity() >= …`-Vergleich wäre reproduzierbarer.
+13. ~~**Die pg_trgm-Ähnlichkeitsschwelle wird nicht gesetzt.**~~ Erledigt 15.09.2026 (Sprint 5):
+    `TRGM_THRESHOLD` steht in `@tdd/core`, die Kandidatensuche setzt sie per `SET LOCAL` in
+    ihrer Transaktion – explizit, reproduzierbar, und der GIN-Index bleibt nutzbar (ein
+    `similarity() >= …` wäre nicht indexgestützt gewesen).
 
 ---
 

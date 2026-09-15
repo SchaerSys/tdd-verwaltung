@@ -163,7 +163,7 @@ psql "$ADMIN_DATABASE_URL" -c "ALTER ROLE tdd_app PASSWORD '…'; ALTER ROLE tdd
 
 # 3. Umgebungsvariablen und Admin-Konto
 cp apps/web/.env.local.example apps/web/.env.local     # DATABASE_URL, SESSION_SECRET setzen
-node apps/web/scripts/create-admin.mjs admin@example.at 'StartPasswort' 'Administrator'
+node apps/web/scripts/create-admin.mjs admin@example.at 'Administrator'   # fragt das Passwort ab
 
 npm run dev                  # http://localhost:3000
 ```

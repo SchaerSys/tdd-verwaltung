@@ -12,6 +12,7 @@ import { hasPermission } from "@/lib/rbac";
 import { issueCard, renewCard, blockCard, replaceCard, unblockCard } from "../../karten/actions";
 import { deletePerson } from "./bearbeiten/actions";
 import { ConfirmButton } from "@/components/ConfirmButton";
+import { ladeRueckfrage } from "@/lib/rueckfragen";
 import { fmtDate, fmtDateTime } from "@/lib/format";
 
 async function label(id: number | null): Promise<string | null> {
@@ -54,6 +55,8 @@ export default async function DossierPage({ params }: { params: Promise<{ id: st
   const canManageCards = hasPermission(user.role, "card:manage");
   const canManagePersons = hasPermission(user.role, "person:write");
   const canViewDocs = hasPermission(user.role, "document:view");
+  // Herkunft Portal: Verlauf mit der meldenden Organisation (nur, wenn es einen gibt).
+  const rueckfrage = p.sourceAntragId && canManagePersons ? await ladeRueckfrage(p.sourceAntragId) : undefined;
   const documents = canViewDocs
     ? await db().select({ id: scanDocuments.id, docType: scanDocuments.docType, uploadedAt: scanDocuments.uploadedAt })
         .from(scanDocuments).where(eq(scanDocuments.personId, id)).orderBy(desc(scanDocuments.uploadedAt))
@@ -85,6 +88,7 @@ export default async function DossierPage({ params }: { params: Promise<{ id: st
               ? <span className="pill good"><span className="dot" />Berechtigt</span>
               : <span className="pill muted">Keine aktive Karte</span>}
             {loc ? <span className={`pill ${loc.type === "LADEN" ? "tag-shop" : "tag-out"}`}>{loc.name}</span> : <span className="pill muted">kein Standort</span>}
+            {rueckfrage ? <Link href={`/rueckfragen/${rueckfrage.antragId}`} className={`pill ${rueckfrage.ungelesen > 0 ? "warn" : "muted"}`}>✉ Verlauf {rueckfrage.orgName}{rueckfrage.ungelesen > 0 ? ` · ${rueckfrage.ungelesen} neu` : ""}</Link> : null}
           </div>
           <div className="flex gap-6 flex-wrap mt-2 text-[.8125rem]">
             <Meta l="Geburtsdatum" v={fmtDate(p.birthDate)} mono />

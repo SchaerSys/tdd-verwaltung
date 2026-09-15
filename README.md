@@ -100,6 +100,8 @@ graph TD
 
 **Antragsportal** (Gemeinden & Institutionen)
 - Anträge erfassen, Anspruchsprüfung, Bescheid-PDF, Übergabe der bewilligten Person an TDD – strikt mandantengetrennt (RLS).
+- Rückkanal: Stand bei TDD je Antrag (übergeben → übernommen → Karte → Bezug → läuft ab), Verlängerungsantrag vorbefüllt aus dem Vorgänger, Vollständigkeits-Checkliste (Einwilligung/E-Mail Pflicht für den positiven Bescheid).
+- Rückfragen/Verlauf je Antrag zwischen Organisation und TDD-Büro (`/rueckfragen`); Statistik je Organisation (druckbar); eigene Startseiten für Gemeinde (Antragsliste, Aufgaben) und Institution (Klient:innen nach Betreuungsstand, Wohnort).
 
 **Verwaltung & Dashboard**
 - Stammdaten (Standorte, Preise, Öffnungszeiten, Listen), getrennte Benutzerverwaltung (Rollen, Freigaben).

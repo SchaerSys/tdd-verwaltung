@@ -29,8 +29,10 @@ export default async function PortalLayout({ children }: { children: React.React
           </div>
         </Link>
         <nav className="flex gap-3 ml-4 text-[.8125rem]">
-          <Link href="/portal" className="text-[color:var(--muted)] hover:text-[color:var(--text)]">Anträge</Link>
-          <Link href="/portal/pruefung" className="text-[color:var(--muted)] hover:text-[color:var(--text)]">Erneute Überprüfung</Link>
+          <Link href="/portal" className="text-[color:var(--muted)] hover:text-[color:var(--text)]">Start</Link>
+          <Link href="/portal/antraege" className="text-[color:var(--muted)] hover:text-[color:var(--text)]">Anträge</Link>
+          <Link href="/portal/pruefung" className="text-[color:var(--muted)] hover:text-[color:var(--text)]">Verlängerungen</Link>
+          <Link href="/portal/statistik" className="text-[color:var(--muted)] hover:text-[color:var(--text)]">Statistik</Link>
         </nav>
         <div className="flex-1" />
         <span className="rolepill">{typeLabel}</span>

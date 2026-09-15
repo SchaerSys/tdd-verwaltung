@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { eq } from "drizzle-orm";
 import { antraege } from "@tdd/db";
 import { normalizeName } from "@tdd/core";
 import { withOrg } from "@/lib/org";
@@ -29,10 +30,19 @@ export async function createAntrag(formData: FormData): Promise<void> {
   const available = incomeTotal - expenseTotal;
   const limit = incomeLimit(adults, childrenU12, childrenO12);
 
+  // Verlaengerung: Vorgaenger muss zur eigenen Organisation gehoeren (RLS liefert sonst nichts).
+  const vorRoh = String(formData.get("vorgaengerAntragId") ?? "");
+  const vorgaengerAntragId = /^[0-9a-f-]{36}$/i.test(vorRoh) ? vorRoh : null;
+
   const orgId = user.organizationId;
   const id = await withOrg(orgId, async (tx) => {
+    if (vorgaengerAntragId) {
+      const alt = await tx.select({ id: antraege.id }).from(antraege).where(eq(antraege.id, vorgaengerAntragId)).limit(1);
+      if (!alt[0]) throw new Error("Vorgänger-Antrag nicht gefunden (oder andere Organisation).");
+    }
     const ins = await tx.insert(antraege).values({
       organizationId: orgId,
+      vorgaengerAntragId,
       targetType: f.targetType,
       intendedLocationId: f.intendedLocationId,
       firstName, lastName, address: f.address, postalCode: f.postalCode,

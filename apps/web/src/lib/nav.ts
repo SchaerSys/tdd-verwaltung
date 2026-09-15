@@ -16,6 +16,7 @@ export const NAV: NavDef[] = [
   { href: "/personen/papierkorb", label: "Papierkorb (Personen)", perm: "person:write", group: "Backoffice" },
   { href: "/personen/dubletten", label: "Dubletten", perm: "person:write", group: "Backoffice" },
   { href: "/bewilligt", label: "Bewilligte Anträge", perm: "person:write", group: "Backoffice" },
+  { href: "/rueckfragen", label: "Rückfragen (Portal)", perm: "person:write", group: "Backoffice" },
   { href: "/karten", label: "Karten", perm: "card:manage", group: "Backoffice" },
   { href: "/karten/papierkorb", label: "Papierkorb (Karten)", perm: "card:manage", group: "Backoffice" },
   { href: "/auswertungen", label: "Auswertungen", perm: "report:view", group: "Backoffice" },

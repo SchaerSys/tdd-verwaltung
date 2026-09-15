@@ -283,6 +283,7 @@ export const antraege = pgTable(
     decidedBy: uuid("decided_by").references(() => users.id),
     decidedAt: timestamp("decided_at", { withTimezone: true }),
     transferredPersonId: uuid("transferred_person_id").references(() => persons.id),
+    vorgaengerAntragId: uuid("vorgaenger_antrag_id"), // Verlaengerung: vorbefuellt aus diesem Antrag
     consentGiven: boolean("consent_given").notNull().default(false),
     consentAt: date("consent_at"),
     lastNameNorm: text("last_name_norm").notNull().default(""),
@@ -325,6 +326,23 @@ export const antragDocuments = pgTable(
     retentionUntil: date("retention_until"),
   },
   (t) => ({ antragIdx: index("idx_antrag_documents_antrag").on(t.antragId) }),
+);
+
+/** Rueckfragen/Verlauf je Antrag zwischen Organisation (Portal) und TDD. RLS siehe 031. */
+export const antragNachrichten = pgTable(
+  "antrag_nachrichten",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    antragId: uuid("antrag_id").notNull().references(() => antraege.id, { onDelete: "cascade" }),
+    organizationId: integer("organization_id").notNull().references(() => organizations.id),
+    seite: text("seite").notNull(), // ORG | TDD
+    autorUserId: uuid("autor_user_id").references(() => users.id),
+    autorName: text("autor_name").notNull().default(""),
+    text: text("text").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    gelesenAt: timestamp("gelesen_at", { withTimezone: true }),
+  },
+  (t) => ({ antragIdx: index("idx_antrag_nachrichten_antrag").on(t.antragId, t.createdAt) }),
 );
 
 // ── A2 · Personal-Verzeichnis (Zentralsystem, getrennt von A1 persons) ─────

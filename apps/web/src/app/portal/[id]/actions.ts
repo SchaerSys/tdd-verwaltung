@@ -5,7 +5,7 @@ import { writeFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
 import { and, eq, isNull } from "drizzle-orm";
-import { antraege, antragDocuments, persons, personLocationAssignments, scanDocuments } from "@tdd/db";
+import { antraege, antragDocuments, antragNachrichten, persons, personLocationAssignments, scanDocuments } from "@tdd/db";
 import { normalizeName, normalizeAddress, koelnerPhonetik } from "@tdd/core";
 import { withOrg } from "@/lib/org";
 import { audit } from "@/lib/audit";
@@ -70,6 +70,9 @@ export async function decideAntrag(formData: FormData): Promise<void> {
     const a = rows[0];
     if (!a) throw new Error("Antrag nicht gefunden (oder andere Organisation).");
     if (a.transferredPersonId) return null;
+    // Ohne dokumentierte Einwilligung keine Weitergabe an TDD (Checkliste, Pflichtpunkt).
+    if (decision === "POSITIV" && !a.consentGiven) throw new Error("Positiver Bescheid nur mit DSGVO-Einwilligung des Antragstellers.");
+    if (decision === "POSITIV" && !a.email) throw new Error("Positiver Bescheid nur mit E-Mail-Adresse (Bescheid-Versand).");
 
     await tx.update(antraege).set({
       status: decision, decisionReason: reason, decidedBy: user.id, decidedAt: new Date(), updatedAt: new Date(),
@@ -154,4 +157,23 @@ export async function decideAntrag(formData: FormData): Promise<void> {
 
   revalidatePath(`/portal/${antragId}`);
   revalidatePath("/portal");
+}
+
+/** Rueckfrage der Organisation an TDD zu einem Antrag (Verlauf). RLS-gescoped. */
+export async function sendNachricht(formData: FormData): Promise<void> {
+  const user = await requirePermission("antrag:manage");
+  if (!user.organizationId) throw new Error("Keine Berechtigung"); // Portal nur mit Organisation
+  const antragId = String(formData.get("antragId") ?? "");
+  const text = String(formData.get("text") ?? "").trim().slice(0, 4000);
+  if (!text) throw new Error("Nachricht ist leer.");
+  const orgId = user.organizationId;
+
+  await withOrg(orgId, async (tx) => {
+    const rows = await tx.select({ id: antraege.id }).from(antraege).where(eq(antraege.id, antragId)).limit(1);
+    if (!rows[0]) throw new Error("Antrag nicht gefunden (oder andere Organisation).");
+    await tx.insert(antragNachrichten).values({ antragId, organizationId: orgId, seite: "ORG", autorUserId: user.id, autorName: user.displayName, text });
+  });
+  await audit({ actorUserId: user.id, action: "antrag.nachricht", entityType: "antrag", entityId: antragId, after: { seite: "ORG", laenge: text.length } });
+  revalidatePath(`/portal/${antragId}`);
+  revalidatePath("/rueckfragen");
 }

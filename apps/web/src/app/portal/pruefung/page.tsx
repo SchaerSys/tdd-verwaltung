@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { and, desc, eq, inArray, isNotNull } from "drizzle-orm";
+import { and, desc, eq, inArray, isNotNull, ne } from "drizzle-orm";
 import { antraege, cards } from "@tdd/db";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
@@ -13,14 +13,20 @@ export default async function PruefungPage() {
   const plus30 = new Date(Date.now() + 30 * 864e5).toISOString().slice(0, 10);
 
   // Positiv beschiedene, an TDD übergebene Fälle dieser Organisation (neuester Antrag je Person)
-  const ants = orgId
-    ? await withOrg(orgId, (tx) =>
-        tx.select({
+  const geladen = orgId
+    ? await withOrg(orgId, async (tx) => ({
+        ants: await tx.select({
           antragId: antraege.id, createdAt: antraege.createdAt, personId: antraege.transferredPersonId,
           first: antraege.firstName, last: antraege.lastName, birth: antraege.birthDate,
         }).from(antraege).where(and(eq(antraege.status, "POSITIV"), isNotNull(antraege.transferredPersonId)))
-          .orderBy(desc(antraege.createdAt)))
-    : [];
+          .orderBy(desc(antraege.createdAt)),
+        // Laufende Folgeantraege (Verlaengerung gestellt, noch nicht negativ) erledigen den Fall.
+        folgen: await tx.select({ vorgaenger: antraege.vorgaengerAntragId }).from(antraege)
+          .where(and(isNotNull(antraege.vorgaengerAntragId), ne(antraege.status, "NEGATIV"))),
+      }))
+    : { ants: [], folgen: [] };
+  const ants = geladen.ants;
+  const mitFolge = new Set(geladen.folgen.map((f) => f.vorgaenger));
 
   const latestAntrag = new Map<string, typeof ants[number]>();
   for (const a of ants) if (a.personId && !latestAntrag.has(a.personId)) latestAntrag.set(a.personId, a);
@@ -38,14 +44,14 @@ export default async function PruefungPage() {
   // Fälle mit Handlungsbedarf: Karte abgelaufen / läuft in ≤30 Tagen ab / keine aktive Karte
   const cases = [...latestAntrag.values()].map((a) => {
     const card = a.personId ? latestCard.get(a.personId) : undefined;
-    const due = !card || card.status !== "AKTIV" || card.validTo <= plus30;
+    const due = (!card || card.status !== "AKTIV" || card.validTo <= plus30) && !mitFolge.has(a.antragId);
     return { ...a, card, due };
   }).filter((c) => c.due).sort((a, b) => (a.card?.validTo ?? "0").localeCompare(b.card?.validTo ?? "0"));
 
   return (
     <div>
       <div className="page-h">
-        <div><h1>Erneute Überprüfung</h1><div className="sub">Fälle mit abgelaufener/ablaufender Karte · neuer Antrag nötig · {cases.length}</div></div>
+        <div><h1>Erneute Überprüfung</h1><div className="sub">Fälle mit abgelaufener/ablaufender Karte · Verlängerungsantrag nötig · {cases.length}</div></div>
       </div>
       <div className="panel">
         {cases.length === 0 ? <div className="empty">Aktuell keine Fälle zur erneuten Überprüfung.</div> : (
@@ -64,7 +70,7 @@ export default async function PruefungPage() {
                   <td>
                     <div className="flex gap-1 justify-end">
                       <Link href={`/portal/${c.antragId}`} className="btn ghost sm">Letzter Antrag &amp; Dokumente</Link>
-                      <Link href="/portal/neu" className="btn primary sm">Neuer Antrag</Link>
+                      <Link href={`/portal/neu?vorlage=${c.antragId}`} className="btn primary sm">↻ Verlängerungsantrag</Link>
                     </div>
                   </td>
                 </tr>
@@ -73,7 +79,7 @@ export default async function PruefungPage() {
           </table></div>
         )}
       </div>
-      <p className="text-[.72rem] text-[color:var(--muted)] mt-3">Ausgabestellen-Karten laufen nach 3–6 Monaten ab; Klient/innen werden bei Ablauf benachrichtigt und stellen hier einen neuen Antrag.</p>
+      <p className="text-[.72rem] text-[color:var(--muted)] mt-3">Ausgabestellen-Karten laufen nach 3–6 Monaten ab; Klient/innen werden bei Ablauf benachrichtigt; der Verlängerungsantrag ist mit den bekannten Daten vorbefüllt, nur das Einkommen ist neu zu erfassen.</p>
     </div>
   );
 }

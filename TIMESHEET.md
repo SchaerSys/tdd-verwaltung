@@ -37,3 +37,4 @@
 | 15.09.2026 | NFC-Zuweisung: Auflegen-Knopf im Personal-Datensatz über Web NFC (Android-Tablet), Kennung normalisiert beim Speichern und Suchen (Web NFC, USB-Leser, Handeingabe), Migration 029 mit eindeutiger Karte je Person | Frontend | TDD Verwaltung | 0,8 |
 | 15.09.2026 | Reiter rechts für bewilligte Anträge: von jeder Seite aufklappbar, Zähler, Prüfen und Übernehmen ohne Seitenwechsel, Übernahme aktualisiert den Reiter, nur für Berechtigte geladen | Frontend | TDD Verwaltung | 1,0 |
 | 15.09.2026 | Deploy 32: Standorte, Monatsdruck, NFC-Zuweisung, Anträge-Reiter auf Produktion (Migration 029) | Deployment | TDD Verwaltung | 0,2 |
+| 15.09.2026 | Standorte zusammengeführt (Produktion): drei Caritas-Standorte in Bludenz/Dornbirn/Feldkirch aufgelöst, 1.237 Personen umgehängt, Nummern je Gruppe kollisionsfrei fortgesetzt, Bregenz → Hard; Vorprüfung, frisches Backup, Probelauf mit Rollback, idempotente Migration 030 | Backend | TDD Verwaltung | 1,0 |

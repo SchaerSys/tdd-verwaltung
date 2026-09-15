@@ -24,7 +24,7 @@ export default async function StandorteKarteSeite() {
         <div><h1>Standorte auf der Karte</h1><div className="sub">Start (Lager) und Lieferziele der Touren · {punkte.length} von {liste.length} mit Koordinaten</div></div>
         <Link href="/touren" className="btn ghost">← Disposition</Link>
       </div>
-      <div className="panel mb-4"><div className="p-2"><TourKarte punkte={punkte} hoehe={320} /></div></div>
+      <div className="panel mb-4"><div className="p-2"><TourKarte punkte={punkte} hoehe={520} /></div></div>
       <div className="panel">
         <div className="twrap"><table className="data">
           <thead><tr><th>Standort</th><th>Typ</th><th>Straße</th><th>PLZ</th><th>Ort</th><th>Koordinaten</th><th></th></tr></thead>

@@ -19,7 +19,7 @@ curl -sSfL -o osrm/austria.osm.pbf.neu "https://download.geofabrik.de/europe/aus
 mv osrm/austria.osm.pbf.neu osrm/austria.osm.pbf
 
 echo "[osrm $(date -Is)] schneide Vorarlberg zu"
-osmium extract --overwrite -b "$BBOX" -o osrm/vorarlberg-latest.osm.pbf osrm/austria.osm.pbf
+osmium extract --overwrite -s simple -b "$BBOX" -o osrm/vorarlberg-latest.osm.pbf osrm/austria.osm.pbf
 rm -f osrm/austria.osm.pbf
 ls -la osrm/vorarlberg-latest.osm.pbf
 

@@ -520,6 +520,8 @@ export const touren = pgTable("touren", {
   hinweise: text("hinweise"),
   streckeKm: numeric("strecke_km", { precision: 7, scale: 1 }),
   fahrzeitMin: integer("fahrzeit_min"),
+  freigegebenAt: timestamp("freigegeben_at", { withTimezone: true }), // an den Fahrer gesendet
+  freigegebenBy: uuid("freigegeben_by").references(() => users.id),
   createdBy: uuid("created_by").references(() => users.id),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),

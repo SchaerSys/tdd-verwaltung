@@ -4,6 +4,8 @@ import { datumPlus, heuteIso, WOCHENTAGE, wochentag, zeitKurz } from "@/lib/tour
 import { fahrerZuBenutzer, ladeTouren } from "@/lib/touren-daten";
 import { fmtDate } from "@/lib/format";
 import { stoppMelden, tourBeenden, tourStarten } from "@/app/(app)/touren/actions";
+import { streckeBerechnen } from "@/app/(app)/touren/karte-actions";
+import { TourKarte } from "@/components/TourKarte";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +19,10 @@ export default async function FahrtSeite({ searchParams }: { searchParams: Promi
   const datum = /^\d{4}-\d{2}-\d{2}$/.test(sp.datum ?? "") ? sp.datum! : heuteIso();
   const me = await fahrerZuBenutzer(user.id);
   const alle = user.role !== "FAHRER";
-  const liste = me ? (await ladeTouren({ datum })).filter((t) => alle || t.fahrerId === me.id || t.beifahrerId === me.id) : alle ? await ladeTouren({ datum }) : [];
+  // Fahrer:innen sehen nur, was das Buero gesendet hat (Freigabe); Buero sieht alles.
+  const roh = me ? (await ladeTouren({ datum })).filter((t) => alle || t.fahrerId === me.id || t.beifahrerId === me.id) : alle ? await ladeTouren({ datum }) : [];
+  const liste = roh.filter((t) => alle || t.freigegebenAt || t.status !== "GEPLANT");
+  const strecken = new Map(await Promise.all(liste.map(async (t) => [t.id, await streckeBerechnen("tour", t.id)] as const)));
 
   return (
     <div className="flex flex-col gap-3">
@@ -33,6 +38,9 @@ export default async function FahrtSeite({ searchParams }: { searchParams: Promi
       {liste.map((t) => {
         const offen = t.stopps.filter((s) => s.status === "OFFEN");
         const naechster = offen[0];
+        const strecke = strecken.get(t.id) ?? null;
+        const punkte = t.stopps.filter((s) => s.lat != null && s.lng != null).map((s) => ({ lat: s.lat!, lng: s.lng!, nr: String(t.stopps.indexOf(s) + 1), label: s.name, untertitel: s.adresse, farbe: s.status === "ERLEDIGT" ? "#16a34a" : s.art === "LIEFERUNG" ? "#0f766e" : "#981313" }));
+        const naviNaechster = naechster ? (naechster.lat && naechster.lng ? `geo:${naechster.lat},${naechster.lng}?q=${naechster.lat},${naechster.lng}(${encodeURIComponent(naechster.name)})` : naechster.adresse ? `geo:0,0?q=${encodeURIComponent(`${naechster.name}, ${naechster.adresse}`)}` : null) : null;
         return (
           <div key={t.id} className="panel" style={{ borderLeft: `5px solid var(--${t.status === "ABGESCHLOSSEN" ? "good" : t.status === "UNTERWEGS" ? "accent" : "border"})` }}>
             <div className="p-3 border-b border-[color:var(--border)]">
@@ -46,6 +54,10 @@ export default async function FahrtSeite({ searchParams }: { searchParams: Promi
               {t.konflikte.some((k) => k.schwere === "FEHLER") ? <div className="text-sm mt-1" style={{ color: "var(--bad)" }}>{t.konflikte.filter((k) => k.schwere === "FEHLER").map((k) => k.text).join(" · ")}</div> : null}
             </div>
 
+            {punkte.length ? <div className="p-2 border-b border-[color:var(--border)]"><TourKarte punkte={punkte} route={strecke?.geometrie} hoehe={260} />{strecke ? <div className="text-xs text-muted mt-1 text-center">{strecke.km} km · ca. {strecke.minuten} min Fahrzeit</div> : null}</div> : null}
+            {t.status === "UNTERWEGS" && naechster && naviNaechster ? (
+              <div className="p-3 border-b border-[color:var(--border)]"><a href={naviNaechster} className="btn primary" style={{ display: "block", textAlign: "center", fontSize: "1.05rem", padding: "12px" }}>🧭 Navigation zu Stopp {t.stopps.indexOf(naechster) + 1}: {naechster.name}</a></div>
+            ) : null}
             {t.status === "GEPLANT" ? (
               <form action={tourStarten} className="p-3 flex gap-2 items-end border-b border-[color:var(--border)]">
                 <input type="hidden" name="id" value={t.id} />

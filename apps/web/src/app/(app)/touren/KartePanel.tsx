@@ -20,7 +20,7 @@ export function TourKartePanel({ art, id, punkte, route, km, minuten, ohneKoordi
           <button className="btn primary sm" disabled={pending || !optimierbar || !osrm} title={!optimierbar ? "Mindestens zwei Abholungen mit Koordinaten nötig" : undefined}>{pending ? "Rechne…" : "⇄ Reihenfolge optimieren"}</button>
         </form>
       </div>
-      {punkte.length === 0 ? <div className="empty">Keine Stopps mit Koordinaten – Adressen der Abholstellen geocodieren.</div> : <div className="p-2"><TourKarte punkte={punkte} route={route} /></div>}
+      {punkte.length === 0 ? <div className="empty">Keine Stopps mit Koordinaten – Adressen der Abholstellen geocodieren.</div> : <div className="p-2"><TourKarte punkte={punkte} route={route} hoehe={560} /></div>}
       {ohneKoordinaten.length ? <div className="px-3 pb-2 text-[.75rem]" style={{ color: "var(--warn)" }}>Ohne Koordinaten (nicht auf der Karte): {ohneKoordinaten.join(", ")}</div> : null}
       {state.error ? <div className="px-3 pb-3 text-[.8125rem]" style={{ color: "var(--bad)" }}>{state.error}</div> : null}
       {state.info ? <div className="px-3 pb-3 text-[.8125rem]" style={{ color: "var(--good)" }}>{state.info}</div> : null}
@@ -42,7 +42,7 @@ export function PunktPanel({ art, id, name, adresse, lat, lng }: { art: "abholst
         <form action={action} style={{ marginLeft: "auto" }}><input type="hidden" name="art" value={art} /><input type="hidden" name="id" value={id} />
           <button className="btn sm" disabled={pending || !adresse}>{pending ? "Suche…" : lat != null ? "Adresse neu suchen" : "📍 Adresse suchen"}</button></form>
       </div>
-      {punkte.length ? <div className="p-2"><TourKarte punkte={punkte} hoehe={260} onVerschoben={verschoben} /></div> : <div className="p-3 text-[.8125rem] text-muted">{adresse ? "Auf „Adresse suchen“ klicken. Danach lässt sich der Marker mit der Maus genau auf die Rampe ziehen." : "Zuerst Straße, PLZ und Ort speichern."}</div>}
+      {punkte.length ? <div className="p-2"><TourKarte punkte={punkte} hoehe={380} onVerschoben={verschoben} /></div> : <div className="p-3 text-[.8125rem] text-muted">{adresse ? "Auf „Adresse suchen“ klicken. Danach lässt sich der Marker mit der Maus genau auf die Rampe ziehen." : "Zuerst Straße, PLZ und Ort speichern."}</div>}
       {state.error ? <div className="px-3 pb-3 text-[.8125rem]" style={{ color: "var(--bad)" }}>{state.error}</div> : null}
       {state.info ? <div className="px-3 pb-3 text-[.8125rem]" style={{ color: "var(--good)" }}>{state.info}</div> : null}
     </div>

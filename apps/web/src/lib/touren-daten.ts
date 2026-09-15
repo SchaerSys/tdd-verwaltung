@@ -14,6 +14,7 @@ export interface TourAnzeige {
   fahrerId: string | null; beifahrerId: string | null; fahrzeugId: number | null; startLocationId: number | null;
   fahrer: string | null; beifahrer: string | null; fahrzeug: string | null; fahrzeugKuehlung: boolean; start: string | null;
   kmStart: number | null; kmEnde: number | null; gestartetAt: Date | null; beendetAt: Date | null;
+  freigegebenAt: Date | null; streckeKm: string | null; fahrzeitMin: number | null;
   stopps: StoppAnzeige[]; konflikte: Konflikt[];
 }
 
@@ -67,6 +68,7 @@ export async function ladeTouren(where: { datum?: string; id?: string; fahrerSta
       fahrerId: t.fahrerId, beifahrerId: t.beifahrerId, fahrzeugId: t.fahrzeugId, startLocationId: t.startLocationId,
       fahrer: fahrerName(t.fahrerId), beifahrer: fahrerName(t.beifahrerId), fahrzeug: w ? `${w.kennzeichen} · ${w.bezeichnung}` : null, fahrzeugKuehlung: w?.kuehlung ?? false,
       start: start ? start.name : null, kmStart: t.kmStart, kmEnde: t.kmEnde, gestartetAt: t.gestartetAt, beendetAt: t.beendetAt,
+      freigegebenAt: t.freigegebenAt, streckeKm: t.streckeKm, fahrzeitMin: t.fahrzeitMin,
       stopps: stopps.filter((s) => s.s.tourId === t.id).map((s) => ({
         id: s.s.id, reihenfolge: s.s.reihenfolge, art: s.s.art, status: s.s.status, hinweis: s.s.hinweis, bemerkung: s.s.bemerkung,
         mengeKisten: s.s.mengeKisten, mengeKg: s.s.mengeKg, erledigtAt: s.s.erledigtAt,

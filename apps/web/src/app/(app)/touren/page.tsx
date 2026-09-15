@@ -8,7 +8,7 @@ import { hasPermission } from "@/lib/rbac";
 import { ampel, datumPlus, heuteIso, WOCHENTAGE, wochentag, zeitKurz } from "@/lib/touren";
 import { ladeTouren, planStammdaten } from "@/lib/touren-daten";
 import { fmtDate } from "@/lib/format";
-import { abwesenheitAnlegen, abwesenheitLoeschen, tourAnlegen, tourZuweisen, tourenErzeugen } from "./actions";
+import { abwesenheitAnlegen, abwesenheitLoeschen, alleFreigeben, tourAnlegen, tourFreigeben, tourZuweisen, tourenErzeugen } from "./actions";
 import { AutoSubmit } from "@/components/AutoSubmit";
 
 export const dynamic = "force-dynamic";
@@ -65,6 +65,8 @@ export default async function DispositionSeite({ searchParams }: { searchParams:
             <button className="btn primary" type="submit">Anlegen</button>
           </form>
         </details>
+        <form action={alleFreigeben}><input type="hidden" name="datum" value={datum} />
+          <button className="btn" type="submit" disabled={!liste.some((t) => !t.freigegebenAt && t.status === "GEPLANT" && !t.konflikte.some((k) => k.schwere === "FEHLER"))} title="Alle Touren ohne roten Konflikt an die Fahrer:innen senden">📲 Alle fahrbereiten senden</button></form>
         <span className="text-xs text-muted ml-auto">Wochenplan: <Link href="/touren/vorlagen">{vorlagenHeute.length} Vorlagen für {WOCHENTAGE[wt]}</Link></span>
       </div>
 
@@ -83,7 +85,15 @@ export default async function DispositionSeite({ searchParams }: { searchParams:
                   <span className={`pill ${STATUS[t.status]?.pill ?? "muted"}`}>{STATUS[t.status]?.label ?? t.status}</span>
                   <span className="pill muted">{t.stopps.length} Stopps{erledigt ? ` · ${erledigt} erledigt` : ""}</span>
                   {t.stopps.some((s) => s.kuehlbedarf) ? <span className="pill tag-out">❄ Kühlware</span> : null}
-                  <Link href={`/touren/${t.id}`} className="btn ghost sm" style={{ marginLeft: "auto" }}>Öffnen →</Link>
+                  {t.freigegebenAt ? <span className="pill good">📲 gesendet</span> : t.status === "GEPLANT" ? <span className="pill warn">noch nicht gesendet</span> : null}
+                  {t.streckeKm ? <span className="pill muted">{t.streckeKm} km · {t.fahrzeitMin} min</span> : null}
+                  <span style={{ marginLeft: "auto" }} className="flex gap-1">
+                    {t.status === "GEPLANT" ? (
+                      <form action={tourFreigeben}><input type="hidden" name="id" value={t.id} /><input type="hidden" name="zurueck" value={t.freigegebenAt ? "1" : "0"} />
+                        <button className={`btn sm ${t.freigegebenAt ? "ghost" : "primary"}`} type="submit" disabled={!t.freigegebenAt && a === "bad"} title={a === "bad" ? "Erst Konflikte lösen" : undefined}>{t.freigegebenAt ? "Zurückholen" : "📲 An Fahrer senden"}</button></form>
+                    ) : null}
+                    <Link href={`/touren/${t.id}`} className="btn ghost sm">Öffnen →</Link>
+                  </span>
                 </div>
                 <div className="p-3 grid gap-3 md:grid-cols-[1fr_1fr_1fr_auto] items-end">
                   <form action={tourZuweisen} className="field">

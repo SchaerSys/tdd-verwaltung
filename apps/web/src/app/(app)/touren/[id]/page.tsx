@@ -9,7 +9,7 @@ import { ampel, zeitKurz } from "@/lib/touren";
 import { ladeTouren, planStammdaten } from "@/lib/touren-daten";
 import { fmtDate, fmtDateTime } from "@/lib/format";
 import { ConfirmButton } from "@/components/ConfirmButton";
-import { stoppMelden, tourLoeschen, tourStoppEntfernen, tourStoppHinzufuegen, tourStoppVerschieben, tourZuweisen } from "../actions";
+import { stoppMelden, tourFreigeben, tourLoeschen, tourStoppEntfernen, tourStoppHinzufuegen, tourStoppVerschieben, tourZuweisen } from "../actions";
 import { streckeBerechnen } from "../karte-actions";
 import { osrmVerfuegbar } from "@/lib/geo";
 import { TourKartePanel } from "../KartePanel";
@@ -44,7 +44,11 @@ export default async function TourSeite({ params }: { params: Promise<{ id: stri
     <div>
       <div className="page-h">
         <div><h1>{t.name}</h1><div className="sub">{fmtDate(t.datum)} · {zeitKurz(t.startzeit) || "ohne Startzeit"}{t.start ? ` · ab ${t.start}` : ""} · {t.status.toLowerCase()}</div></div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
+          {t.status === "GEPLANT" ? (
+            <form action={tourFreigeben}><input type="hidden" name="id" value={t.id} /><input type="hidden" name="zurueck" value={t.freigegebenAt ? "1" : "0"} />
+              <button className={`btn ${t.freigegebenAt ? "ghost" : "primary"}`} type="submit" disabled={!t.freigegebenAt && a === "bad"} title={a === "bad" ? "Erst Konflikte lösen" : undefined}>{t.freigegebenAt ? "📲 gesendet · zurückholen" : "📲 An Fahrer senden"}</button></form>
+          ) : null}
           <Link href={`/druck/tour?tour=${t.id}`} className="btn ghost" target="_blank">🖨 Laufzettel</Link>
           <Link href={`/touren?datum=${t.datum}`} className="btn ghost">← Disposition</Link>
         </div>

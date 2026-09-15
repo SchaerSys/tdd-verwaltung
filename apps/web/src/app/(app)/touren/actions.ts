@@ -189,6 +189,43 @@ export async function tourZuweisen(fd: FormData): Promise<void> {
   revalidatePath("/touren");
   revalidatePath(`/touren/${id}`);
 }
+/** An den Fahrer senden: Tour wird am Handy sichtbar. Nur ohne rote Konflikte. */
+export async function tourFreigeben(fd: FormData): Promise<void> {
+  const u = await requirePermission("tour:manage");
+  const id = String(fd.get("id") ?? "");
+  const zurueck = String(fd.get("zurueck") ?? "") === "1";
+  if (!id) return;
+  if (zurueck) {
+    await db().update(touren).set({ freigegebenAt: null, freigegebenBy: null, updatedAt: new Date() }).where(and(eq(touren.id, id), eq(touren.status, "GEPLANT")));
+    await audit({ actorUserId: u.id, action: "tour.unrelease", entityType: "tour", entityId: id });
+  } else {
+    const { ladeTouren } = await import("@/lib/touren-daten");
+    const [t] = await ladeTouren({ id });
+    if (!t) throw new Error("Tour nicht gefunden.");
+    const fehler = t.konflikte.filter((k) => k.schwere === "FEHLER");
+    if (fehler.length) throw new Error("Nicht sendbar: " + fehler.map((k) => k.text).join(" "));
+    await db().update(touren).set({ freigegebenAt: new Date(), freigegebenBy: u.id, updatedAt: new Date() }).where(eq(touren.id, id));
+    await audit({ actorUserId: u.id, action: "tour.release", entityType: "tour", entityId: id });
+  }
+  revalidatePath("/touren"); revalidatePath(`/touren/${id}`); revalidatePath("/fahrt");
+}
+
+/** Alle fahrbereiten (gruenen/gelben) Touren eines Tages auf einmal senden. */
+export async function alleFreigeben(fd: FormData): Promise<void> {
+  const u = await requirePermission("tour:manage");
+  const datum = str(fd, "datum"); if (!datum) return;
+  const { ladeTouren } = await import("@/lib/touren-daten");
+  const liste = await ladeTouren({ datum });
+  let n = 0;
+  for (const t of liste) {
+    if (t.freigegebenAt || t.status !== "GEPLANT" || t.konflikte.some((k) => k.schwere === "FEHLER")) continue;
+    await db().update(touren).set({ freigegebenAt: new Date(), freigegebenBy: u.id, updatedAt: new Date() }).where(eq(touren.id, t.id));
+    n += 1;
+  }
+  await audit({ actorUserId: u.id, action: "tour.release_all", entityType: "tour", entityId: datum, after: { n } });
+  revalidatePath("/touren"); revalidatePath("/fahrt");
+}
+
 export async function tourLoeschen(fd: FormData): Promise<void> {
   const u = await requirePermission("tour:manage");
   const id = String(fd.get("id") ?? ""); const datum = str(fd, "datum");

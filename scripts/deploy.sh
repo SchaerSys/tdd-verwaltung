@@ -76,7 +76,7 @@ docker tag tdd-ops:candidate tdd-ops:latest
 mkdir -p ops && cp stage/docker/ops/wartung.html ops/wartung.html
 docker compose --env-file .env -f docker-compose.server.yml up -d --no-build web ops >/dev/null 2>&1
 # Routing-Dienst nur, wenn die Kartendaten schon aufbereitet sind (scripts/osrm-setup.sh).
-[ -f osrm/vorarlberg-latest.osrm ] && docker compose --env-file .env -f docker-compose.server.yml up -d osrm >/dev/null 2>&1 || true
+[ -f osrm/vorarlberg-latest.osrm.cells ] && docker compose --env-file .env -f docker-compose.server.yml up -d osrm >/dev/null 2>&1 || true
 cp scripts/jobs-cron.sh jobs-cron.sh 2>/dev/null; cp scripts/backup.sh backup.sh 2>/dev/null; cp scripts/ops-agent.sh ops-agent.sh 2>/dev/null; cp scripts/osrm-setup.sh osrm-setup.sh 2>/dev/null; chmod +x *.sh
 
 echo "── 5/5 Nachweis ──"

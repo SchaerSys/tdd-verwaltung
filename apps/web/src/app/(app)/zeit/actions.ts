@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { desc, eq } from "drizzle-orm";
 import { staff, timeEvents } from "@tdd/db";
 import { db } from "@/lib/db";
+import { normalizeNfcId } from "@/lib/nfc";
 import { audit } from "@/lib/audit";
 import { requirePermission } from "@/lib/guard";
 import { statusFromLast, allowedActions, viennaLocalToUtc, type EventKind, type Status } from "@/lib/zeit";
@@ -23,7 +24,7 @@ export interface StaffState { id: string; name: string; status: Status }
 /** Terminal: Mitarbeiter:in per NFC-Karten-ID oder per ID auflösen (inkl. Status). */
 export async function lookupStaff(value: string, byCard: boolean): Promise<StaffState | null> {
   await guard();
-  const v = value.trim();
+  const v = byCard ? normalizeNfcId(value) : value.trim();
   if (!v) return null;
   const rows = await db().select({ id: staff.id, first: staff.firstName, last: staff.lastName, active: staff.isActive })
     .from(staff).where(byCard ? eq(staff.nfcCardId, v) : eq(staff.id, v)).limit(1);

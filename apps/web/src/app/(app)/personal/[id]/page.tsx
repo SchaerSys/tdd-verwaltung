@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { NfcZuweisen } from "../NfcZuweisen";
 import { redirect, notFound } from "next/navigation";
 import { asc, eq } from "drizzle-orm";
 import { staff, locations } from "@tdd/db";
@@ -56,7 +57,11 @@ export default async function StaffEditPage({ params }: { params: Promise<{ id: 
           <div className="field"><label className="lbl">Austritt</label><input name="employmentEnd" type="date" className="inp mono" defaultValue={p.employmentEnd ?? ""} /></div>
           <div className="field"><label className="lbl">Wochenstunden</label><input name="weeklyHours" className="inp mono" inputMode="decimal" defaultValue={p.weeklyHours ?? ""} /></div>
           <div className="field"><label className="lbl">Urlaub (Werktage/Jahr)</label><input name="vacationDaysYear" className="inp mono" inputMode="decimal" defaultValue={p.vacationDaysYear ?? ""} /></div>
-          <div className="field"><label className="lbl">Stempelkarte (NFC-ID)</label><input name="nfcCardId" className="inp mono" defaultValue={p.nfcCardId ?? ""} /></div>
+          <div className="field">
+            <label className="lbl" htmlFor="nfcCardId">Stempelkarte (NFC-Kennung)</label>
+            <input id="nfcCardId" name="nfcCardId" className="inp mono" defaultValue={p.nfcCardId ?? ""} placeholder="z. B. 04A32B1C5D6E80" />
+            <div className="mt-1"><NfcZuweisen feldId="nfcCardId" /></div>
+          </div>
           <div className="field sm:col-span-2 lg:col-span-3"><label className="lbl">Notiz</label><input name="note" className="inp" defaultValue={p.note ?? ""} /></div>
         </div>
         <div className="p-4 border-t border-[color:var(--border)]"><button type="submit" className="btn primary">Speichern</button></div>

@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { eq } from "drizzle-orm";
 import { staff } from "@tdd/db";
 import { db } from "@/lib/db";
+import { normalizeNfcId } from "@/lib/nfc";
 import { audit } from "@/lib/audit";
 import { requirePermission } from "@/lib/guard";
 import { STAFF_TYPES } from "./types";
@@ -24,7 +25,7 @@ export async function createStaff(fd: FormData): Promise<void> {
     email: str(fd, "email"), phone: str(fd, "phone"), locationId: intId(fd, "locationId"),
     employmentStart: str(fd, "employmentStart"), employmentEnd: str(fd, "employmentEnd"),
     weeklyHours: dec(fd, "weeklyHours"), vacationDaysYear: dec(fd, "vacationDaysYear"),
-    nfcCardId: str(fd, "nfcCardId"), note: str(fd, "note"),
+    nfcCardId: normalizeNfcId(str(fd, "nfcCardId")), note: str(fd, "note"),
   });
   await audit({ actorUserId: u.id, action: "staff.create", entityType: "staff", entityId: `${lastName} ${firstName}` });
   revalidatePath("/personal");
@@ -40,7 +41,7 @@ export async function updateStaff(fd: FormData): Promise<void> {
     email: str(fd, "email"), phone: str(fd, "phone"), locationId: intId(fd, "locationId"),
     employmentStart: str(fd, "employmentStart"), employmentEnd: str(fd, "employmentEnd"),
     weeklyHours: dec(fd, "weeklyHours"), vacationDaysYear: dec(fd, "vacationDaysYear"),
-    nfcCardId: str(fd, "nfcCardId"), note: str(fd, "note"), updatedAt: new Date(),
+    nfcCardId: normalizeNfcId(str(fd, "nfcCardId")), note: str(fd, "note"), updatedAt: new Date(),
   }).where(eq(staff.id, id));
   await audit({ actorUserId: u.id, action: "staff.update", entityType: "staff", entityId: id });
   redirect("/personal");

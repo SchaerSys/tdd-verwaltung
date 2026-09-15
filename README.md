@@ -103,6 +103,9 @@ graph TD
 - Rückkanal: Stand bei TDD je Antrag (übergeben → übernommen → Karte → Bezug → läuft ab), Verlängerungsantrag vorbefüllt aus dem Vorgänger, Vollständigkeits-Checkliste (Einwilligung/E-Mail Pflicht für den positiven Bescheid).
 - Rückfragen/Verlauf je Antrag zwischen Organisation und TDD-Büro (`/rueckfragen`); Statistik je Organisation (druckbar); eigene Startseiten für Gemeinde (Antragsliste, Aufgaben) und Institution (Klient:innen nach Betreuungsstand, Wohnort).
 
+**Wartungsplattform** (`apps/ops`, nur Betreiber)
+- Eigene Anmeldung (Passwort + TOTP), Datenbankrolle `tdd_ops` ohne Leserecht auf Personendaten. Systemstatus (Fach-App, DB, Zertifikat, Platte, Backup, Migrationen), Kennzahlen aus PII-freien Views, Benutzer einladen/sperren/2FA-Reset/Passwort-Link (über SECURITY-DEFINER-Funktionen, Migration 032), Konfiguration (Standorte, Löschfristen, Auswahllisten, Organisationen), Protokoll ohne Personenbezug, Backup jetzt / Neustart (Host-Agent `scripts/ops-agent.sh`), Wartungsmodus (Datei-Schalter, Caddy liefert 503-Hinweisseite).
+
 **Verwaltung & Dashboard**
 - Stammdaten (Standorte, Preise, Öffnungszeiten, Listen), getrennte Benutzerverwaltung (Rollen, Freigaben).
 - Personalisierbares Live-Dashboard: Echtzeit-Kennzahlen, Favoriten (per Rechtsklick), Widgets (Wetter, Standorte). Installierbar als App.

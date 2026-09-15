@@ -28,3 +28,5 @@
 | 15.09.2026 | S5-1 Renormalisierung der Dubletten-Gewichte bei fehlenden Merkmalen (identischer Name ohne Geburtsdatum/Adresse: 0,55 → 1,0 HIGH), 5 Tests, Begründung 3.4 korrigiert (Vorname 0,15 statt 0,30 – Doku widersprach Code) | Backend | TDD Verwaltung | 0,9 |
 | 15.09.2026 | S5-2 pg_trgm-Schwelle explizit als TRGM_THRESHOLD, transaktionslokal per SET LOCAL, Index bleibt nutzbar; S5-3 Passwort-Skript fragt ab statt argv, setzt Sperre zurück | Backend | TDD Verwaltung | 0,5 |
 | 15.09.2026 | S5-2 Integrationstest für die Kandidatensuche – fing einen echten Fehler (SET LOCAL mit Bind-Parameter = Syntaxfehler, hätte jede Neuaufnahme gebrochen), behoben, 5/5 Integrationstests auf dem Server grün | Backend | TDD Verwaltung | 0,5 |
+| 15.09.2026 | Deploy 30: Sprint 4+5 ausgerollt (zwei Stopps durch das Netz: zerbrochene Zeile in deploy.sh, Lint auf scripts/), Health verifiziert | Deployment | TDD Verwaltung | 0,5 |
+| 15.09.2026 | Personen- und Personal-Liste: Name verlinkt; Aufnahme und Bewertung der sieben neuen Anforderungen (NFC, Zeiterfassung, Standorte, Anträge-Panel, 2FA) | Konzept | TDD Verwaltung | 0,5 |

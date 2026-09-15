@@ -56,6 +56,43 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+  ops:
+    build:
+      context: .
+      dockerfile: apps/ops/Dockerfile
+    container_name: tdd-ops
+    restart: unless-stopped
+    environment:
+      OPS_DATABASE_URL: ${OPS_DATABASE_URL}
+      OPS_SESSION_SECRET: ${OPS_SESSION_SECRET}
+      NODE_ENV: production
+      APP_URL: ${APP_URL}
+      APP_DOMAIN: tdd.schaer-systems.at
+      WEB_HEALTH_URL: http://web:3000/api/health
+      OPS_DIR: /ops
+      HOST_DIR: /host
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASS: ${SMTP_PASS}
+      SMTP_FROM: ${SMTP_FROM}
+    volumes:
+      # Anfragen an den Host-Agenten (Backup, Neustart) und der Wartungsmodus-Schalter.
+      - ./ops:/ops
+      # Nur lesen: Backup-Log, Migrationsbuch, Plattenbelegung von /opt/tdd.
+      - /opt/tdd:/host:ro
+    ports:
+      - "127.0.0.1:3081:3000"
+    networks: [tdd-net]
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    depends_on:
+      postgres:
+        condition: service_healthy
   caddy:
     image: caddy:2-alpine
     container_name: tdd-caddy
@@ -65,7 +102,8 @@ services:
       - "443:443"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./ops:/ops:ro
       - caddy-data:/data
       - caddy-config:/config
     networks: [tdd-net]
-    depends_on: [web]
+    depends_on: [web, ops]

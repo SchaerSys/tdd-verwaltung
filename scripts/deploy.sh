@@ -26,7 +26,7 @@ echo "Stand $STAND ($(git log -1 --format=%s "$REF"))"
 
 TAR=$(mktemp -t tdd-deploy-XXXXXX.tar.gz)
 git archive --format=tar.gz -o "$TAR" "$REF" \
-  apps/web packages/core packages/db scripts docker package.json package-lock.json tsconfig.base.json \
+  apps/web apps/ops packages/core packages/db scripts docker package.json package-lock.json tsconfig.base.json \
   eslint.config.mjs .prettierrc.json
 scp -o BatchMode=yes -q "$TAR" "$SERVER:/opt/tdd/deploy-$STAND.tar.gz"
 rm -f "$TAR"
@@ -48,6 +48,8 @@ bash stage/scripts/verify-integration.sh /opt/tdd/stage 2>&1 | grep -E "✓|×|F
 echo "── 3/5 Kandidaten-Image bauen (Typecheck + Unit-Tests darin) ──"
 docker build -q -f stage/apps/web/Dockerfile -t tdd-web:candidate stage/ >/dev/null \
   || { echo "Image-Build ROT (Typecheck, Tests oder Build) – Abbruch"; exit 1; }
+docker build -q -f stage/apps/ops/Dockerfile -t tdd-ops:candidate stage/ >/dev/null \
+  || { echo "Image-Build Wartungsplattform ROT – Abbruch"; exit 1; }
 
 echo "── 4/5 Uebernehmen, migrieren, tauschen ──"
 rsync -a --delete --exclude=.env --exclude=Caddyfile \
@@ -69,16 +71,23 @@ for f in packages/db/sql/*.sql; do
 done
 
 docker tag tdd-web:candidate tdd-web:latest
-docker compose --env-file .env -f docker-compose.server.yml up -d --no-build web >/dev/null 2>&1
-cp scripts/jobs-cron.sh jobs-cron.sh 2>/dev/null; cp scripts/backup.sh backup.sh 2>/dev/null; chmod +x *.sh
+docker tag tdd-ops:candidate tdd-ops:latest
+# Wartungsplattform: Anfrage-Verzeichnis fuer den Host-Agenten + Hinweisseite fuer Caddy.
+mkdir -p ops && cp docker/ops/wartung.html ops/wartung.html
+docker compose --env-file .env -f docker-compose.server.yml up -d --no-build web ops >/dev/null 2>&1
+cp scripts/jobs-cron.sh jobs-cron.sh 2>/dev/null; cp scripts/backup.sh backup.sh 2>/dev/null; cp scripts/ops-agent.sh ops-agent.sh 2>/dev/null; chmod +x *.sh
 
 echo "── 5/5 Nachweis ──"
 for i in $(seq 1 40); do
   c=$(curl -s -o /dev/null -w "%{http_code}" --max-time 3 http://127.0.0.1:3080/login 2>/dev/null); [ "$c" = "200" ] && break; sleep 2
 done
 [ "$c" = "200" ] || { echo "Login-Seite antwortet nicht ($c)"; exit 1; }
+for i in $(seq 1 30); do
+  o=$(curl -s -o /dev/null -w "%{http_code}" --max-time 3 http://127.0.0.1:3081/api/health 2>/dev/null); [ "$o" = "200" ] && break; sleep 2
+done
+[ "$o" = "200" ] || { echo "Wartungsplattform antwortet nicht ($o)"; exit 1; }
 j=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3080/api/jobs/retention)
 [ "$j" = "403" ] || { echo "Job ohne Token muesste 403 sein, ist $j"; exit 1; }
 rm -f "deploy-$STAND.tar.gz"
-echo "Ausgerollt: $STAND  (Login 200, Job ohne Token 403)"
+echo "Ausgerollt: $STAND  (Login 200, Job ohne Token 403, Wartung 200)"
 REMOTE

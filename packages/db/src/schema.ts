@@ -85,6 +85,23 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+/** Konten der Wartungsplattform (Betreiber). Nur ueber tdd_ops erreichbar, Migration 032. */
+export const opsUsers = pgTable("ops_users", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  email: text("email").notNull().unique(),
+  passwordHash: text("password_hash").notNull(),
+  displayName: text("display_name").notNull(),
+  totpSecret: text("totp_secret"),
+  totpEnabled: boolean("totp_enabled").notNull().default(false),
+  totpRecovery: text("totp_recovery").array().notNull().default([]),
+  totpLastWindow: bigint("totp_last_window", { mode: "number" }),
+  failedAttempts: integer("failed_attempts").notNull().default(0),
+  lockedUntil: timestamp("locked_until", { withTimezone: true }),
+  lastLogin: timestamp("last_login", { withTimezone: true }),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const persons = pgTable(
   "persons",
   {

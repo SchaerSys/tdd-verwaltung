@@ -1,0 +1,31 @@
+# Caddyfile auf dem Server (/opt/tdd/Caddyfile). Wird NICHT vom Deploy ueberschrieben;
+# Aenderungen von Hand einspielen: docker exec tdd-caddy caddy validate --config /etc/caddy/Caddyfile
+#                                  docker exec tdd-caddy caddy reload   --config /etc/caddy/Caddyfile
+
+tdd.schaer-systems.at {
+    encode zstd gzip
+
+    # Wartungsmodus: existiert /opt/tdd/ops/wartung.flag (Schalter der Wartungsplattform),
+    # bekommen alle Besucher:innen die Hinweisseite mit 503. Kein Neustart noetig.
+    @wartung file {
+        root /ops
+        try_files wartung.flag
+    }
+    handle @wartung {
+        root * /ops
+        rewrite * /wartung.html
+        header Retry-After 120
+        file_server {
+            status 503
+        }
+    }
+
+    reverse_proxy tdd-web:3000
+}
+
+# Wartungsplattform (nur Betreiber). Erst aktivieren, wenn der DNS-A-Record
+# tdd-ops.schaer-systems.at -> 49.13.128.107 zeigt (sonst scheitert die Zertifikatsausstellung).
+# tdd-ops.schaer-systems.at {
+#     encode zstd gzip
+#     reverse_proxy tdd-ops:3000
+# }

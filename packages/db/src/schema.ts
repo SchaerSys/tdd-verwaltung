@@ -407,6 +407,9 @@ export const staff = pgTable("staff", {
   strasse: text("strasse"),
   plz: text("plz"),
   ort: text("ort"),
+  sollVerteilung: jsonb("soll_verteilung"), // Sollminuten je ISO-Wochentag {"1":480,...} (043)
+  zeitkontoStart: date("zeitkonto_start"),
+  zeitkontoAnfangMin: integer("zeitkonto_anfang_min").notNull().default(0),
   kannFahren: boolean("kann_fahren").notNull().default(false),
   fuehrerschein: text("fuehrerschein"),
   fahrerTage: smallint("fahrer_tage").array().notNull().default([]),
@@ -583,3 +586,39 @@ export const geraetCodes = pgTable("geraet_codes", {
   createdBy: uuid("created_by").references(() => users.id),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+// ── P3 Arbeitszeit nach AZG (Migration 043) ────────────────────────────────
+export const zeitRegeln = pgTable("zeit_regeln", {
+  id: integer("id").primaryKey().default(1),
+  maxTagMin: integer("max_tag_min").notNull().default(600),
+  maxWocheMin: integer("max_woche_min").notNull().default(3000),
+  pauseAbMin: integer("pause_ab_min").notNull().default(360),
+  pauseMin: integer("pause_min").notNull().default(30),
+  ruhezeitMin: integer("ruhezeit_min").notNull().default(660),
+  normalarbeitszeitWocheMin: integer("normalarbeitszeit_woche_min").notNull().default(2400),
+  mehrarbeitZuschlag: integer("mehrarbeit_zuschlag").notNull().default(25),
+  ueberstundenZuschlag: integer("ueberstunden_zuschlag").notNull().default(50),
+  kollektivvertrag: text("kollektivvertrag"),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const betriebsfreieTage = pgTable("betriebsfreie_tage", {
+  datum: date("datum").primaryKey(),
+  name: text("name").notNull(),
+  createdBy: uuid("created_by").references(() => users.id),
+});
+
+export const zeitAbschluesse = pgTable("zeit_abschluesse", {
+  staffId: uuid("staff_id").notNull().references(() => staff.id, { onDelete: "cascade" }),
+  jahr: integer("jahr").notNull(),
+  monat: integer("monat").notNull(),
+  istMin: integer("ist_min").notNull(),
+  sollMin: integer("soll_min").notNull(),
+  gutschriftMin: integer("gutschrift_min").notNull(),
+  saldoMin: integer("saldo_min").notNull(),
+  kontoMin: integer("konto_min").notNull(),
+  mehrarbeitMin: integer("mehrarbeit_min").notNull().default(0),
+  ueberstundenMin: integer("ueberstunden_min").notNull().default(0),
+  abgeschlossenBy: uuid("abgeschlossen_by").references(() => users.id),
+  abgeschlossenAt: timestamp("abgeschlossen_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({ pk: uniqueIndex("uq_zeit_abschluss").on(t.staffId, t.jahr, t.monat) }));

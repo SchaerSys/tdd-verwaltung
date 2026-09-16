@@ -1,12 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { and, asc, eq, gte, lt, inArray } from "drizzle-orm";
-import { staff, timeEvents } from "@tdd/db";
-import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { hasPermission } from "@/lib/rbac";
 import { PrintButton } from "@/components/PrintButton";
-import { fmtMin, fmtSaldo, monatsUebersicht, viennaLocalToUtc, type Ev, type EventKind, type MonatsUebersicht } from "@/lib/zeit";
+import { fmtMin, fmtSaldo } from "@/lib/zeit";
+import { ladeMonat } from "@/lib/azg-daten";
+import type { MonatAuswertung } from "@/lib/azg";
 import { STAFF_TYPE_LABEL } from "@/app/(app)/personal/types";
 
 const MONATE = ["Jänner", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
@@ -31,29 +30,9 @@ export default async function ZeitDruck({ searchParams }: { searchParams: Promis
   const monat = m ? Number(m[2]) : vormonat.getUTCMonth() + 1;
   if (monat < 1 || monat > 12) redirect("/druck/zeit");
 
-  const d = db();
-  const leute = await d.select().from(staff)
-    .where(sp.staff ? eq(staff.id, sp.staff) : eq(staff.isActive, true))
-    .orderBy(asc(staff.lastName), asc(staff.firstName));
-  if (leute.length === 0) redirect("/personal");
-
-  const von = viennaLocalToUtc(`${jahr}-${String(monat).padStart(2, "0")}-01T00:00`);
-  const bisMonat = monat === 12 ? `${jahr + 1}-01` : `${jahr}-${String(monat + 1).padStart(2, "0")}`;
-  const bis = viennaLocalToUtc(`${bisMonat}-01T00:00`);
-
-  const evs = await d.select({ staffId: timeEvents.staffId, kind: timeEvents.kind, at: timeEvents.at })
-    .from(timeEvents)
-    .where(and(inArray(timeEvents.staffId, leute.map((p) => p.id)), gte(timeEvents.at, von), lt(timeEvents.at, bis)))
-    .orderBy(asc(timeEvents.at));
-  const jeStaff = new Map<string, Ev[]>();
-  for (const e of evs) {
-    if (!jeStaff.has(e.staffId)) jeStaff.set(e.staffId, []);
-    jeStaff.get(e.staffId)!.push({ kind: e.kind as EventKind, at: e.at });
-  }
-
-  const blaetter = leute.map((p) => ({
-    p, u: monatsUebersicht(jeStaff.get(p.id) ?? [], p.weeklyHours ? Number(p.weeklyHours) : null, jahr, monat),
-  }));
+  const liste = await ladeMonat(jahr, monat, sp.staff);
+  if (liste.length === 0) redirect("/personal");
+  const blaetter = liste.map((x) => ({ p: x.person, u: x.auswertung, konto: x.kontoMin, abschluss: x.abschluss }));
   const titel = `${MONATE[monat - 1]} ${jahr}`;
   const monatParam = `${jahr}-${String(monat).padStart(2, "0")}`;
 
@@ -70,9 +49,9 @@ export default async function ZeitDruck({ searchParams }: { searchParams: Promis
         <span style={{ marginLeft: "auto" }}><PrintButton /></span>
       </div>
 
-      {blaetter.map(({ p, u }, i) => (
+      {blaetter.map(({ p, u, konto, abschluss }, i) => (
         <Blatt key={p.id} name={`${p.lastName}, ${p.firstName}`} typ={STAFF_TYPE_LABEL[p.staffType] ?? p.staffType}
-               wochenstunden={p.weeklyHours ? Number(p.weeklyHours) : null} titel={titel} u={u} letztes={i === blaetter.length - 1} />
+               wochenstunden={p.weeklyHours ? Number(p.weeklyHours) : null} titel={titel} u={u} konto={konto} abgeschlossen={!!abschluss} letztes={i === blaetter.length - 1} />
       ))}
       <style>{`
         @page { size: A4; margin: 14mm; }
@@ -96,46 +75,49 @@ export default async function ZeitDruck({ searchParams }: { searchParams: Promis
   );
 }
 
-function Blatt({ name, typ, wochenstunden, titel, u, letztes }: {
-  name: string; typ: string; wochenstunden: number | null; titel: string; u: MonatsUebersicht; letztes: boolean;
+function Blatt({ name, typ, wochenstunden, titel, u, konto, abgeschlossen, letztes }: {
+  name: string; typ: string; wochenstunden: number | null; titel: string; u: MonatAuswertung; konto: number; abgeschlossen: boolean; letztes: boolean;
 }) {
   const offene = u.tage.filter((t) => t.offen).length;
   return (
     <section className={`zblatt${letztes ? " letztes" : ""}`}>
       <h1>{name}</h1>
       <div className="meta">
-        Zeiterfassung {titel} · {typ}{wochenstunden ? ` · ${wochenstunden} h/Woche` : " · keine Wochenstunden hinterlegt"}
+        Arbeitszeitaufzeichnung {titel} · {typ}{wochenstunden ? ` · ${wochenstunden} h/Woche` : " · keine Wochenstunden hinterlegt"}{abgeschlossen ? " · abgeschlossen" : " · vorläufig"}
       </div>
       <table>
         <thead>
-          <tr><th>Tag</th><th></th><th>Kommen</th><th>Gehen</th><th className="z">Pause</th><th className="z">Ist</th><th className="z">Soll</th><th>Hinweis</th></tr>
+          <tr><th>Tag</th><th></th><th>Kommen</th><th>Gehen</th><th className="z">Pause</th><th className="z">Ist</th><th className="z">Soll</th><th className="z">Gutschrift</th><th>Hinweis</th></tr>
         </thead>
         <tbody>
           {u.tage.map((t) => (
-            <tr key={t.datum} className={`${!t.arbeitstag ? "we" : ""}${t.offen ? " offen" : ""}`}>
+            <tr key={t.datum} className={`${t.wochentag >= 6 ? "we" : ""}${t.offen ? " offen" : ""}`}>
               <td>{t.datum.slice(8)}.</td>
-              <td>{WOCHENTAG[t.wochentag]}</td>
+              <td>{WOCHENTAG[t.wochentag % 7]}</td>
               <td>{t.kommen ?? ""}</td>
               <td>{t.gehen ?? (t.offen ? "— offen —" : "")}</td>
               <td className="z">{t.breakMin ? fmtMin(t.breakMin) : ""}</td>
-              <td className="z">{t.workedMin ? fmtMin(t.workedMin) : ""}</td>
+              <td className="z">{t.istMin ? fmtMin(t.istMin) : ""}</td>
               <td className="z">{t.sollMin ? fmtMin(t.sollMin) : ""}</td>
-              <td className="hinweis">{t.hinweise.join("; ")}</td>
+              <td className="z">{t.gutschriftMin ? `${fmtMin(t.gutschriftMin)} ${t.gutschriftGrund ?? ""}` : ""}</td>
+              <td className="hinweis">{t.warnungen.map((w) => w.text).join("; ")}</td>
             </tr>
           ))}
         </tbody>
         <tfoot>
           <tr>
-            <td colSpan={5}>Summe · {u.gebuchteTage} Tage gebucht, {u.arbeitstage} Werktage</td>
+            <td colSpan={5}>Summe · {u.feiertage} Feiertag(e), {u.abwesenheitstage} Abwesenheitstag(e)</td>
             <td className="z">{fmtMin(u.istMin)}</td>
             <td className="z">{fmtMin(u.sollMin)}</td>
-            <td>Saldo {fmtSaldo(u.saldoMin)}</td>
+            <td className="z">{fmtMin(u.gutschriftMin)}</td>
+            <td>Monat {fmtSaldo(u.saldoMin)} · Zeitkonto {fmtSaldo(konto)}</td>
           </tr>
         </tfoot>
       </table>
+      {u.mehrarbeitMin || u.ueberstundenMin ? <p style={{ marginTop: 6 }}>Mehrarbeit (Teilzeit): {fmtMin(u.mehrarbeitMin)} · Überstunden: {fmtMin(u.ueberstundenMin)}</p> : null}
       {offene > 0 ? <p className="hinweis" style={{ marginTop: 8 }}>{offene} Tag(e) ohne Ausstempeln – im Ist mit 0 gerechnet. Bitte in der Zeiterfassung korrigieren.</p> : null}
       <p className="fuss" style={{ marginTop: 8 }}>
-        <span>Soll: Wochenstunden ÷ 5 je Werktag Mo–Fr. Feiertage und Urlaub sind nicht abgezogen.</span>
+        <span>Soll aus der Wochenverteilung; Feiertage, betriebsfreie Tage und Abwesenheiten als Gutschrift. Aufzeichnung gemäß § 26 AZG.</span>
       </p>
       <div className="unterschrift">
         <div>Mitarbeiter:in</div>

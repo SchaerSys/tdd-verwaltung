@@ -123,7 +123,7 @@ export default async function ZeitPage({ searchParams }: { searchParams: Promise
               {(["IN", "OUT", "BREAK_START", "BREAK_END"] as EventKind[]).map((k) => <option key={k} value={k}>{KIND_LABEL[k]}</option>)}
             </select></div>
           <div className="field"><label className="lbl">Zeitpunkt (Wiener Zeit)</label><input type="datetime-local" name="at" className="inp mono" required defaultValue={`${date}T08:00`} /></div>
-          <div className="field" style={{ flex: 1, minWidth: 180 }}><label className="lbl">Notiz</label><input name="note" className="inp" placeholder="Grund der Korrektur" /></div>
+          <div className="field" style={{ flex: 1, minWidth: 180 }}><label className="lbl">Begründung (Pflicht)</label><input name="note" className="inp" placeholder="Grund der Korrektur" required /></div>
           <button type="submit" className="btn primary">Erfassen</button>
         </form>
         <div className="p-4 pt-0 sub">Nacherfasste/korrigierte Buchungen werden mit ✎ markiert und protokolliert.</div>

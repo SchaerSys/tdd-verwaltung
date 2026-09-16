@@ -46,6 +46,15 @@ export async function stamp(staffId: string, kind: EventKind, viaCard = false): 
 }
 
 /** Backoffice: manuelle Nacherfassung/Korrektur eines Stempels (Wiener Zeit). */
+/** Abgeschlossene Monate sind gesperrt (§ 26 AZG Nachweis); nur Admin darf noch eingreifen. */
+async function gesperrt(staffId: string, at: Date, role: string): Promise<boolean> {
+  if (role === "ADMIN") return false;
+  const { viennaParts } = await import("@/lib/zeit");
+  const { monatAbgeschlossen } = await import("@/lib/azg-daten");
+  const { datum } = viennaParts(at);
+  return monatAbgeschlossen(staffId, Number(datum.slice(0, 4)), Number(datum.slice(5, 7)));
+}
+
 export async function addCorrection(formData: FormData): Promise<void> {
   const u = await guard();
   const staffId = String(formData.get("staffId") ?? "");
@@ -53,6 +62,8 @@ export async function addCorrection(formData: FormData): Promise<void> {
   const at = String(formData.get("at") ?? "");
   const note = String(formData.get("note") ?? "").trim() || null;
   if (!staffId || !KINDS.includes(kind) || !at) { revalidatePath("/zeit"); return; }
+  if (!note) throw new Error("Korrekturen brauchen eine Begründung (Nachvollziehbarkeit, § 26 AZG).");
+  if (await gesperrt(staffId, viennaLocalToUtc(at), u.role)) throw new Error("Dieser Monat ist abgeschlossen – nur ein Admin kann ihn wieder öffnen.");
   await db().insert(timeEvents).values({
     staffId, kind, at: viennaLocalToUtc(at), source: "KORREKTUR", edited: true, note, createdBy: u.id,
   });
@@ -65,6 +76,8 @@ export async function deleteEvent(formData: FormData): Promise<void> {
   const u = await guard();
   const id = String(formData.get("eventId") ?? "");
   if (!id) { revalidatePath("/zeit"); return; }
+  const ev = (await db().select({ staffId: timeEvents.staffId, at: timeEvents.at }).from(timeEvents).where(eq(timeEvents.id, id)).limit(1))[0];
+  if (ev && (await gesperrt(ev.staffId, ev.at, u.role))) throw new Error("Dieser Monat ist abgeschlossen – nur ein Admin kann ihn wieder öffnen.");
   await db().delete(timeEvents).where(eq(timeEvents.id, id));
   await audit({ actorUserId: u.id, action: "time.delete", entityType: "time_event", entityId: id });
   revalidatePath("/zeit");

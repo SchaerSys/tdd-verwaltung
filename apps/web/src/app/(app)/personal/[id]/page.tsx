@@ -4,6 +4,8 @@ import { redirect, notFound } from "next/navigation";
 import { asc, eq } from "drizzle-orm";
 import { staff, locations, users } from "@tdd/db";
 import { WOCHENTAGE_KURZ } from "@/lib/touren";
+import { verteilungSpeichern } from "../../zeit/azg-actions";
+import { sollJeWochentag, type Verteilung } from "@/lib/azg";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { hasPermission } from "@/lib/rbac";
@@ -81,6 +83,22 @@ export default async function StaffEditPage({ params }: { params: Promise<{ id: 
             <div className="text-[.72rem] text-muted mt-1">Benutzer mit Rolle FAHRER werden in der Benutzerverwaltung angelegt; hier wird die Person verknüpft.</div></div>
         </div>
         <div className="p-4 border-t border-[color:var(--border)]"><button type="submit" className="btn primary">Speichern</button></div>
+      </form>
+
+      {/* Arbeitszeit: fixe Wochenverteilung (Teilzeit § 19c AZG) – Soll je Tag statt Wochenstunden ÷ 5 */}
+      <form action={verteilungSpeichern} className="panel mt-4">
+        <input type="hidden" name="staffId" value={p.id} />
+        <div className="panel-h"><h3>Arbeitszeit – Wochenverteilung &amp; Zeitkonto</h3><span className="text-xs text-muted">Soll je Wochentag in Stunden; Summe ergibt die Wochenstunden</span></div>
+        <div className="p-4 grid gap-3" style={{ gridTemplateColumns: "repeat(7, minmax(60px, 1fr))" }}>
+          {[1, 2, 3, 4, 5, 6, 7].map((t) => { const min = sollJeWochentag((p.sollVerteilung as Verteilung | null) ?? null, p.weeklyHours ? Number(p.weeklyHours) : null)[t] ?? 0; return (
+            <div className="field" key={t}><label className="lbl">{WOCHENTAGE_KURZ[t]}</label><input name={`tag${t}`} className="inp mono" inputMode="decimal" defaultValue={min ? String(Math.round((min / 60) * 100) / 100) : ""} placeholder="0" /></div>
+          ); })}
+        </div>
+        <div className="px-4 pb-2 grid gap-3 sm:grid-cols-3">
+          <div className="field"><label className="lbl">Zeitkonto ab</label><input name="zeitkontoStart" type="date" className="inp mono" defaultValue={p.zeitkontoStart ?? ""} /><div className="text-[.7rem] text-muted">leer = ab Eintritt</div></div>
+          <div className="field"><label className="lbl">Anfangssaldo (h, ± aus der bisherigen Führung)</label><input name="zeitkontoAnfang" className="inp mono" inputMode="decimal" defaultValue={p.zeitkontoAnfangMin ? String(Math.round((p.zeitkontoAnfangMin / 60) * 100) / 100) : ""} placeholder="0" /></div>
+        </div>
+        <div className="p-4 border-t border-[color:var(--border)] flex gap-2 items-center"><button type="submit" className="btn primary">Verteilung speichern</button><Link href={`/zeit/monat?staff=${p.id}`} className="btn ghost">Monatsauswertung →</Link></div>
       </form>
     </div>
   );

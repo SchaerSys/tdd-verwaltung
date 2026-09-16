@@ -103,6 +103,9 @@ graph TD
 - Rückkanal: Stand bei TDD je Antrag (übergeben → übernommen → Karte → Bezug → läuft ab), Verlängerungsantrag vorbefüllt aus dem Vorgänger, Vollständigkeits-Checkliste (Einwilligung/E-Mail Pflicht für den positiven Bescheid).
 - Rückfragen/Verlauf je Antrag zwischen Organisation und TDD-Büro (`/rueckfragen`); Statistik je Organisation (druckbar); eigene Startseiten für Gemeinde (Antragsliste, Aufgaben) und Institution (Klient:innen nach Betreuungsstand, Wohnort).
 
+**A2 · Arbeitszeit nach AZG** (Zentralsystem)
+- Soll je Tag aus fixer Wochenverteilung (§ 19c), gesetzliche Feiertage (berechnet) und betriebsfreie Tage, Urlaub/Krankenstand als Gutschrift; Monatsauswertung (`/zeit/monat`) mit Zeitkonto (Anfangssaldo, feste Abschlüsse), Mehrarbeit Teilzeit (§ 19d) und Überstunden je Woche; AZG-Prüfung (`/zeit/pruefung`): Tages-/Wochenhöchstarbeitszeit, Ruhepause, Ruhezeit 11 h, Sonntag/Feiertag, vergessenes Ausstempeln; Regeln/Zuschläge KV-abhängig einstellbar (`/zeit/regeln`); Korrekturen nur mit Begründung, Monatsabschluss sperrt Buchungen (§ 26 AZG). Reine Logik in `lib/azg.ts`, `lib/feiertage.ts` mit Tests.
+
 **A4 · Touren & Disposition** (Zentralsystem)
 - Stammdaten: Abholstellen (Betriebe mit Abholtagen, Fenster, Kühlbedarf, Hinweisen), Fahrzeuge (Kühlung, elektrisch, Pickerl, Werkstatt), Fahrer:innen am Personal (Führerschein, Fahrertage, Login-Verknüpfung).
 - Wochenplan (Tourvorlagen je Wochentag mit Stopp-Abfolge) → Tagesdisposition (`/touren`): Touren erzeugen, Fahrer/Fahrzeug zuweisen, Konflikte live (abwesend, Werkstatt, Kühlware ohne Kühlung, Doppelbelegung, Pickerl), Abwesenheiten, Laufzettel-Druck.

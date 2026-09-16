@@ -8,12 +8,27 @@ import { viennaLocalToUtc, type Ev, type EventKind } from "./zeit";
 export interface Arbeitgeber { arbeitgeberName: string; arbeitgeberAnschrift: string | null; bvKasse: string | null; svTraeger: string; kvEinsicht: string | null; ausgabeStempelt: boolean }
 const ARBEITGEBER_STANDARD: Arbeitgeber = { arbeitgeberName: "Tischlein deck dich Vorarlberg", arbeitgeberAnschrift: null, bvKasse: null, svTraeger: "Österreichische Gesundheitskasse (ÖGK)", kvEinsicht: null, ausgabeStempelt: true };
 
-export async function ladeRegeln(): Promise<ZeitRegeln & { kollektivvertrag: string | null } & Arbeitgeber> {
+/** Zivildienst-Grenzen laut ZISA (ZDG § 23) – als ZeitRegeln im ZDG-Modus plus Wochenminimum und Freistellung. */
+export interface ZiviRegeln { zivi: ZeitRegeln; ziviWocheMinMin: number; ziviFreistellungMonat: number }
+export const ZIVI_STANDARD: ZiviRegeln = {
+  zivi: { maxTagMin: 600, maxWocheMin: 2700, pauseAbMin: 360, pauseMin: 30, ruhezeitMin: 660, normalarbeitszeitWocheMin: 2700, mehrarbeitZuschlag: 0, ueberstundenZuschlag: 0, gesetz: "ZDG", sonntagErlaubt: false },
+  ziviWocheMinMin: 2160, ziviFreistellungMonat: 2,
+};
+export type AlleRegeln = ZeitRegeln & { kollektivvertrag: string | null } & Arbeitgeber & ZiviRegeln;
+
+/** Regeln fuer eine Person: Zivis nach ZDG, alle anderen nach AZG. */
+export function regelnFuer(r: AlleRegeln, staffType: string): ZeitRegeln {
+  return staffType === "ZIVILDIENER" ? r.zivi : r;
+}
+
+export async function ladeRegeln(): Promise<AlleRegeln> {
   const r = (await db().select().from(zeitRegeln).where(eq(zeitRegeln.id, 1)).limit(1))[0];
-  if (!r) return { ...REGELN_STANDARD, kollektivvertrag: null, ...ARBEITGEBER_STANDARD };
+  if (!r) return { ...REGELN_STANDARD, kollektivvertrag: null, ...ARBEITGEBER_STANDARD, ...ZIVI_STANDARD };
   return { maxTagMin: r.maxTagMin, maxWocheMin: r.maxWocheMin, pauseAbMin: r.pauseAbMin, pauseMin: r.pauseMin, ruhezeitMin: r.ruhezeitMin,
     normalarbeitszeitWocheMin: r.normalarbeitszeitWocheMin, mehrarbeitZuschlag: r.mehrarbeitZuschlag, ueberstundenZuschlag: r.ueberstundenZuschlag, kollektivvertrag: r.kollektivvertrag,
-    arbeitgeberName: r.arbeitgeberName, arbeitgeberAnschrift: r.arbeitgeberAnschrift, bvKasse: r.bvKasse, svTraeger: r.svTraeger, kvEinsicht: r.kvEinsicht, ausgabeStempelt: r.ausgabeStempelt };
+    arbeitgeberName: r.arbeitgeberName, arbeitgeberAnschrift: r.arbeitgeberAnschrift, bvKasse: r.bvKasse, svTraeger: r.svTraeger, kvEinsicht: r.kvEinsicht, ausgabeStempelt: r.ausgabeStempelt,
+    zivi: { maxTagMin: r.ziviTagMaxMin, maxWocheMin: r.ziviWocheMaxMin, pauseAbMin: r.ziviPauseAbMin, pauseMin: r.ziviPauseMin, ruhezeitMin: r.ziviRuhezeitMin, normalarbeitszeitWocheMin: r.ziviWocheMaxMin, mehrarbeitZuschlag: 0, ueberstundenZuschlag: 0, gesetz: "ZDG", sonntagErlaubt: r.ziviSonntagErlaubt },
+    ziviWocheMinMin: r.ziviWocheMinMin, ziviFreistellungMonat: r.ziviFreistellungMonat };
 }
 
 export interface PersonAuswertung {
@@ -56,13 +71,14 @@ export async function ladeMonat(jahr: number, monat: number, staffId?: string, n
 
   const out: PersonAuswertung[] = [];
   for (const p of leute) {
+    const R = regelnFuer(regeln, p.staffType); // Zivis: ZDG-Grenzen laut ZISA
     const auswertung = monatAuswertung({
       events: jeStaff.get(p.id) ?? [], verteilung: (p.sollVerteilung as Verteilung | null) ?? null, wochenstunden: p.weeklyHours ? Number(p.weeklyHours) : null,
-      jahr, monat, feiertage: feier, betriebsfrei: frei, regeln,
+      jahr, monat, feiertage: feier, betriebsfrei: frei, regeln: R,
       abwesenheiten: abw.filter((a) => a.staffId === p.id).map((a) => ({ art: a.art, von: a.von, bis: a.bis })), now,
     });
     const abschluss = abschl.find((a) => a.staffId === p.id) ?? null;
-    const kontoVor = await kontoBisVormonat(p, jahr, monat, regeln, feier, frei, now);
+    const kontoVor = await kontoBisVormonat(p, jahr, monat, R, feier, frei, now);
     out.push({ person: p, auswertung, abschluss, kontoMin: kontoVor + auswertung.saldoMin, kontoStart: p.zeitkontoStart });
   }
   return out;

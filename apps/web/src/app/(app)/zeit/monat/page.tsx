@@ -44,6 +44,7 @@ export default async function MonatSeite({ searchParams }: { searchParams: Promi
           <details key={p.id} className="panel mb-3" open={!!sp.staff || liste.length === 1}>
             <summary className="p-3 cursor-pointer flex gap-3 items-center flex-wrap list-none">
               <b>{p.lastName} {p.firstName}</b><span className="text-xs text-muted">{STAFF_TYPE_LABEL[p.staffType] ?? p.staffType}{p.weeklyHours ? ` · ${p.weeklyHours} h/Woche` : ""}</span>
+              {p.staffType === "ZIVILDIENER" ? <span className="pill muted" title="Grenzen laut ZISA (Regeln), kein Mehrarbeits-/Überstundenbegriff – Mehrdienst als Zeitausgleich">ZDG</span> : null}
               <span className="pill muted">Ist {fmtMin(a.istMin)}</span><span className="pill muted">Soll {fmtMin(a.sollMin)}</span>
               {a.gutschriftMin ? <span className="pill tag-out">Gutschrift {fmtMin(a.gutschriftMin)}</span> : null}
               <span className={`pill ${a.saldoMin < 0 ? "warn" : "good"}`}>Monat {fmtSaldo(a.saldoMin)}</span>

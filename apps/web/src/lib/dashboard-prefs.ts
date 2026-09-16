@@ -6,7 +6,8 @@ export type WidgetSpec =
   | { type: "weather" }
   | { type: "location"; id: number }
   | { type: "expiring" }
-  | { type: "recent" };
+  | { type: "recent" }
+  | { type: "zeitkonto" };
 
 export interface DashboardPrefs {
   favorites: string[];

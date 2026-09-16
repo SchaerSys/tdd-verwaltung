@@ -7,6 +7,8 @@ import { asOpeningHours, isOpenNow, todayText } from "@/lib/opening-hours";
 import type { WidgetSpec } from "@/lib/dashboard-prefs";
 import type { DashboardData } from "./data";
 import { addWidget, removeWidget, removeFavorite } from "./prefs-actions";
+import { ZeitkontoWidget } from "@/components/ZeitkontoWidget";
+import type { ZeitkontoWidgetDaten } from "@/lib/zeitkonto-widget";
 
 const POLL_MS = 15000;
 
@@ -31,12 +33,14 @@ function weatherIcon(code: number | null): string {
 }
 
 export function DashboardLive({
-  initial, favorites, widgets, locations,
+  initial, favorites, widgets, locations, zeitkonto,
 }: {
   initial: DashboardData | null;
   favorites: FavTile[];
   widgets: WidgetSpec[];
   locations: LocLite[];
+  /** Eigenes Zeitkonto (nur wenn der Login mit einem Personal-Datensatz verknuepft ist) */
+  zeitkonto?: ZeitkontoWidgetDaten | null;
 }) {
   const router = useRouter();
   const [data, setData] = useState<DashboardData | null>(initial);
@@ -83,6 +87,7 @@ export function DashboardLive({
   const has = (spec: WidgetSpec) =>
     widgets.some((w) => w.type === spec.type && (w.type !== "location" || (spec.type === "location" && w.id === spec.id)));
   const addable: { label: string; spec: WidgetSpec }[] = [
+    ...(zeitkonto ? [{ label: "⏱ Mein Zeitkonto", spec: { type: "zeitkonto" } as WidgetSpec }] : []),
     { label: "🌤 Wetter (Vorarlberg)", spec: { type: "weather" } as WidgetSpec },
     { label: "⏳ Bald ablaufende Karten", spec: { type: "expiring" } as WidgetSpec },
     { label: "🕒 Letzte Aktivität", spec: { type: "recent" } as WidgetSpec },
@@ -159,6 +164,7 @@ export function DashboardLive({
                 {w.type === "location" ? <LocationBody loc={locations.find((l) => l.id === w.id)} /> : null}
                 {w.type === "expiring" ? <ExpiringBody data={data} /> : null}
                 {w.type === "recent" ? <RecentBody data={data} /> : null}
+                {w.type === "zeitkonto" ? (zeitkonto ? <ZeitkontoWidget d={zeitkonto} kompakt /> : <div className="empty">Kein Personal-Datensatz mit diesem Login verknüpft.</div>) : null}
               </div>
             </div>
           ))}
@@ -174,6 +180,7 @@ function widgetTitle(w: WidgetSpec, locations: LocLite[]): string {
   if (w.type === "weather") return "🌤 Wetter";
   if (w.type === "expiring") return "⏳ Bald ablaufende Karten";
   if (w.type === "recent") return "🕒 Letzte Aktivität";
+  if (w.type === "zeitkonto") return "⏱ Mein Zeitkonto";
   const l = locations.find((x) => x.id === w.id);
   return `${l && l.type === "LADEN" ? "🏪" : "📦"} ${l?.name ?? "Standort"}`;
 }

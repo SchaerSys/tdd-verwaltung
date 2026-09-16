@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { hasPermission } from "@/lib/rbac";
 import { navLabel } from "@/lib/nav";
+import { ladeZeitkontoWidget } from "@/lib/zeitkonto-widget";
 import { getPrefs } from "@/lib/dashboard-prefs";
 import { loadDashboard } from "./data";
 import { DashboardLive } from "./DashboardLive";
@@ -17,6 +18,9 @@ export default async function DashboardPage() {
   const canWrite = user ? hasPermission(user.role, "person:write") : false;
 
   const prefs = user ? await getPrefs(user.id) : { favorites: [], widgets: [], navCollapsed: false };
+  const zeitkonto = user ? await ladeZeitkontoWidget(user.id).catch(() => null) : null;
+  // Wer einen Personal-Datensatz hat, bekommt das Zeitkonto-Widget beim ersten Mal automatisch
+  if (zeitkonto && !prefs.widgets.some((w) => w.type === "zeitkonto")) prefs.widgets = [{ type: "zeitkonto" }, ...prefs.widgets];
   const favTiles = prefs.favorites.map((href) => ({ href, label: navLabel(href) }));
   const locs = await db()
     .select({ id: locTable.id, name: locTable.name, type: locTable.type, openingHours: locTable.openingHours })
@@ -34,7 +38,7 @@ export default async function DashboardPage() {
         {canWrite ? <Link href="/personen/neu" className="btn primary">＋ Person aufnehmen</Link> : null}
       </div>
 
-      <DashboardLive initial={data} favorites={favTiles} widgets={prefs.widgets} locations={locs} />
+      <DashboardLive initial={data} favorites={favTiles} widgets={prefs.widgets} locations={locs} zeitkonto={zeitkonto} />
     </div>
   );
 }

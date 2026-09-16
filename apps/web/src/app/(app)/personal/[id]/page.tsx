@@ -14,7 +14,8 @@ import { getCurrentUser } from "@/lib/auth";
 import { hasPermission } from "@/lib/rbac";
 import { updateStaff, toggleStaffActive } from "../actions";
 import { akteSpeichern, dokumentHochladen, dokumentLoeschen, ziviStammdaten } from "../akte-actions";
-import { zivildienstEnde } from "@/lib/zivildienst";
+import { zivildienstEnde, ziviPruefung } from "@/lib/zivildienst";
+import { ladeRegeln } from "@/lib/azg-daten";
 import { EinmalPin } from "../../admin/ausgabestation/EinmalPin";
 import { pinEntfernenAction } from "../../admin/ausgabestation/actions";
 import { aktePruefung, aufbewahrungBis, probezeitMax, BESCHAEFTIGUNG_LABEL, AUSTRITT_GRUND_LABEL, DOK_ART_LABEL } from "@/lib/personalakte";
@@ -41,6 +42,8 @@ export default async function StaffEditPage({ params }: { params: Promise<{ id: 
   if (!p) notFound();
   const admin = hasPermission(user.role, "admin:manage");
   const heute = heuteIso();
+  const regeln = p.staffType === "ZIVILDIENER" ? await ladeRegeln() : null;
+  const ziviHinweise = regeln ? ziviPruefung(p, { wocheMinMin: regeln.ziviWocheMinMin, wocheMaxMin: regeln.zivi.maxWocheMin }) : [];
   const hinweise = aktePruefung(p, dokumente, heute);
   const stufeFarbe = { FEHLT: "bad", WARN: "warn", INFO: "muted" } as const;
 
@@ -138,7 +141,8 @@ export default async function StaffEditPage({ params }: { params: Promise<{ id: 
       {p.staffType === "ZIVILDIENER" ? (
         <form action={ziviStammdaten} className="panel mt-4">
           <input type="hidden" name="staffId" value={p.id} />
-          <div className="panel-h"><h3>Zivildienst (ZDG)</h3><span className="text-xs text-muted">9 Monate ab Dienstantritt · Dienstfreistellung 2 Werktage je vollem Monat · Verlängerung ab 24 Fehltagen</span></div>
+          <div className="panel-h"><h3>Zivildienst (ZDG)</h3><span className="text-xs text-muted">9 Monate ab Dienstantritt · Dienstfreistellung {regeln?.ziviFreistellungMonat ?? 2} Werktage je vollem Monat · Verlängerung ab 24 Fehltagen · Wochendienstzeit laut ZISA {regeln ? `${regeln.ziviWocheMinMin / 60}–${regeln.zivi.maxWocheMin / 60} h` : ""}</span></div>
+          {ziviHinweise.length ? <ul className="px-4 pt-3 flex flex-col gap-1 text-[.78rem]">{ziviHinweise.map((h) => <li key={h.code} className="flex gap-2 items-start"><span className={`pill ${h.stufe === "FEHLT" ? "bad" : h.stufe === "WARN" ? "warn" : "muted"}`} style={{ flexShrink: 0 }}>{h.stufe === "FEHLT" ? "fehlt" : h.stufe === "WARN" ? "prüfen" : "Hinweis"}</span><span>{h.text}</span></li>)}</ul> : null}
           <div className="p-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <div className="field"><label className="lbl">Dienstantritt</label><input name="ziviBeginn" type="date" className="inp mono" defaultValue={p.ziviBeginn ?? p.employmentStart ?? ""} /></div>
             <div className="field"><label className="lbl">Reguläres Ende</label><input name="ziviEnde" type="date" className="inp mono" defaultValue={p.ziviEnde ?? ""} placeholder="leer = +9 Monate" />{(p.ziviBeginn ?? p.employmentStart) && !p.ziviEnde ? <div className="text-[.7rem] text-muted">berechnet: {fmtDate(zivildienstEnde((p.ziviBeginn ?? p.employmentStart)!))}</div> : null}</div>

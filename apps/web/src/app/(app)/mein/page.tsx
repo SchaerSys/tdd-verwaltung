@@ -11,6 +11,8 @@ import { ladeMeineDienste } from "@/lib/dienstplan-daten";
 import { dienstMinuten, plusTage, TAETIGKEIT_LABEL } from "@/lib/dienstplan";
 import { freieTage } from "@/lib/abwesenheit-daten";
 import { zivildienstKonto } from "@/lib/zivildienst";
+import { ladeZeitkontoWidget } from "@/lib/zeitkonto-widget";
+import { ZeitkontoWidget } from "@/components/ZeitkontoWidget";
 import { ABW_ART_LABEL } from "@/lib/abwesenheit";
 import { fmtMin, fmtSaldo } from "@/lib/zeit";
 import { fmtDate } from "@/lib/format";
@@ -48,7 +50,7 @@ export default async function MeinBereich({ searchParams }: { searchParams: Prom
   const vor = new Date(Date.UTC(jahr, monat - 2, 1)); const nach = new Date(Date.UTC(jahr, monat, 1));
   const param = (d: Date) => `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
 
-  const [zeit, konten, dienste] = await Promise.all([ladeMonat(jahr, monat, p.id), ladeKonten(heute, p.id), ladeMeineDienste(p.id, heute, plusTage(heute, 20))]);
+  const [zeit, konten, dienste, widget] = await Promise.all([ladeMonat(jahr, monat, p.id), ladeKonten(heute, p.id), ladeMeineDienste(p.id, heute, plusTage(heute, 20)), ladeZeitkontoWidget(user.id)]);
   const z = zeit[0]; const k = konten[0];
   const ziviBeginn = p.staffType === "ZIVILDIENER" ? (p.ziviBeginn ?? p.employmentStart) : null;
   const zivi = ziviBeginn && k ? zivildienstKonto({ beginn: ziviBeginn, ende: p.ziviEnde, fehltageVor: p.ziviFehltageVor }, k.eintraege, await freieTage([jahr - 1, jahr, jahr + 1]), heute) : null;
@@ -61,6 +63,8 @@ export default async function MeinBereich({ searchParams }: { searchParams: Prom
         <div><h1>Mein Bereich</h1><div className="sub">{p.firstName} {p.lastName}{p.weeklyHours ? ` · ${p.weeklyHours} h/Woche` : ""}{p.employmentStart ? ` · seit ${fmtDate(p.employmentStart)}` : ""}</div></div>
         <Link href="/konto" className="btn ghost">Konto &amp; Passwort</Link>
       </div>
+
+      {widget ? <div className="panel mb-4"><div className="panel-h"><h3>Mein Zeitkonto</h3><span className="text-xs text-muted">Woche, Zeitausgleich, Urlaub</span></div><div className="p-4"><ZeitkontoWidget d={widget} /></div></div> : null}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-4">
         <div className="panel p-4"><div className="text-xs text-muted">Zeitkonto</div>{z ? <><b className="text-lg mono" style={{ color: z.kontoMin < 0 ? "var(--bad)" : "var(--good)" }}>{fmtSaldo(z.kontoMin)}</b><div className="text-xs text-muted">Stand Ende {MONATE[monat - 1]}</div></> : <span className="text-muted">—</span>}</div>

@@ -76,7 +76,7 @@ export function wocheAusStandard(staffId: string, standard: DienstStandard | nul
 }
 
 export interface PlanAbwesenheit { staffId: string; von: string; bis: string; art: string; status: string }
-export interface PlanPerson { id: string; soll: Record<number, number>; name: string }
+export interface PlanPerson { id: string; soll: Record<number, number>; name: string; regeln?: PlanRegeln; zivildienst?: boolean }
 
 /**
  * Prüfung einer Woche. `dienste` sollen die Woche plus den Sonntag davor enthalten (Ruhezeit
@@ -86,13 +86,14 @@ export function planPruefung(p: {
   wocheStart: string; dienste: Dienst[]; personen: PlanPerson[]; abwesenheiten: PlanAbwesenheit[];
   feiertage: Map<string, string>; regeln?: PlanRegeln;
 }): PlanHinweis[] {
-  const R = p.regeln ?? PLAN_REGELN_STANDARD;
   const tage = wochenTage(p.wocheStart);
   const ende = tage[6]!;
   const h: PlanHinweis[] = [];
   const name = (id: string) => p.personen.find((x) => x.id === id)?.name ?? "?";
 
   for (const person of p.personen) {
+    const R = person.regeln ?? p.regeln ?? PLAN_REGELN_STANDARD; // Zivis: ZDG-Grenzen laut ZISA
+    const gesetz = person.zivildienst ? "§ 23 ZDG" : "§ 9 AZG";
     const meine = p.dienste.filter((d) => d.staffId === person.id).sort((a, b) => (a.datum + a.von).localeCompare(b.datum + b.von));
     const inWoche = meine.filter((d) => d.datum >= p.wocheStart && d.datum <= ende);
     let wocheMin = 0;
@@ -105,7 +106,7 @@ export function planPruefung(p: {
       const pause = amTag.reduce((a, d) => a + d.pauseMin, 0);
       wocheMin += netto;
 
-      if (netto > R.maxTagMin) h.push({ datum, staffId: person.id, code: "TAG_MAX", schwere: "FEHLER", text: `${name(person.id)}: ${Math.round(netto / 6) / 10} h am Tag – über ${R.maxTagMin / 60} h (§ 9 AZG).` });
+      if (netto > R.maxTagMin) h.push({ datum, staffId: person.id, code: "TAG_MAX", schwere: "FEHLER", text: `${name(person.id)}: ${Math.round(netto / 6) / 10} h am Tag – über ${R.maxTagMin / 60} h (${gesetz}).` });
       if (brutto > R.pauseAbMin && pause < R.pauseMin) h.push({ datum, staffId: person.id, code: "PAUSE", schwere: "WARNUNG", text: `${name(person.id)}: über ${R.pauseAbMin / 60} h ohne ${R.pauseMin} min Pause (§ 11 AZG).` });
 
       // Überschneidung mehrerer Dienste am Tag
@@ -133,7 +134,7 @@ export function planPruefung(p: {
       }
     }
 
-    if (wocheMin > R.maxWocheMin) h.push({ datum: p.wocheStart, staffId: person.id, code: "WOCHE_MAX", schwere: "FEHLER", text: `${name(person.id)}: ${Math.round(wocheMin / 6) / 10} h in der Woche – über ${R.maxWocheMin / 60} h (§ 9 AZG).` });
+    if (wocheMin > R.maxWocheMin) h.push({ datum: p.wocheStart, staffId: person.id, code: "WOCHE_MAX", schwere: "FEHLER", text: `${name(person.id)}: ${Math.round(wocheMin / 6) / 10} h in der Woche – über ${R.maxWocheMin / 60} h (${gesetz}).` });
 
     // Abstand zum Wochensoll (ohne Tage mit genehmigter Abwesenheit/Feiertag)
     const sollWoche = tage.reduce((a, datum) => {

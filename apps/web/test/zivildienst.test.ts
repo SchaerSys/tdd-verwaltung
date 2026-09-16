@@ -37,3 +37,27 @@ describe("Zivildienst", () => {
     expect(k.fehltage).toBe(26); // 20 vor + 6 bis Stichtag
   });
 });
+
+import { ziviMeldeliste, ziviPruefung } from "../src/lib/zivildienst";
+describe("ZISA-Vorgaben", () => {
+  it("Stammdaten: Wochendienstzeit innerhalb der Grenzen", () => {
+    const g = { wocheMinMin: 2160, wocheMaxMin: 2700 };
+    expect(ziviPruefung({ ziviBeginn: null, ziviBescheid: null, weeklyHours: null, sollVerteilung: null, employmentEnd: null }, g).map((h) => h.code)).toEqual(["ZIVI_BEGINN", "ZIVI_BESCHEID", "ZIVI_DIENSTZEIT"]);
+    expect(ziviPruefung({ ziviBeginn: "2026-01-01", ziviBescheid: "GZ", weeklyHours: "30", sollVerteilung: null, employmentEnd: null }, g).map((h) => h.code)).toEqual(["ZIVI_DIENSTZEIT_GRENZE"]);
+    expect(ziviPruefung({ ziviBeginn: "2026-01-01", ziviBescheid: "GZ", weeklyHours: null, sollVerteilung: { 1: 480, 2: 480, 3: 480, 4: 480, 5: 480 }, employmentEnd: null }, g)).toEqual([]);
+  });
+  it("Meldeliste: Antritt, Krankheit > 3 Tage, Verlängerung, Dienstende", () => {
+    const k = zivildienstKonto({ beginn: "2026-01-01", ende: null, fehltageVor: 20 }, [
+      { art: "KRANK", von: "2026-03-02", bis: "2026-03-08", status: "GENEHMIGT", halbtag: false },
+      { art: "KRANK", von: "2026-04-01", bis: "2026-04-02", status: "GENEHMIGT", halbtag: false },
+    ], keine, "2026-09-10");
+    const m = ziviMeldeliste(k, [
+      { art: "KRANK", von: "2026-03-02", bis: "2026-03-08", status: "GENEHMIGT", halbtag: false },
+      { art: "KRANK", von: "2026-04-01", bis: "2026-04-02", status: "GENEHMIGT", halbtag: false },
+    ], "2026-09-10");
+    expect(m.map((x) => x.art)).toEqual(["DIENSTANTRITT", "KRANK", "VERLAENGERUNG", "DIENSTENDE"]);
+  });
+  it("Freistellung je Monat ist einstellbar", () => {
+    expect(zivildienstKonto({ beginn: "2026-01-01", ende: null, fehltageVor: 0 }, [], keine, "2026-04-15", 3).urlaubAnspruch).toBe(9);
+  });
+});

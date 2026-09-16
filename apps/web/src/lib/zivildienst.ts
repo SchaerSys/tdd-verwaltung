@@ -64,7 +64,7 @@ const ueberschneidung = (aVon: string, aBis: string, bVon: string, bBis: string)
   return von <= bis ? [von, bis] : null;
 };
 
-export function zivildienstKonto(p: ZiviDaten, eintraege: ZiviEintrag[], feiertage: Set<string>, stichtag: string): ZiviKonto {
+export function zivildienstKonto(p: ZiviDaten, eintraege: ZiviEintrag[], feiertage: Set<string>, stichtag: string, freistellungMonat = 2): ZiviKonto {
   const endeRegulaer = p.ende ?? zivildienstEnde(p.beginn);
   const genehmigt = eintraege.filter((e) => e.status === "GENEHMIGT");
   const imDienst = (e: ZiviEintrag) => ueberschneidung(e.von, e.bis, p.beginn, endeRegulaer);
@@ -81,7 +81,7 @@ export function zivildienstKonto(p: ZiviDaten, eintraege: ZiviEintrag[], feierta
   const endeVoraussichtlich = plusTage(endeRegulaer, verlaengerung);
 
   const monate = volleMonate(p.beginn, stichtag);
-  const urlaubAnspruch = monate * 2;
+  const urlaubAnspruch = monate * freistellungMonat;
   let urlaubVerbraucht = 0, urlaubGeplant = 0;
   for (const e of genehmigt.filter((x) => x.art === "URLAUB")) {
     const o = imDienst(e); if (!o) continue;
@@ -108,4 +108,44 @@ export function zivildienstKonto(p: ZiviDaten, eintraege: ZiviEintrag[], feierta
     volleMonate: monate, urlaubAnspruch, urlaubVerbraucht, urlaubGeplant, urlaubRest,
     fehltage, fehltageFrei: Math.max(0, 24 - fehltage), verlaengerung, krankLaufend, hinweise,
   };
+}
+
+// ── Stammdaten-Pruefung und Meldeliste ─────────────────────────────────────
+
+export interface ZiviStamm { ziviBeginn: string | null; ziviBescheid: string | null; weeklyHours: string | number | null; sollVerteilung: unknown; employmentEnd: string | null }
+export interface ZiviGrenzen { wocheMinMin: number; wocheMaxMin: number }
+
+/** Vollstaendigkeit der Zivi-Stammdaten und Wochendienstzeit innerhalb der ZISA-Grenzen. */
+export function ziviPruefung(p: ZiviStamm, g: ZiviGrenzen): { code: string; stufe: "FEHLT" | "WARN" | "INFO"; text: string }[] {
+  const h: { code: string; stufe: "FEHLT" | "WARN" | "INFO"; text: string }[] = [];
+  if (!p.ziviBeginn) h.push({ code: "ZIVI_BEGINN", stufe: "FEHLT", text: "Dienstantritt laut Zuweisungsbescheid fehlt." });
+  if (!p.ziviBescheid) h.push({ code: "ZIVI_BESCHEID", stufe: "INFO", text: "Geschäftszahl des Zuweisungsbescheids nicht erfasst." });
+  const woche = p.sollVerteilung && typeof p.sollVerteilung === "object"
+    ? Object.values(p.sollVerteilung as Record<string, number>).reduce((a, b) => a + (Number(b) || 0), 0)
+    : p.weeklyHours ? Number(p.weeklyHours) * 60 : 0;
+  if (!woche) h.push({ code: "ZIVI_DIENSTZEIT", stufe: "FEHLT", text: "Wochendienstzeit laut Bescheid fehlt (Wochenstunden oder Wochenverteilung)." });
+  else if (woche < g.wocheMinMin || woche > g.wocheMaxMin) h.push({ code: "ZIVI_DIENSTZEIT_GRENZE", stufe: "WARN", text: `Wochendienstzeit ${Math.round((woche / 60) * 10) / 10} h liegt außerhalb der ZISA-Grenzen (${g.wocheMinMin / 60}–${g.wocheMaxMin / 60} h, § 23 ZDG).` });
+  return h;
+}
+
+export type MeldungArt = "DIENSTANTRITT" | "KRANK" | "VERLAENGERUNG" | "DIENSTENDE";
+export interface Meldung { art: MeldungArt; bezug: string; text: string; faelligAb: string }
+
+/**
+ * Meldeliste an die Zivildienstserviceagentur, aus den Daten abgeleitet:
+ *  - Dienstantritt (einmal, ab Beginn),
+ *  - jede Krankheit über drei Kalendertage (Bestätigung),
+ *  - Verlängerung, sobald die 24 Fehltage überschritten sind,
+ *  - Dienstende (30 Tage davor: Abmeldung, Bestätigung).
+ */
+export function ziviMeldeliste(k: ZiviKonto, eintraege: ZiviEintrag[], heute: string): Meldung[] {
+  const m: Meldung[] = [];
+  if (k.beginn <= heute) m.push({ art: "DIENSTANTRITT", bezug: k.beginn, text: `Dienstantritt am ${k.beginn} bestätigen.`, faelligAb: k.beginn });
+  for (const e of eintraege.filter((x) => x.art === "KRANK" && x.status === "GENEHMIGT" && x.von <= heute)) {
+    const bis = e.bis < heute ? e.bis : heute;
+    if (tageZwischen(e.von, bis) > 3) m.push({ art: "KRANK", bezug: `${e.von}_${e.bis}`, text: `Krankheit ${e.von} – ${e.bis} (${tageZwischen(e.von, e.bis)} Tage): ärztliche Bestätigung, Fehltage melden.`, faelligAb: plusTage(e.von, 3) });
+  }
+  if (k.verlaengerung > 0) m.push({ art: "VERLAENGERUNG", bezug: String(k.verlaengerung), text: `Verlängerung um ${k.verlaengerung} Tag(e) auf ${k.endeVoraussichtlich} melden (${k.fehltage} Fehltage, § 21 ZDG).`, faelligAb: heute });
+  if (plusTage(k.endeVoraussichtlich, -30) <= heute) m.push({ art: "DIENSTENDE", bezug: k.endeVoraussichtlich, text: `Dienstende ${k.endeVoraussichtlich}: Abmeldung, Dienstzeitbestätigung, Resturlaub (${k.urlaubRest} Werktage).`, faelligAb: plusTage(k.endeVoraussichtlich, -30) });
+  return m;
 }

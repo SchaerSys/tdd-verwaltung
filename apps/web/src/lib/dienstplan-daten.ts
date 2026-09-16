@@ -3,7 +3,7 @@ import { abwesenheiten, betriebsfreieTage, dienste, dienstplanWochen, locations,
 import { db } from "./db";
 import { feiertagsKarte } from "./feiertage";
 import { sollJeWochentag, type Verteilung } from "./azg";
-import { ladeRegeln } from "./azg-daten";
+import { ladeRegeln, regelnFuer } from "./azg-daten";
 import { asOpeningHours, WEEKDAYS } from "./opening-hours";
 import { besetzungPruefung, planPruefung, plusTage, wochenStart, wochenSummen, type Dienst, type DienstStandard, type OeffnungsSlot, type PlanHinweis } from "./dienstplan";
 
@@ -56,6 +56,7 @@ export async function ladeWoche(wocheStart: string): Promise<WochenDaten> {
     id: p.id, name: `${p.firstName} ${p.lastName}`, firstName: p.firstName, lastName: p.lastName, staffType: p.staffType,
     soll: sollJeWochentag((p.sollVerteilung as Verteilung | null) ?? null, p.weeklyHours ? Number(p.weeklyHours) : null),
     standard: (p.dienstStandard as DienstStandard | null) ?? null, kannFahren: p.kannFahren, locationId: p.locationId,
+    regeln: regelnFuer(regeln, p.staffType), zivildienst: p.staffType === "ZIVILDIENER",
   }));
   const dienstListe: Dienst[] = ds.map((x) => ({ id: x.id, datum: x.datum, staffId: x.staffId, locationId: x.locationId, von: x.von, bis: x.bis, pauseMin: x.pauseMin, taetigkeit: x.taetigkeit, notiz: x.notiz }));
   const standorte = locs.map((l) => ({ id: l.id, name: l.name, type: l.type, oeffnung: oeffnungIso(l.openingHours) }));

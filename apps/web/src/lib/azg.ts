@@ -19,6 +19,9 @@ export interface ZeitRegeln {
   normalarbeitszeitWocheMin: number; // 2400 (40 h)
   mehrarbeitZuschlag: number; // 25 %
   ueberstundenZuschlag: number; // 50 %
+  /** ZDG: Zivildienst – keine Mehrarbeit/Ueberstunden (nur Zeitausgleich), Paragraphen des ZDG, Sonntag nur bei Erlaubnis. */
+  gesetz?: "AZG" | "ZDG";
+  sonntagErlaubt?: boolean;
 }
 export const REGELN_STANDARD: ZeitRegeln = { maxTagMin: 600, maxWocheMin: 3000, pauseAbMin: 360, pauseMin: 30, ruhezeitMin: 660, normalarbeitszeitWocheMin: 2400, mehrarbeitZuschlag: 25, ueberstundenZuschlag: 50 };
 
@@ -66,6 +69,8 @@ export function monatAuswertung(p: {
   feiertage: Map<string, string>; betriebsfrei?: Map<string, string>; abwesenheiten: Abwesenheit[]; regeln?: ZeitRegeln; now?: Date;
 }): MonatAuswertung {
   const R = p.regeln ?? REGELN_STANDARD;
+  const zdg = R.gesetz === "ZDG";
+  const par = (azg: string, zdgPar: string) => (zdg ? zdgPar : azg);
   const now = p.now ?? new Date();
   const soll = sollJeWochentag(p.verteilung, p.wochenstunden);
   const tageImMonat = new Date(Date.UTC(p.jahr, p.monat, 0)).getUTCDate();
@@ -113,15 +118,15 @@ export function monatAuswertung(p: {
 
     // Pruefungen nur an Tagen mit Buchungen
     if (evs.length) {
-      if (tot.workedMin > 12 * 60) tw.push({ datum, code: "TAG_12H", schwere: "FEHLER", text: `${fmt(tot.workedMin)} Arbeitszeit – über 12 h ist auch mit Ausnahme unzulässig (§ 9 AZG).` });
-      else if (tot.workedMin > R.maxTagMin) tw.push({ datum, code: "TAG_MAX", schwere: "WARNUNG", text: `${fmt(tot.workedMin)} Arbeitszeit – über ${fmt(R.maxTagMin)} Tageshöchstarbeitszeit (§ 9 AZG).` });
-      if (tot.workedMin > R.pauseAbMin && tot.breakMin < R.pauseMin) tw.push({ datum, code: "PAUSE", schwere: "WARNUNG", text: `Keine Ruhepause von ${R.pauseMin} min bei mehr als ${fmt(R.pauseAbMin)} (§ 11 AZG).` });
+      if (tot.workedMin > 12 * 60) tw.push({ datum, code: "TAG_12H", schwere: "FEHLER", text: `${fmt(tot.workedMin)} ${zdg ? "Dienstzeit" : "Arbeitszeit"} – über 12 h ist auch mit Ausnahme unzulässig (${par("§ 9 AZG", "§ 23 ZDG")}).` });
+      else if (tot.workedMin > R.maxTagMin) tw.push({ datum, code: "TAG_MAX", schwere: zdg ? "FEHLER" : "WARNUNG", text: `${fmt(tot.workedMin)} ${zdg ? "Dienstzeit" : "Arbeitszeit"} – über ${fmt(R.maxTagMin)} ${zdg ? "Tageshöchstdienstzeit laut ZISA" : "Tageshöchstarbeitszeit"} (${par("§ 9 AZG", "§ 23 ZDG")}).` });
+      if (tot.workedMin > R.pauseAbMin && tot.breakMin < R.pauseMin) tw.push({ datum, code: "PAUSE", schwere: "WARNUNG", text: `Keine Ruhepause von ${R.pauseMin} min bei mehr als ${fmt(R.pauseAbMin)} (${par("§ 11 AZG", "§ 23 ZDG")}).` });
       if (tot.open && datum !== heute) tw.push({ datum, code: "OFFEN", schwere: "WARNUNG", text: "Ausstempeln vergessen – Tag im Ist mit 0 gerechnet, bitte korrigieren." });
-      if (feiertag && tot.workedMin > 0) tw.push({ datum, code: "FEIERTAG", schwere: "WARNUNG", text: `Arbeit am Feiertag (${feiertag}) – Feiertagsruhe/Feiertagsarbeitsentgelt beachten (ARG).` });
-      if (wochentag === 7 && tot.workedMin > 0) tw.push({ datum, code: "SONNTAG", schwere: "WARNUNG", text: "Arbeit am Sonntag – Wochenendruhe 36 h prüfen (§ 3 ARG)." });
+      if (feiertag && tot.workedMin > 0) tw.push({ datum, code: "FEIERTAG", schwere: zdg && !R.sonntagErlaubt ? "FEHLER" : "WARNUNG", text: zdg ? `Dienst am Feiertag (${feiertag}) – nur wenn die Einrichtung es erfordert, Ersatzruhe gewähren (§ 23 ZDG).` : `Arbeit am Feiertag (${feiertag}) – Feiertagsruhe/Feiertagsarbeitsentgelt beachten (ARG).` });
+      if (wochentag === 7 && tot.workedMin > 0) tw.push({ datum, code: "SONNTAG", schwere: zdg && !R.sonntagErlaubt ? "FEHLER" : "WARNUNG", text: zdg ? (R.sonntagErlaubt ? "Sonntagsdienst – Ersatzruhe in der Folgewoche (§ 23 ZDG)." : "Sonntagsdienst ist für diese Einrichtung nicht vorgesehen (Regeln Zivildienst)." ) : "Arbeit am Sonntag – Wochenendruhe 36 h prüfen (§ 3 ARG)." });
       if (ins[0] && letztesEnde) {
         const ruhe = (new Date(ins[0].at).getTime() - letztesEnde.getTime()) / 60000;
-        if (ruhe < R.ruhezeitMin) tw.push({ datum, code: "RUHEZEIT", schwere: "WARNUNG", text: `Nur ${fmt(Math.max(0, Math.round(ruhe)))} Ruhezeit seit dem Vortag – mindestens ${fmt(R.ruhezeitMin)} (§ 12 AZG).` });
+        if (ruhe < R.ruhezeitMin) tw.push({ datum, code: "RUHEZEIT", schwere: "WARNUNG", text: `Nur ${fmt(Math.max(0, Math.round(ruhe)))} Ruhezeit seit dem Vortag – mindestens ${fmt(R.ruhezeitMin)} (${par("§ 12 AZG", "§ 23 ZDG")}).` });
       }
       if (outs.length && !tot.open) letztesEnde = new Date(outs[outs.length - 1]!.at);
       else if (tot.open) letztesEnde = null;
@@ -146,13 +151,14 @@ export function monatAuswertung(p: {
   let mehrarbeitMin = 0, ueberstundenMin = 0;
   for (const [kw, ist] of jeWoche) {
     const nz = R.normalarbeitszeitWocheMin;
-    const mehr = vertragWoche < nz ? Math.max(0, Math.min(ist, nz) - vertragWoche) : 0;
-    const ueber = Math.max(0, ist - Math.max(nz, vertragWoche));
+    // Zivildienst: kein Mehrarbeits-/Ueberstundenbegriff – Mehrdienst geht 1:1 als Saldo ins Zeitkonto
+    const mehr = zdg ? 0 : vertragWoche < nz ? Math.max(0, Math.min(ist, nz) - vertragWoche) : 0;
+    const ueber = zdg ? 0 : Math.max(0, ist - Math.max(nz, vertragWoche));
     mehrarbeitMin += mehr; ueberstundenMin += ueber;
     wochen.push({ kw, istMin: ist, vertragMin: vertragWoche, mehrarbeitMin: mehr, ueberstundenMin: ueber });
     if (ist > R.maxWocheMin) {
       const erster = tage.find((t) => isoWoche(t.datum) === kw)!;
-      warnungen.push({ datum: erster.datum, code: "WOCHE_MAX", schwere: "WARNUNG", text: `${fmt(ist)} in Woche ${kw} – über ${fmt(R.maxWocheMin)} Wochenhöchstarbeitszeit (§ 9 AZG; Teilwochen am Monatsrand unvollständig).` });
+      warnungen.push({ datum: erster.datum, code: "WOCHE_MAX", schwere: zdg ? "FEHLER" : "WARNUNG", text: `${fmt(ist)} in Woche ${kw} – über ${fmt(R.maxWocheMin)} ${zdg ? "Wochenhöchstdienstzeit laut ZISA" : "Wochenhöchstarbeitszeit"} (${par("§ 9 AZG", "§ 23 ZDG")}; Teilwochen am Monatsrand unvollständig).` });
     }
   }
 

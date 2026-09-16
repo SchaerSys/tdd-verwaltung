@@ -703,7 +703,27 @@ export const zeitRegeln = pgTable("zeit_regeln", {
   svTraeger: text("sv_traeger").notNull().default("Österreichische Gesundheitskasse (ÖGK)"),
   kvEinsicht: text("kv_einsicht"),
   ausgabeStempelt: boolean("ausgabe_stempelt").notNull().default(true), // Ausgabe starten/beenden stempelt Kommen/Gehen (049)
+  // Zivildienst-Grenzen laut ZISA (050)
+  ziviWocheMinMin: integer("zivi_woche_min_min").notNull().default(2160),
+  ziviWocheMaxMin: integer("zivi_woche_max_min").notNull().default(2700),
+  ziviTagMaxMin: integer("zivi_tag_max_min").notNull().default(600),
+  ziviPauseAbMin: integer("zivi_pause_ab_min").notNull().default(360),
+  ziviPauseMin: integer("zivi_pause_min").notNull().default(30),
+  ziviRuhezeitMin: integer("zivi_ruhezeit_min").notNull().default(660),
+  ziviSonntagErlaubt: boolean("zivi_sonntag_erlaubt").notNull().default(false),
+  ziviFreistellungMonat: smallint("zivi_freistellung_monat").notNull().default(2),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+// Zivildienst: erledigte Meldungen an die Zivildienstserviceagentur (050)
+export const ziviMeldungen = pgTable("zivi_meldungen", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  staffId: uuid("staff_id").notNull().references(() => staff.id, { onDelete: "cascade" }),
+  art: text("art").notNull(), // DIENSTANTRITT | KRANK | VERLAENGERUNG | DIENSTENDE | SONSTIG
+  bezug: text("bezug").notNull(),
+  gemeldetAt: timestamp("gemeldet_at", { withTimezone: true }).notNull().defaultNow(),
+  gemeldetBy: uuid("gemeldet_by").references(() => users.id),
+  notiz: text("notiz"),
 });
 
 export const betriebsfreieTage = pgTable("betriebsfreie_tage", {

@@ -25,6 +25,11 @@ export async function regelnSpeichern(fd: FormData): Promise<void> {
     svTraeger: String(fd.get("svTraeger") ?? "").trim() || "Österreichische Gesundheitskasse (ÖGK)",
     kvEinsicht: String(fd.get("kvEinsicht") ?? "").trim() || null,
     ausgabeStempelt: fd.get("ausgabeStempelt") === "on",
+    // Zivildienst-Grenzen laut ZISA
+    ziviWocheMinMin: num(fd, "ziviWocheMinStd", 0, 60, 36) * 60, ziviWocheMaxMin: num(fd, "ziviWocheMaxStd", 1, 60, 45) * 60,
+    ziviTagMaxMin: num(fd, "ziviTagMaxStd", 1, 12, 10) * 60, ziviRuhezeitMin: num(fd, "ziviRuhezeitStd", 1, 24, 11) * 60,
+    ziviPauseAbMin: num(fd, "ziviPauseAbStd", 1, 12, 6) * 60, ziviPauseMin: num(fd, "ziviPauseMin", 0, 120, 30),
+    ziviFreistellungMonat: num(fd, "ziviFreistellungMonat", 0, 10, 2), ziviSonntagErlaubt: fd.get("ziviSonntagErlaubt") === "on",
     updatedAt: new Date(),
   };
   await db().insert(zeitRegeln).values({ id: 1, ...set }).onConflictDoUpdate({ target: zeitRegeln.id, set });

@@ -9,6 +9,8 @@ import { ladeMonat } from "@/lib/azg-daten";
 import { ladeKonten } from "@/lib/abwesenheit-daten";
 import { ladeMeineDienste } from "@/lib/dienstplan-daten";
 import { dienstMinuten, plusTage, TAETIGKEIT_LABEL } from "@/lib/dienstplan";
+import { freieTage } from "@/lib/abwesenheit-daten";
+import { zivildienstKonto } from "@/lib/zivildienst";
 import { ABW_ART_LABEL } from "@/lib/abwesenheit";
 import { fmtMin, fmtSaldo } from "@/lib/zeit";
 import { fmtDate } from "@/lib/format";
@@ -48,6 +50,8 @@ export default async function MeinBereich({ searchParams }: { searchParams: Prom
 
   const [zeit, konten, dienste] = await Promise.all([ladeMonat(jahr, monat, p.id), ladeKonten(heute, p.id), ladeMeineDienste(p.id, heute, plusTage(heute, 20))]);
   const z = zeit[0]; const k = konten[0];
+  const ziviBeginn = p.staffType === "ZIVILDIENER" ? (p.ziviBeginn ?? p.employmentStart) : null;
+  const zivi = ziviBeginn && k ? zivildienstKonto({ beginn: ziviBeginn, ende: p.ziviEnde, fehltageVor: p.ziviFehltageVor }, k.eintraege, await freieTage([jahr - 1, jahr, jahr + 1]), heute) : null;
   const offen = (k?.eintraege ?? []).filter((e) => e.status === "BEANTRAGT");
   const kommend = (k?.eintraege ?? []).filter((e) => e.status === "GENEHMIGT" && e.bis >= heute).sort((a, b) => a.von.localeCompare(b.von));
 
@@ -61,8 +65,8 @@ export default async function MeinBereich({ searchParams }: { searchParams: Prom
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-4">
         <div className="panel p-4"><div className="text-xs text-muted">Zeitkonto</div>{z ? <><b className="text-lg mono" style={{ color: z.kontoMin < 0 ? "var(--bad)" : "var(--good)" }}>{fmtSaldo(z.kontoMin)}</b><div className="text-xs text-muted">Stand Ende {MONATE[monat - 1]}</div></> : <span className="text-muted">—</span>}</div>
         <div className="panel p-4"><div className="text-xs text-muted">{MONATE[monat - 1]}: Ist / Soll</div>{z ? <><b className="text-lg mono">{fmtMin(z.auswertung.istMin)} / {fmtMin(z.auswertung.sollMin)}</b><div className="text-xs text-muted">Monat {fmtSaldo(z.auswertung.saldoMin)}{z.auswertung.gutschriftMin ? ` · Gutschrift ${fmtMin(z.auswertung.gutschriftMin)}` : ""}</div></> : <span className="text-muted">—</span>}</div>
-        <div className="panel p-4"><div className="text-xs text-muted">Urlaub übrig</div>{k?.urlaub ? <><b className="text-lg mono" style={{ color: k.urlaub.rest < 0 ? "var(--bad)" : undefined }}>{k.urlaub.rest} Tage</b><div className="text-xs text-muted">Anspruch {k.urlaub.anspruch} + Übertrag {k.urlaub.uebertrag} − verbraucht {k.urlaub.verbraucht} − geplant {k.urlaub.geplant}{k.urlaub.verfaelltDemnaechst ? ` · ${k.urlaub.verfaelltDemnaechst.tage} verfallen am ${fmtDate(k.urlaub.verfaelltDemnaechst.am)}` : ""}</div></> : <span className="text-muted text-xs">{k?.fehlt ?? "—"}</span>}</div>
-        <div className="panel p-4"><div className="text-xs text-muted">Krankenstand im Arbeitsjahr</div>{k?.krank ? <><b className="text-lg mono">{k.krank.tage} Tage</b><div className="text-xs text-muted">Entgeltfortzahlung voll noch {k.krank.restVollTage} Tage{k.krank.laufender ? " · derzeit krank" : ""}</div></> : <span className="text-muted">—</span>}</div>
+        <div className="panel p-4"><div className="text-xs text-muted">{zivi ? "Dienstfreistellung übrig" : "Urlaub übrig"}</div>{zivi ? <><b className="text-lg mono" style={{ color: zivi.urlaubRest < 0 ? "var(--bad)" : undefined }}>{zivi.urlaubRest} Werktage</b><div className="text-xs text-muted">{zivi.volleMonate} volle Monate × 2 = {zivi.urlaubAnspruch} − verbraucht {zivi.urlaubVerbraucht} − geplant {zivi.urlaubGeplant} · Dienstende {fmtDate(zivi.endeVoraussichtlich)}</div></> : k?.urlaub ? <><b className="text-lg mono" style={{ color: k.urlaub.rest < 0 ? "var(--bad)" : undefined }}>{k.urlaub.rest} Tage</b><div className="text-xs text-muted">Anspruch {k.urlaub.anspruch} + Übertrag {k.urlaub.uebertrag} − verbraucht {k.urlaub.verbraucht} − geplant {k.urlaub.geplant}{k.urlaub.verfaelltDemnaechst ? ` · ${k.urlaub.verfaelltDemnaechst.tage} verfallen am ${fmtDate(k.urlaub.verfaelltDemnaechst.am)}` : ""}</div></> : <span className="text-muted text-xs">{k?.fehlt ?? "—"}</span>}</div>
+        <div className="panel p-4"><div className="text-xs text-muted">{zivi ? "Fehltage (Zivildienst)" : "Krankenstand im Arbeitsjahr"}</div>{zivi ? <><b className="text-lg mono" style={{ color: zivi.verlaengerung ? "var(--bad)" : undefined }}>{zivi.fehltage} / 24</b><div className="text-xs text-muted">{zivi.verlaengerung ? `Verlängerung um ${zivi.verlaengerung} Tage` : `${zivi.fehltageFrei} Tage ohne Verlängerung frei`}</div></> : k?.krank ? <><b className="text-lg mono">{k.krank.tage} Tage</b><div className="text-xs text-muted">Entgeltfortzahlung voll noch {k.krank.restVollTage} Tage{k.krank.laufender ? " · derzeit krank" : ""}</div></> : <span className="text-muted">—</span>}</div>
       </div>
 
       <div className="panel mb-4">

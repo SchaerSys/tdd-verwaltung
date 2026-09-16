@@ -20,7 +20,7 @@ function personUrlaub(p: typeof staff.$inferSelect): PersonUrlaub | null {
 }
 
 /** Feiertage + betriebsfreie Tage als Set (zaehlen nicht als Urlaubstag). */
-async function freieTage(jahre: number[]): Promise<Set<string>> {
+export async function freieTage(jahre: number[]): Promise<Set<string>> {
   const s = new Set<string>();
   for (const j of jahre) for (const f of feiertage(j)) s.add(f.datum);
   for (const b of await db().select().from(betriebsfreieTage)) s.add(b.datum);
@@ -38,14 +38,14 @@ export async function ladeKonten(stichtag: string, staffId?: string): Promise<Pe
   return leute.map((p) => {
     const eintraege = alle.filter((a) => a.staffId === p.id);
     const soll = sollJeWochentag((p.sollVerteilung as Verteilung | null) ?? null, p.weeklyHours ? Number(p.weeklyHours) : null);
-    const pu = personUrlaub(p);
+    const pu = p.staffType === "ZIVILDIENER" ? null : personUrlaub(p); // Zivis: Dienstfreistellung nach ZDG, eigene Uebersicht
     const e: AbwEintrag[] = eintraege.map((a) => ({ art: a.art, von: a.von, bis: a.bis, status: a.status, halbtag: a.halbtag }));
     return {
       person: p, soll, eintraege,
       urlaub: pu ? urlaubskonto(pu, e, soll, frei, stichtag) : null,
       krank: pu ? krankenstand(pu, e, stichtag) : null,
       pflege: pu ? pflegefreistellung(pu, e, soll, frei, stichtag) : null,
-      fehlt: pu ? null : "Kein Eintrittsdatum im Personal-Datensatz – ohne Eintritt kein Urlaubsjahr.",
+      fehlt: pu ? null : p.staffType === "ZIVILDIENER" ? "Zivildienst: Dienstfreistellung nach ZDG – siehe Zivildienst-Übersicht." : "Kein Eintrittsdatum im Personal-Datensatz – ohne Eintritt kein Urlaubsjahr.",
     };
   });
 }

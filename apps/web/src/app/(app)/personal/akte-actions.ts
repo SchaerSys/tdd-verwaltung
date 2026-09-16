@@ -46,6 +46,19 @@ function extFor(name: string, type: string): string {
   return "bin";
 }
 
+/** Zivildienst-Stammdaten (P6): Dienstantritt/Ende laut Zuweisungsbescheid, Fehltage aus frueherer Einsatzstelle. */
+export async function ziviStammdaten(fd: FormData): Promise<void> {
+  const u = await guard();
+  const id = String(fd.get("staffId") ?? ""); if (!id) throw new Error("Kein Datensatz");
+  const vor = parseInt(str(fd, "ziviFehltageVor") ?? "0", 10);
+  await db().update(staff).set({
+    ziviBeginn: datum(fd, "ziviBeginn"), ziviEnde: datum(fd, "ziviEnde"), ziviBescheid: str(fd, "ziviBescheid"),
+    ziviFehltageVor: Number.isFinite(vor) && vor >= 0 ? vor : 0, updatedAt: new Date(),
+  }).where(eq(staff.id, id));
+  await audit({ actorUserId: u.id, action: "staff.zivi.update", entityType: "staff", entityId: id });
+  revalidatePath(`/personal/${id}`); revalidatePath("/personal/zivildienst");
+}
+
 export async function dokumentHochladen(fd: FormData): Promise<void> {
   const u = await guard();
   const staffId = String(fd.get("staffId") ?? "");

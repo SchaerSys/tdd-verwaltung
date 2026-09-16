@@ -433,6 +433,11 @@ export const staff = pgTable("staff", {
   notfallTel: text("notfall_tel"),
   austrittGrund: text("austritt_grund"),
   dienstStandard: jsonb("dienst_standard"), // Standard-Dienst je ISO-Wochentag (047)
+  // P6 Zivildienst (048)
+  ziviBeginn: date("zivi_beginn"),
+  ziviEnde: date("zivi_ende"),
+  ziviBescheid: text("zivi_bescheid"),
+  ziviFehltageVor: smallint("zivi_fehltage_vor").notNull().default(0),
   kannFahren: boolean("kann_fahren").notNull().default(false),
   fuehrerschein: text("fuehrerschein"),
   fahrerTage: smallint("fahrer_tage").array().notNull().default([]),

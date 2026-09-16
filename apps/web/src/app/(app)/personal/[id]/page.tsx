@@ -13,7 +13,8 @@ import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { hasPermission } from "@/lib/rbac";
 import { updateStaff, toggleStaffActive } from "../actions";
-import { akteSpeichern, dokumentHochladen, dokumentLoeschen } from "../akte-actions";
+import { akteSpeichern, dokumentHochladen, dokumentLoeschen, ziviStammdaten } from "../akte-actions";
+import { zivildienstEnde } from "@/lib/zivildienst";
 import { aktePruefung, aufbewahrungBis, probezeitMax, BESCHAEFTIGUNG_LABEL, AUSTRITT_GRUND_LABEL, DOK_ART_LABEL } from "@/lib/personalakte";
 import { heuteIso } from "@/lib/touren";
 import { fmtDate, fmtDateTime } from "@/lib/format";
@@ -117,6 +118,21 @@ export default async function StaffEditPage({ params }: { params: Promise<{ id: 
         </div>
         <div className="p-4 border-t border-[color:var(--border)] flex gap-2 items-center"><button type="submit" className="btn primary">Verteilung speichern</button><Link href={`/zeit/monat?staff=${p.id}`} className="btn ghost">Monatsauswertung →</Link></div>
       </form>
+
+      {/* P6 Zivildienst: Dienstzeit laut Zuweisungsbescheid (ZDG) */}
+      {p.staffType === "ZIVILDIENER" ? (
+        <form action={ziviStammdaten} className="panel mt-4">
+          <input type="hidden" name="staffId" value={p.id} />
+          <div className="panel-h"><h3>Zivildienst (ZDG)</h3><span className="text-xs text-muted">9 Monate ab Dienstantritt · Dienstfreistellung 2 Werktage je vollem Monat · Verlängerung ab 24 Fehltagen</span></div>
+          <div className="p-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="field"><label className="lbl">Dienstantritt</label><input name="ziviBeginn" type="date" className="inp mono" defaultValue={p.ziviBeginn ?? p.employmentStart ?? ""} /></div>
+            <div className="field"><label className="lbl">Reguläres Ende</label><input name="ziviEnde" type="date" className="inp mono" defaultValue={p.ziviEnde ?? ""} placeholder="leer = +9 Monate" />{(p.ziviBeginn ?? p.employmentStart) && !p.ziviEnde ? <div className="text-[.7rem] text-muted">berechnet: {fmtDate(zivildienstEnde((p.ziviBeginn ?? p.employmentStart)!))}</div> : null}</div>
+            <div className="field"><label className="lbl">Zuweisungsbescheid (GZ)</label><input name="ziviBescheid" className="inp mono" defaultValue={p.ziviBescheid ?? ""} /></div>
+            <div className="field"><label className="lbl">Fehltage aus früherer Einsatzstelle</label><input name="ziviFehltageVor" className="inp mono" inputMode="numeric" defaultValue={p.ziviFehltageVor || ""} placeholder="0" /></div>
+          </div>
+          <div className="p-4 border-t border-[color:var(--border)] flex gap-2 items-center"><button type="submit" className="btn primary">Zivildienst speichern</button><Link href="/personal/zivildienst" className="btn ghost">Zivildienst-Übersicht →</Link><span className="text-xs text-muted">Wochendienstzeit laut Bescheid oben bei Wochenstunden/Verteilung eintragen.</span></div>
+        </form>
+      ) : null}
 
       {/* P5 Dienstplan: Standard-Dienst je Wochentag – Vorlage fuer "Woche aus Standard fuellen" */}
       {(() => {

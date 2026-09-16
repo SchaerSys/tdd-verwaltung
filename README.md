@@ -106,6 +106,9 @@ graph TD
 **A2 · Arbeitszeit nach AZG** (Zentralsystem)
 - Soll je Tag aus fixer Wochenverteilung (§ 19c), gesetzliche Feiertage (berechnet) und betriebsfreie Tage, Urlaub/Krankenstand als Gutschrift; Monatsauswertung (`/zeit/monat`) mit Zeitkonto (Anfangssaldo, feste Abschlüsse), Mehrarbeit Teilzeit (§ 19d) und Überstunden je Woche; AZG-Prüfung (`/zeit/pruefung`): Tages-/Wochenhöchstarbeitszeit, Ruhepause, Ruhezeit 11 h, Sonntag/Feiertag, vergessenes Ausstempeln; Regeln/Zuschläge KV-abhängig einstellbar (`/zeit/regeln`); Korrekturen nur mit Begründung, Monatsabschluss sperrt Buchungen (§ 26 AZG). Reine Logik in `lib/azg.ts`, `lib/feiertage.ts` mit Tests.
 
+**A3 · Abwesenheiten nach UrlG/EFZG** (Zentralsystem)
+- Arten Urlaub, Krankenstand, Zeitausgleich, Pflegefreistellung, Sonderurlaub, unbezahlt; Antrag → Genehmigung; Monatskalender „wer fehlt wann“; Krankenbestätigung ab Tag 3. Urlaubskonto je Person: Anspruch aus Wochen × Arbeitstagen der Verteilung (aliquot im ersten halben Jahr, 6 Wochen ab 25 Dienstjahren), Übertrag mit FIFO-Verbrauch und 2-Jahres-Verjährung, Resturlaub-Startwert aus alter Führung; Krankenstand mit EFZG-Stufen (6/8/10/12 Wochen); Pflegefreistellung eine Arbeitswoche. Reine Logik in `lib/abwesenheit.ts` mit Tests; Abwesenheiten fließen als Gutschrift in die Arbeitszeit und als Konflikt in die Disposition.
+
 **A4 · Touren & Disposition** (Zentralsystem)
 - Stammdaten: Abholstellen (Betriebe mit Abholtagen, Fenster, Kühlbedarf, Hinweisen), Fahrzeuge (Kühlung, elektrisch, Pickerl, Werkstatt), Fahrer:innen am Personal (Führerschein, Fahrertage, Login-Verknüpfung).
 - Wochenplan (Tourvorlagen je Wochentag mit Stopp-Abfolge) → Tagesdisposition (`/touren`): Touren erzeugen, Fahrer/Fahrzeug zuweisen, Konflikte live (abwesend, Werkstatt, Kühlware ohne Kühlung, Doppelbelegung, Pickerl), Abwesenheiten, Laufzettel-Druck.

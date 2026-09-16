@@ -269,7 +269,7 @@ export async function abwesenheitAnlegen(fd: FormData): Promise<void> {
   const staffId = str(fd, "staffId"); const von = str(fd, "von"); const bis = str(fd, "bis") ?? von;
   const art = str(fd, "art") ?? "SONSTIG";
   if (!staffId || !von || !bis || bis < von) throw new Error("Person und Zeitraum sind Pflicht.");
-  await db().insert(abwesenheiten).values({ staffId, art: ["URLAUB", "KRANK", "SONSTIG"].includes(art) ? art : "SONSTIG", von, bis, notiz: str(fd, "notiz"), createdBy: u.id });
+  await db().insert(abwesenheiten).values({ staffId, art: ["URLAUB", "KRANK", "ZEITAUSGLEICH", "PFLEGE", "SONDERURLAUB", "UNBEZAHLT", "SONSTIG"].includes(art) ? art : "SONSTIG", von, bis, notiz: str(fd, "notiz"), createdBy: u.id, entschiedenBy: u.id, entschiedenAt: new Date() });
   await audit({ actorUserId: u.id, action: "abwesenheit.create", entityType: "staff", entityId: staffId, after: { art, von, bis } });
   revalidatePath("/touren");
 }

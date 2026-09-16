@@ -50,7 +50,7 @@ export interface MonatAuswertung {
   warnungen: Warnung[]; feiertage: number; abwesenheitstage: number;
 }
 
-const ART_LABEL: Record<string, string> = { URLAUB: "Urlaub", KRANK: "Krankenstand", SONSTIG: "Abwesenheit", ZEITAUSGLEICH: "Zeitausgleich", PFLEGE: "Pflegefreistellung", SONDERURLAUB: "Sonderurlaub" };
+const ART_LABEL: Record<string, string> = { URLAUB: "Urlaub", KRANK: "Krankenstand", SONSTIG: "Abwesenheit", ZEITAUSGLEICH: "Zeitausgleich", PFLEGE: "Pflegefreistellung", SONDERURLAUB: "Sonderurlaub", UNBEZAHLT: "unbezahlt" };
 
 function isoWoche(datum: string): string {
   const d = new Date(datum + "T00:00:00Z");
@@ -106,7 +106,8 @@ export function monatAuswertung(p: {
     if (faellig && planSoll > 0) {
       if (feiertag) { gutschrift = planSoll; grund = feiertag; feiertagN++; }
       else if (frei) { gutschrift = planSoll; grund = frei; }
-      else if (ab) { gutschrift = planSoll; grund = ART_LABEL[ab.art] ?? ab.art; abwesenheitN++; }
+      else if (ab && ab.art !== "UNBEZAHLT") { gutschrift = planSoll; grund = ART_LABEL[ab.art] ?? ab.art; abwesenheitN++; }
+      else if (ab) { grund = ART_LABEL[ab.art] ?? ab.art; abwesenheitN++; }
     }
     if (!faellig) sollTag = 0;
 

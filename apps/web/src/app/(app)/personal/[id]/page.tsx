@@ -5,6 +5,7 @@ import { asc, eq } from "drizzle-orm";
 import { staff, locations, users } from "@tdd/db";
 import { WOCHENTAGE_KURZ } from "@/lib/touren";
 import { verteilungSpeichern } from "../../zeit/azg-actions";
+import { urlaubStammdaten } from "../../abwesenheiten/actions";
 import { sollJeWochentag, type Verteilung } from "@/lib/azg";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
@@ -99,6 +100,20 @@ export default async function StaffEditPage({ params }: { params: Promise<{ id: 
           <div className="field"><label className="lbl">Anfangssaldo (h, ± aus der bisherigen Führung)</label><input name="zeitkontoAnfang" className="inp mono" inputMode="decimal" defaultValue={p.zeitkontoAnfangMin ? String(Math.round((p.zeitkontoAnfangMin / 60) * 100) / 100) : ""} placeholder="0" /></div>
         </div>
         <div className="p-4 border-t border-[color:var(--border)] flex gap-2 items-center"><button type="submit" className="btn primary">Verteilung speichern</button><Link href={`/zeit/monat?staff=${p.id}`} className="btn ghost">Monatsauswertung →</Link></div>
+      </form>
+
+      {/* Urlaub nach UrlG: Urlaubsjahr, Wochen, Uebertrag aus alter Fuehrung, Vordienstzeiten */}
+      <form action={urlaubStammdaten} className="panel mt-4">
+        <input type="hidden" name="staffId" value={p.id} />
+        <div className="panel-h"><h3>Urlaub – Stammdaten (UrlG)</h3><span className="text-xs text-muted">Anspruch ergibt sich aus Wochen × Arbeitstagen der Verteilung</span></div>
+        <div className="p-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="field"><label className="lbl">Urlaubsjahr</label><select name="urlaubsjahr" className="inp" defaultValue={p.urlaubsjahr}><option value="ARBEIT">Arbeitsjahr (ab Eintritt)</option><option value="KALENDER">Kalenderjahr</option></select></div>
+          <div className="field"><label className="lbl">Wochen</label><select name="urlaubWochen" className="inp" defaultValue={p.urlaubWochen}><option value="5">5 Wochen</option><option value="6">6 Wochen (ab 25 Dienstjahren)</option></select></div>
+          <div className="field"><label className="lbl">Resturlaub aus alter Führung (Tage)</label><input name="urlaubUebertragTage" className="inp mono" inputMode="decimal" defaultValue={Number(p.urlaubUebertragTage) ? String(p.urlaubUebertragTage) : ""} placeholder="0" /></div>
+          <div className="field"><label className="lbl">gilt für Urlaubsjahr ab</label><input name="urlaubUebertragAb" type="date" className="inp mono" defaultValue={p.urlaubUebertragAb ?? ""} /></div>
+          <div className="field"><label className="lbl">Vordienstzeiten (Jahre)</label><input name="dienstjahreAnrechnung" className="inp mono" inputMode="decimal" defaultValue={Number(p.dienstjahreAnrechnung) ? String(p.dienstjahreAnrechnung) : ""} placeholder="0" /></div>
+        </div>
+        <div className="p-4 border-t border-[color:var(--border)] flex gap-2 items-center"><button type="submit" className="btn primary">Urlaubsdaten speichern</button><Link href={`/abwesenheiten/konto?staff=${p.id}`} className="btn ghost">Urlaubskonto →</Link>{!p.employmentStart ? <span className="text-xs" style={{ color: "var(--warn)" }}>Eintrittsdatum fehlt – ohne Eintritt kein Urlaubsjahr.</span> : null}</div>
       </form>
     </div>
   );

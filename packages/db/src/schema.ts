@@ -410,6 +410,11 @@ export const staff = pgTable("staff", {
   sollVerteilung: jsonb("soll_verteilung"), // Sollminuten je ISO-Wochentag {"1":480,...} (043)
   zeitkontoStart: date("zeitkonto_start"),
   zeitkontoAnfangMin: integer("zeitkonto_anfang_min").notNull().default(0),
+  urlaubsjahr: text("urlaubsjahr").notNull().default("ARBEIT"), // ARBEIT (ab Eintritt) | KALENDER
+  urlaubWochen: smallint("urlaub_wochen").notNull().default(5),
+  urlaubUebertragTage: numeric("urlaub_uebertrag_tage", { precision: 5, scale: 1 }).notNull().default("0"),
+  urlaubUebertragAb: date("urlaub_uebertrag_ab"),
+  dienstjahreAnrechnung: numeric("dienstjahre_anrechnung", { precision: 4, scale: 1 }).notNull().default("0"),
   kannFahren: boolean("kann_fahren").notNull().default(false),
   fuehrerschein: text("fuehrerschein"),
   fahrerTage: smallint("fahrer_tage").array().notNull().default([]),
@@ -436,10 +441,15 @@ export const timeEvents = pgTable("time_events", {
 export const abwesenheiten = pgTable("abwesenheiten", {
   id: uuid("id").primaryKey().defaultRandom(),
   staffId: uuid("staff_id").notNull().references(() => staff.id, { onDelete: "cascade" }),
-  art: text("art").notNull(), // URLAUB | KRANK | SONSTIG
+  art: text("art").notNull(), // URLAUB | KRANK | ZEITAUSGLEICH | PFLEGE | SONDERURLAUB | UNBEZAHLT | SONSTIG
   von: date("von").notNull(),
   bis: date("bis").notNull(),
   notiz: text("notiz"),
+  status: text("status").notNull().default("GENEHMIGT"), // BEANTRAGT | GENEHMIGT | ABGELEHNT
+  halbtag: boolean("halbtag").notNull().default(false),
+  bestaetigung: boolean("bestaetigung").notNull().default(false), // Krankenbestaetigung liegt vor
+  entschiedenBy: uuid("entschieden_by").references(() => users.id),
+  entschiedenAt: timestamp("entschieden_at", { withTimezone: true }),
   createdBy: uuid("created_by").references(() => users.id),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => ({ staffIdx: index("idx_abwesenheiten_staff").on(t.staffId, t.von, t.bis) }));

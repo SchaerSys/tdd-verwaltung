@@ -44,7 +44,7 @@ export async function ladeMonat(jahr: number, monat: number, staffId?: string, n
   const [evs, abw, abschl] = await Promise.all([
     d.select({ staffId: timeEvents.staffId, kind: timeEvents.kind, at: timeEvents.at }).from(timeEvents)
       .where(and(inArray(timeEvents.staffId, ids), gte(timeEvents.at, von), lt(timeEvents.at, bis))).orderBy(asc(timeEvents.at)),
-    d.select().from(abwesenheiten).where(and(inArray(abwesenheiten.staffId, ids), lte(abwesenheiten.von, bisIso), gte(abwesenheiten.bis, vonIso))),
+    d.select().from(abwesenheiten).where(and(inArray(abwesenheiten.staffId, ids), lte(abwesenheiten.von, bisIso), gte(abwesenheiten.bis, vonIso), eq(abwesenheiten.status, "GENEHMIGT"))),
     d.select().from(zeitAbschluesse).where(and(inArray(zeitAbschluesse.staffId, ids), eq(zeitAbschluesse.jahr, jahr), eq(zeitAbschluesse.monat, monat))),
   ]);
   const jeStaff = new Map<string, Ev[]>();
@@ -79,7 +79,7 @@ async function kontoBisVormonat(p: typeof staff.$inferSelect, jahr: number, mona
       const { von, bis, vonIso, bisIso } = monatsGrenzen(j, m);
       const [evs, abw] = await Promise.all([
         d.select({ kind: timeEvents.kind, at: timeEvents.at }).from(timeEvents).where(and(eq(timeEvents.staffId, p.id), gte(timeEvents.at, von), lt(timeEvents.at, bis))),
-        d.select().from(abwesenheiten).where(and(eq(abwesenheiten.staffId, p.id), lte(abwesenheiten.von, bisIso), gte(abwesenheiten.bis, vonIso))),
+        d.select().from(abwesenheiten).where(and(eq(abwesenheiten.staffId, p.id), lte(abwesenheiten.von, bisIso), gte(abwesenheiten.bis, vonIso), eq(abwesenheiten.status, "GENEHMIGT"))),
       ]);
       const a2 = monatAuswertung({ events: evs.map((e) => ({ kind: e.kind as EventKind, at: e.at })), verteilung: (p.sollVerteilung as Verteilung | null) ?? null, wochenstunden: p.weeklyHours ? Number(p.weeklyHours) : null,
         jahr: j, monat: m, feiertage: feier, betriebsfrei: frei, regeln, abwesenheiten: abw.map((x) => ({ art: x.art, von: x.von, bis: x.bis })), now });

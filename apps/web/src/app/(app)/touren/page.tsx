@@ -32,7 +32,7 @@ export default async function DispositionSeite({ searchParams }: { searchParams:
     ladeTouren({ datum }), planStammdaten(),
     db().select({ id: tourVorlagen.id, name: tourVorlagen.name }).from(tourVorlagen).where(and(eq(tourVorlagen.wochentag, wt), eq(tourVorlagen.isActive, true))),
     db().select({ id: abwesenheiten.id, art: abwesenheiten.art, von: abwesenheiten.von, bis: abwesenheiten.bis, first: staff.firstName, last: staff.lastName })
-      .from(abwesenheiten).innerJoin(staff, eq(abwesenheiten.staffId, staff.id)).where(and(lte(abwesenheiten.von, datum), gte(abwesenheiten.bis, datum))).orderBy(asc(staff.lastName)),
+      .from(abwesenheiten).innerJoin(staff, eq(abwesenheiten.staffId, staff.id)).where(and(lte(abwesenheiten.von, datum), gte(abwesenheiten.bis, datum), eq(abwesenheiten.status, "GENEHMIGT"))).orderBy(asc(staff.lastName)),
   ]);
   const fehlend = vorlagenHeute.filter((v) => !liste.some((t) => t.name === v.name));
   const fahrerAuswahl = sd.fahrer.filter((f) => f.kannFahren);
@@ -149,7 +149,7 @@ export default async function DispositionSeite({ searchParams }: { searchParams:
           <ul className="p-3 flex flex-col gap-1 text-[.8125rem]">
             {abwesend.map((a) => (
               <li key={a.id} className="flex items-center gap-2">
-                <span className={`pill ${a.art === "KRANK" ? "bad" : a.art === "URLAUB" ? "warn" : "muted"}`}>{a.art === "KRANK" ? "krank" : a.art === "URLAUB" ? "Urlaub" : "abwesend"}</span>
+                <span className={`pill ${a.art === "KRANK" ? "bad" : a.art === "URLAUB" ? "warn" : "muted"}`}>{a.art === "KRANK" ? "krank" : a.art === "URLAUB" ? "Urlaub" : a.art === "ZEITAUSGLEICH" ? "Zeitausgleich" : a.art === "PFLEGE" ? "Pflege" : "abwesend"}</span>
                 <span>{a.last} {a.first}</span><span className="text-muted mono text-xs">{fmtDate(a.von)} – {fmtDate(a.bis)}</span>
                 <form action={abwesenheitLoeschen} className="ml-auto"><input type="hidden" name="id" value={a.id} /><button className="btn ghost sm" type="submit">✕</button></form>
               </li>
@@ -158,10 +158,10 @@ export default async function DispositionSeite({ searchParams }: { searchParams:
           </ul>
           <form action={abwesenheitAnlegen} className="p-3 border-t border-[color:var(--border)] grid gap-2 sm:grid-cols-5 items-end">
             <div className="field sm:col-span-2"><label className="lbl">Person</label><select name="staffId" className="inp" required><option value="">—</option>{sd.fahrer.map((f) => <option key={f.id} value={f.id}>{f.lastName} {f.firstName}</option>)}</select></div>
-            <div className="field"><label className="lbl">Art</label><select name="art" className="inp"><option value="KRANK">krank</option><option value="URLAUB">Urlaub</option><option value="SONSTIG">sonstig</option></select></div>
+            <div className="field"><label className="lbl">Art</label><select name="art" className="inp"><option value="KRANK">krank</option><option value="URLAUB">Urlaub</option><option value="ZEITAUSGLEICH">Zeitausgleich</option><option value="PFLEGE">Pflegefreistellung</option><option value="SONSTIG">sonstig</option></select></div>
             <div className="field"><label className="lbl">Von</label><input name="von" type="date" className="inp mono" defaultValue={datum} required /></div>
             <div className="field"><label className="lbl">Bis</label><input name="bis" type="date" className="inp mono" defaultValue={datum} /></div>
-            <div className="sm:col-span-5"><button className="btn sm" type="submit">Abwesenheit eintragen</button></div>
+            <div className="sm:col-span-5 flex gap-2 items-center"><button className="btn sm" type="submit">Abwesenheit eintragen</button><Link href="/abwesenheiten" className="text-xs">Urlaubskonten &amp; Kalender →</Link></div>
           </form>
         </div>
         <div className="panel">

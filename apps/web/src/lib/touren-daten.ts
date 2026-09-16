@@ -50,7 +50,7 @@ export async function ladeTouren(where: { datum?: string; id?: string; fahrerSta
     }).from(tourStopps).leftJoin(abholstellen, eq(tourStopps.abholstelleId, abholstellen.id)).leftJoin(locations, eq(tourStopps.locationId, locations.id))
       .where(inArray(tourStopps.tourId, ids)).orderBy(asc(tourStopps.reihenfolge)),
     planStammdaten(),
-    d.select().from(abwesenheiten).where(and(lte(abwesenheiten.von, datumSet[datumSet.length - 1]!), gte(abwesenheiten.bis, datumSet[0]!))),
+    d.select().from(abwesenheiten).where(and(lte(abwesenheiten.von, datumSet[datumSet.length - 1]!), gte(abwesenheiten.bis, datumSet[0]!), eq(abwesenheiten.status, "GENEHMIGT"))),
     d.select({ id: touren.id, datum: touren.datum, name: touren.name, fahrerId: touren.fahrerId, fahrzeugId: touren.fahrzeugId, status: touren.status }).from(touren).where(inArray(touren.datum, datumSet)),
   ]);
   const planAb: PlanAbwesenheit[] = ab.map((a) => ({ staffId: a.staffId, art: a.art, von: a.von, bis: a.bis }));

@@ -113,6 +113,8 @@ graph TD
 **A3 · Abwesenheiten nach UrlG/EFZG** (Zentralsystem)
 - Arten Urlaub, Krankenstand, Zeitausgleich, Pflegefreistellung, Sonderurlaub, unbezahlt; Antrag → Genehmigung; Monatskalender „wer fehlt wann“; Krankenbestätigung ab Tag 3. Urlaubskonto je Person: Anspruch aus Wochen × Arbeitstagen der Verteilung (aliquot im ersten halben Jahr, 6 Wochen ab 25 Dienstjahren), Übertrag mit FIFO-Verbrauch und 2-Jahres-Verjährung, Resturlaub-Startwert aus alter Führung; Krankenstand mit EFZG-Stufen (6/8/10/12 Wochen); Pflegefreistellung eine Arbeitswoche. Reine Logik in `lib/abwesenheit.ts` mit Tests; Abwesenheiten fließen als Gutschrift in die Arbeitszeit und als Konflikt in die Disposition.
 
+**Personalnummern**: automatisch vergeben – Festangestellte 1–99, Zivildiener 100–199, Ehrenamtliche und Fahrer:innen 200–9999 (Migration 051, DB-Funktion `naechste_personalnr`); im Datensatz änderbar innerhalb des Bereichs, im Lohnexport als Personal-Nr.
+
 **A2 · Personalakte nach AVRAG** (Zentralsystem, nur Admin)
 - Dienstverhältnis je Person: Beschäftigungsart, Tätigkeit, Einstufung, Grundgehalt, Probezeit (max. 1 Monat, § 19 Abs 2 AngG), Befristung, Kündigungsfrist, Aushändigung des Dienstzettels; ÖGK-Daten (Geburtsdatum, SV-Nummer mit Prüfziffer, Staatsbürgerschaft), Notfallkontakt, Beendigungsart. Vollständigkeits- und Fristenprüfung (`lib/personalakte.ts`, mit Tests) als Hinweise am Datensatz und in der Personalliste.
 - Dienstzettel-Druck (`/druck/dienstzettel`) mit allen Mindestangaben des § 2 Abs 2 AVRAG (Fassung 2024), Arbeitgeber-Angaben zentral unter `/zeit/regeln`; Datenschutzinformation für Mitarbeitende nach Art. 13 DSGVO (`/druck/datenschutz-personal`).

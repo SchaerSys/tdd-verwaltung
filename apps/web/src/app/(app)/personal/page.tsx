@@ -70,10 +70,11 @@ export default async function PersonalPage() {
         <div className="panel-h"><h3>Personal</h3><span className="pill muted">{rows.length}</span></div>
         <div className="twrap">
           <table className="data">
-            <thead><tr><th>Name</th><th>Art</th><th>Standort</th><th>Eintritt</th><th>Std/Wo.</th><th>Akte</th><th>Status</th><th></th></tr></thead>
+            <thead><tr><th>Nr.</th><th>Name</th><th>Art</th><th>Standort</th><th>Eintritt</th><th>Std/Wo.</th><th>Akte</th><th>Status</th><th></th></tr></thead>
             <tbody>
               {rows.map((r) => (
                 <tr key={r.id} style={r.isActive ? undefined : { opacity: .55 }}>
+                  <td className="mono">{r.personalnr ?? "—"}</td>
                   <td><Link href={`/personal/${r.id}`} className="font-semibold hover:underline">{r.lastName}, {r.firstName}</Link></td>
                   <td><span className="pill muted">{STAFF_TYPE_LABEL[r.staffType] ?? r.staffType}</span></td>
                   <td>{locs.find((l) => l.id === r.locationId)?.name ?? "—"}</td>
@@ -84,7 +85,7 @@ export default async function PersonalPage() {
                   <td><Link href={`/personal/${r.id}`} className="btn ghost sm">Öffnen →</Link></td>
                 </tr>
               ))}
-              {rows.length === 0 ? <tr><td colSpan={8}><div className="empty">Noch kein Personal erfasst. Über „＋ Neue Person anlegen" beginnen (manuelle Erfassung).</div></td></tr> : null}
+              {rows.length === 0 ? <tr><td colSpan={9}><div className="empty">Noch kein Personal erfasst. Über „＋ Neue Person anlegen" beginnen (manuelle Erfassung).</div></td></tr> : null}
             </tbody>
           </table>
         </div>

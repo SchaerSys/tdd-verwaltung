@@ -4,7 +4,7 @@ import type { MonatAuswertung } from "../src/lib/azg";
 
 const aus: MonatAuswertung = { jahr: 2026, monat: 9, tage: [{ datum: "2026-09-30", wochentag: 3, sollMin: 480, istMin: 0, breakMin: 0, gutschriftMin: 0, gutschriftGrund: null, kommen: "08:00", gehen: null, offen: true, warnungen: [] }], wochen: [],
   istMin: 9000, sollMin: 9600, gutschriftMin: 480, saldoMin: -120, mehrarbeitMin: 90, ueberstundenMin: 0, warnungen: [], feiertage: 0, abwesenheitstage: 1 };
-const person = { id: "abcdef12-3456", firstName: "Anna", lastName: "Muster", svNummer: "1235120589", employmentStart: "2025-01-01", employmentEnd: null, beschaeftigung: "TEILZEIT", weeklyHours: "30", staffType: "ANGESTELLT" };
+const person = { id: "abcdef12-3456", personalnr: 7, firstName: "Anna", lastName: "Muster", svNummer: "1235120589", employmentStart: "2025-01-01", employmentEnd: null, beschaeftigung: "TEILZEIT", weeklyHours: "30", staffType: "ANGESTELLT" };
 const soll = { 1: 480, 2: 480, 3: 480, 4: 240, 5: 0 };
 
 describe("Lohnexport", () => {

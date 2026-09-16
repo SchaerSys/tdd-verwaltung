@@ -9,6 +9,7 @@ import { normalizeNfcId } from "@/lib/nfc";
 import { audit } from "@/lib/audit";
 import { requirePermission } from "@/lib/guard";
 import { STAFF_TYPES } from "./types";
+import { naechstePersonalnr, personalnrBereich, personalnrPasst } from "@/lib/personalnr";
 
 const guard = () => requirePermission("staff:manage");
 const str = (fd: FormData, k: string): string | null => { const v = String(fd.get(k) ?? "").trim(); return v === "" ? null : v; };
@@ -22,7 +23,7 @@ export async function createStaff(fd: FormData): Promise<void> {
   if (!firstName || !lastName) { revalidatePath("/personal"); return; }
   const staffType = type(fd);
   await db().insert(staff).values({
-    firstName, lastName, staffType,
+    personalnr: await naechstePersonalnr(staffType), firstName, lastName, staffType,
     email: str(fd, "email"), phone: str(fd, "phone"), locationId: intId(fd, "locationId"),
     employmentStart: str(fd, "employmentStart"), employmentEnd: str(fd, "employmentEnd"),
     weeklyHours: dec(fd, "weeklyHours"), vacationDaysYear: dec(fd, "vacationDaysYear"),
@@ -39,8 +40,20 @@ export async function updateStaff(fd: FormData): Promise<void> {
   const firstName = str(fd, "firstName"); const lastName = str(fd, "lastName");
   if (!firstName || !lastName) throw new Error("Vor- und Nachname sind Pflicht.");
   const staffType = type(fd);
+  // Personalnummer: Wunsch des Admins im Bereich der Art, sonst automatisch (auch bei Wechsel der Art)
+  const alt = (await db().select({ nr: staff.personalnr }).from(staff).where(eq(staff.id, id)).limit(1))[0];
+  const wunschRoh = str(fd, "personalnr"); const wunsch = wunschRoh ? parseInt(wunschRoh, 10) : null;
+  let personalnr = alt?.nr ?? null;
+  if (wunsch != null && Number.isFinite(wunsch) && wunsch !== alt?.nr) {
+    const b = personalnrBereich(staffType);
+    if (!personalnrPasst(wunsch, staffType)) throw new Error(`Personalnummer für diese Art muss zwischen ${b.von} und ${b.bis} liegen.`);
+    const belegt = (await db().select({ id: staff.id }).from(staff).where(eq(staff.personalnr, wunsch)).limit(1))[0];
+    if (belegt && belegt.id !== id) throw new Error(`Personalnummer ${wunsch} ist schon vergeben.`);
+    personalnr = wunsch;
+  }
+  if (!personalnrPasst(personalnr, staffType)) personalnr = await naechstePersonalnr(staffType);
   await db().update(staff).set({
-    firstName, lastName, staffType,
+    personalnr, firstName, lastName, staffType,
     email: str(fd, "email"), phone: str(fd, "phone"), locationId: intId(fd, "locationId"),
     employmentStart: str(fd, "employmentStart"), employmentEnd: str(fd, "employmentEnd"),
     weeklyHours: dec(fd, "weeklyHours"), vacationDaysYear: dec(fd, "vacationDaysYear"),

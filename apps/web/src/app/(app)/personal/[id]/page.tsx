@@ -52,7 +52,7 @@ export default async function StaffEditPage({ params }: { params: Promise<{ id: 
       <div className="page-h">
         <div>
           <h1>{p.firstName} {p.lastName}</h1>
-          <div className="sub">{STAFF_TYPE_LABEL[p.staffType] ?? p.staffType}{p.isActive ? "" : " · inaktiv"}</div>
+          <div className="sub">Personalnummer <span className="mono">{p.personalnr ?? "—"}</span> · {STAFF_TYPE_LABEL[p.staffType] ?? p.staffType}{p.isActive ? "" : " · inaktiv"}</div>
         </div>
         <div className="flex gap-2">
           <form action={toggleStaffActive}>
@@ -75,6 +75,7 @@ export default async function StaffEditPage({ params }: { params: Promise<{ id: 
             <select name="staffType" className="inp" defaultValue={p.staffType}>
               {STAFF_TYPES.map((t) => <option key={t} value={t}>{STAFF_TYPE_LABEL[t]}</option>)}
             </select></div>
+          <div className="field"><label className="lbl">Personalnummer</label><input name="personalnr" className="inp mono" inputMode="numeric" defaultValue={p.personalnr ?? ""} /><div className="text-[.7rem] text-muted">Angestellte 1–99 · Zivildiener 100–199 · Ehrenamt/Fahrer 200–9999; leer = automatisch</div></div>
           <div className="field"><label className="lbl">E-Mail</label><input name="email" type="email" className="inp" defaultValue={p.email ?? ""} /></div>
           <div className="field"><label className="lbl">Telefon</label><input name="phone" className="inp mono" defaultValue={p.phone ?? ""} /></div>
           <div className="field"><label className="lbl">Standort</label>

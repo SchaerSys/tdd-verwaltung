@@ -36,7 +36,9 @@ async function personalVerknuepfen(userId: string, displayName: string, email: s
   }
   if (vorhanden) return " – ein gleichnamiger Personal-Datensatz ist schon mit einem anderen Login verknüpft; bitte im Personal prüfen.";
   if (nurVerknuepfen) return " – kein gleichnamiger Personal-Datensatz; bei Bedarf im Personal anlegen und verknüpfen.";
-  await db().insert(staff).values({ firstName, lastName, staffType: fahrer ? "FAHRER" : "ANGESTELLT", kannFahren: fahrer, userId, email, locationId });
+  const { naechstePersonalnr } = await import("@/lib/personalnr");
+  const staffType = fahrer ? "FAHRER" : "ANGESTELLT";
+  await db().insert(staff).values({ personalnr: await naechstePersonalnr(staffType), firstName, lastName, staffType, kannFahren: fahrer, userId, email, locationId });
   return fahrer ? " – Personal-Datensatz (Fahrer:in) angelegt, in der Disposition wählbar." : " – Personal-Datensatz angelegt (Eintritt, Wochenverteilung und Personalakte bitte ergänzen).";
 }
 const mitPersonal = (role: string) => role === "FAHRER" || role === "MITARBEITER" || role === "AUSGABE";

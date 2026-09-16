@@ -15,8 +15,9 @@ export async function fahrerAnlegen(fd: FormData): Promise<void> {
   if (!firstName || !lastName) throw new Error("Vor- und Nachname sind Pflicht.");
   const artRoh = str(fd, "staffType") ?? "FAHRER";
   const staffType = ["FAHRER", "EHRENAMT", "ZIVILDIENER", "ANGESTELLT"].includes(artRoh) ? artRoh : "FAHRER";
+  const { naechstePersonalnr } = await import("@/lib/personalnr");
   const r = await db().insert(staff).values({
-    firstName, lastName, staffType, kannFahren: true, phone: str(fd, "phone"),
+    personalnr: await naechstePersonalnr(staffType), firstName, lastName, staffType, kannFahren: true, phone: str(fd, "phone"),
     strasse: str(fd, "strasse"), plz: str(fd, "plz"), ort: str(fd, "ort"), fuehrerschein: str(fd, "fuehrerschein"),
     fahrerTage: fd.getAll("fahrerTage").map(Number).filter((n) => n >= 1 && n <= 7),
   }).returning({ id: staff.id });

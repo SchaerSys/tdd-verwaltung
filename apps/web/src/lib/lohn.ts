@@ -9,7 +9,7 @@ import type { MonatAuswertung } from "./azg";
 
 export interface LohnAbwesenheit { art: string; von: string; bis: string; status: string; halbtag: boolean }
 export interface LohnPerson {
-  id: string; firstName: string; lastName: string; svNummer: string | null; employmentStart: string | null; employmentEnd: string | null;
+  id: string; personalnr: number | null; firstName: string; lastName: string; svNummer: string | null; employmentStart: string | null; employmentEnd: string | null;
   beschaeftigung: string | null; weeklyHours: string | number | null; staffType: string;
 }
 export interface LohnZeile {
@@ -59,7 +59,7 @@ export function lohnZeile(p: {
   if (!p.person.svNummer) hinweise.push("SV-Nummer fehlt");
 
   return {
-    personalNr: p.person.id.slice(0, 8), nachname: p.person.lastName, vorname: p.person.firstName, svNummer: p.person.svNummer ?? "",
+    personalNr: p.person.personalnr != null ? String(p.person.personalnr) : "", nachname: p.person.lastName, vorname: p.person.firstName, svNummer: p.person.svNummer ?? "",
     eintritt: p.person.employmentStart ?? "", austritt: p.person.employmentEnd ?? "", beschaeftigung: p.person.beschaeftigung ?? "",
     wochenstunden: p.person.weeklyHours ? Number(p.person.weeklyHours) : 0,
     sollStd: std(z.sollMin), istStd: std(z.istMin), gutschriftStd: std(z.gutschriftMin), saldoStd: std(z.saldoMin), kontoStd: std(z.kontoMin),

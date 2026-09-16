@@ -396,6 +396,7 @@ export const appEvents = pgTable(
 // ── A2 · Personal-Verzeichnis (Zentralsystem, getrennt von A1 persons) ─────
 export const staff = pgTable("staff", {
   id: uuid("id").primaryKey().defaultRandom(),
+  personalnr: integer("personalnr"), // 1–99 Angestellte, 100–199 Zivildiener, 200–9999 Ehrenamt/Fahrer (051)
   firstName: text("first_name").notNull(),
   lastName: text("last_name").notNull(),
   staffType: text("staff_type").notNull().default("ANGESTELLT"), // ANGESTELLT | ZIVILDIENER | EHRENAMT | FAHRER

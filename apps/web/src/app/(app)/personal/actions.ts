@@ -2,8 +2,8 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { eq } from "drizzle-orm";
-import { staff } from "@tdd/db";
+import { and, eq } from "drizzle-orm";
+import { staff, users } from "@tdd/db";
 import { db } from "@/lib/db";
 import { normalizeNfcId } from "@/lib/nfc";
 import { audit } from "@/lib/audit";
@@ -52,6 +52,14 @@ export async function updateStaff(fd: FormData): Promise<void> {
     userId: str(fd, "userId") || null,
   }).where(eq(staff.id, id));
   await audit({ actorUserId: u.id, action: "staff.update", entityType: "staff", entityId: id });
+
+  // P1: Austritt liegt zurueck -> verknuepfter Login wird gesperrt (Grund AUSTRITT); Aktivieren nur ueber Benutzerverwaltung
+  const ende = str(fd, "employmentEnd"); const login = str(fd, "userId");
+  if (ende && login && ende < new Date().toISOString().slice(0, 10)) {
+    const r = await db().update(users).set({ isActive: false, deaktiviertGrund: "AUSTRITT", deaktiviertAt: new Date() })
+      .where(and(eq(users.id, login), eq(users.isActive, true))).returning({ id: users.id });
+    if (r[0]) await audit({ actorUserId: u.id, action: "user.deactivate", entityType: "user", entityId: login, after: { grund: "AUSTRITT" } });
+  }
   redirect("/personal");
 }
 

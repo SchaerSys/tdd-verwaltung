@@ -1,49 +1,59 @@
 import { hasPermission, type Permission, type Role } from "./rbac";
 
-export type NavGroupTitle = "Backoffice" | "Tresen-Kiosk" | "Zentralsystem" | "Verwaltung";
+export type NavGroupTitle = "Start" | "Klient:innen" | "Ausgabe" | "Personal" | "Logistik" | "Verwaltung";
 
 export interface NavDef {
   href: string;
   label: string;
   perm: Permission | null;
   group: NavGroupTitle;
-  /** Untermenue: href des Eltern-Eintrags (haelt die Leiste kurz, z. B. Disposition). */
+  /** Untermenue: href des Eltern-Eintrags (haelt die Leiste kurz). */
   parent?: string;
 }
 
-/** Zentraler Navigations-Katalog – Quelle für Sidebar UND Dashboard-Favoriten. */
+/**
+ * Zentraler Navigations-Katalog – Quelle für Sidebar UND Dashboard-Favoriten.
+ * Gruppen nach Arbeitsbereich; Nebensachen (Papierkörbe, Dubletten, Regeln …) als Untermenü,
+ * damit jede Rolle nur ihre Bereiche sieht und die Leiste kurz bleibt.
+ */
 export const NAV: NavDef[] = [
-  { href: "/dashboard", label: "Dashboard", perm: null, group: "Backoffice" },
-  { href: "/personen", label: "Personen", perm: "person:read", group: "Backoffice" },
-  { href: "/personen/papierkorb", label: "Papierkorb (Personen)", perm: "person:write", group: "Backoffice" },
-  { href: "/personen/dubletten", label: "Dubletten", perm: "person:write", group: "Backoffice" },
-  { href: "/bewilligt", label: "Bewilligte Anträge", perm: "person:write", group: "Backoffice" },
-  { href: "/rueckfragen", label: "Rückfragen (Portal)", perm: "person:write", group: "Backoffice" },
-  { href: "/karten", label: "Karten", perm: "card:manage", group: "Backoffice" },
-  { href: "/karten/papierkorb", label: "Papierkorb (Karten)", perm: "card:manage", group: "Backoffice" },
-  { href: "/auswertungen", label: "Auswertungen", perm: "report:view", group: "Backoffice" },
-  { href: "/kiosk", label: "Ausgabe-Scan", perm: "distribution:record", group: "Tresen-Kiosk" },
-  { href: "/ausgaben", label: "Ausgaben (heute)", perm: "distribution:record", group: "Tresen-Kiosk" },
-  { href: "/personal", label: "A2 · Personal", perm: "staff:manage", group: "Zentralsystem" },
-  { href: "/zeit", label: "A2 · Zeiterfassung", perm: "staff:manage", group: "Zentralsystem" },
-  { href: "/zeit/monat", label: "Monatsauswertung", perm: "staff:manage", group: "Zentralsystem", parent: "/zeit" },
-  { href: "/zeit/pruefung", label: "AZG-Prüfung", perm: "staff:manage", group: "Zentralsystem", parent: "/zeit" },
-  { href: "/zeit/regeln", label: "Regeln & Feiertage", perm: "staff:manage", group: "Zentralsystem", parent: "/zeit" },
-  { href: "/abwesenheiten", label: "A3 · Abwesenheiten", perm: "staff:manage", group: "Zentralsystem" },
-  { href: "/abwesenheiten/konto", label: "Urlaubskonten", perm: "staff:manage", group: "Zentralsystem", parent: "/abwesenheiten" },
-  { href: "/urlaub", label: "Urlaubsrechner", perm: "staff:manage", group: "Zentralsystem", parent: "/abwesenheiten" },
-  { href: "/touren", label: "A4 · Disposition", perm: "tour:manage", group: "Zentralsystem" },
-  { href: "/touren/vorlagen", label: "Wochenplan", perm: "tour:manage", group: "Zentralsystem", parent: "/touren" },
-  { href: "/touren/abholstellen", label: "Abholstellen", perm: "tour:manage", group: "Zentralsystem", parent: "/touren" },
-  { href: "/touren/fahrzeuge", label: "Fahrzeuge", perm: "tour:manage", group: "Zentralsystem", parent: "/touren" },
-  { href: "/touren/fahrer", label: "Fahrer:innen", perm: "tour:manage", group: "Zentralsystem", parent: "/touren" },
-  { href: "/touren/angebote", label: "Angebote (Homepage)", perm: "tour:manage", group: "Zentralsystem", parent: "/touren" },
-  { href: "/touren/standorte", label: "Standorte (Karte)", perm: "tour:manage", group: "Zentralsystem", parent: "/touren" },
+  { href: "/dashboard", label: "Dashboard", perm: null, group: "Start" },
+  { href: "/mein", label: "Mein Bereich", perm: "self:view", group: "Start" },
+
+  { href: "/personen", label: "Personen", perm: "person:read", group: "Klient:innen" },
+  { href: "/personen/dubletten", label: "Dubletten", perm: "person:write", group: "Klient:innen", parent: "/personen" },
+  { href: "/personen/papierkorb", label: "Papierkorb", perm: "person:write", group: "Klient:innen", parent: "/personen" },
+  { href: "/karten", label: "Karten", perm: "card:manage", group: "Klient:innen" },
+  { href: "/karten/papierkorb", label: "Papierkorb", perm: "card:manage", group: "Klient:innen", parent: "/karten" },
+  { href: "/bewilligt", label: "Anträge (Portal)", perm: "person:write", group: "Klient:innen" },
+  { href: "/rueckfragen", label: "Rückfragen", perm: "person:write", group: "Klient:innen", parent: "/bewilligt" },
+
+  { href: "/kiosk", label: "Ausgabe-Scan", perm: "distribution:record", group: "Ausgabe" },
+  { href: "/ausgaben", label: "Ausgaben heute", perm: "distribution:record", group: "Ausgabe" },
+  { href: "/auswertungen", label: "Auswertungen", perm: "report:view", group: "Ausgabe" },
+
+  { href: "/personal", label: "Personal", perm: "staff:manage", group: "Personal" },
+  { href: "/zeit", label: "Zeiterfassung", perm: "staff:manage", group: "Personal" },
+  { href: "/zeit/monat", label: "Monatsauswertung", perm: "staff:manage", group: "Personal", parent: "/zeit" },
+  { href: "/zeit/pruefung", label: "AZG-Prüfung", perm: "staff:manage", group: "Personal", parent: "/zeit" },
+  { href: "/zeit/regeln", label: "Regeln & Feiertage", perm: "staff:manage", group: "Personal", parent: "/zeit" },
+  { href: "/abwesenheiten", label: "Abwesenheiten", perm: "staff:manage", group: "Personal" },
+  { href: "/abwesenheiten/konto", label: "Urlaubskonten", perm: "staff:manage", group: "Personal", parent: "/abwesenheiten" },
+  { href: "/urlaub", label: "Urlaubsrechner", perm: "staff:manage", group: "Personal", parent: "/abwesenheiten" },
+
+  { href: "/touren", label: "Disposition", perm: "tour:manage", group: "Logistik" },
+  { href: "/touren/vorlagen", label: "Wochenplan", perm: "tour:manage", group: "Logistik", parent: "/touren" },
+  { href: "/touren/abholstellen", label: "Abholstellen", perm: "tour:manage", group: "Logistik", parent: "/touren" },
+  { href: "/touren/fahrzeuge", label: "Fahrzeuge", perm: "tour:manage", group: "Logistik", parent: "/touren" },
+  { href: "/touren/fahrer", label: "Fahrer:innen", perm: "tour:manage", group: "Logistik", parent: "/touren" },
+  { href: "/touren/angebote", label: "Angebote (Homepage)", perm: "tour:manage", group: "Logistik", parent: "/touren" },
+  { href: "/touren/standorte", label: "Standorte (Karte)", perm: "tour:manage", group: "Logistik", parent: "/touren" },
+
   { href: "/admin", label: "Stammdaten", perm: "admin:manage", group: "Verwaltung" },
-  { href: "/admin/benutzer", label: "Benutzerverwaltung", perm: "admin:manage", group: "Verwaltung" },
-  { href: "/admin/import", label: "Import", perm: "admin:manage", group: "Verwaltung" },
-  { href: "/admin/migration", label: "Übernahme Altsystem", perm: "admin:manage", group: "Verwaltung" },
-  { href: "/admin/pilot", label: "Pilot am Tresen", perm: "admin:manage", group: "Verwaltung" },
+  { href: "/admin/benutzer", label: "Benutzer", perm: "admin:manage", group: "Verwaltung" },
+  { href: "/admin/import", label: "Datenübernahme", perm: "admin:manage", group: "Verwaltung" },
+  { href: "/admin/migration", label: "Altsystem", perm: "admin:manage", group: "Verwaltung", parent: "/admin/import" },
+  { href: "/admin/pilot", label: "Pilot am Tresen", perm: "admin:manage", group: "Verwaltung", parent: "/admin/import" },
 ];
 
 /** Alle Nav-Einträge, die die Rolle sehen darf. */
@@ -55,7 +65,7 @@ export function navFor(role: Role): NavDef[] {
 export interface NavEintrag { href: string; label: string; children?: { href: string; label: string }[] }
 
 export function navGroups(role: Role): { title: NavGroupTitle; items: NavEintrag[] }[] {
-  const order: NavGroupTitle[] = ["Backoffice", "Tresen-Kiosk", "Zentralsystem", "Verwaltung"];
+  const order: NavGroupTitle[] = ["Start", "Klient:innen", "Ausgabe", "Personal", "Logistik", "Verwaltung"];
   const visible = navFor(role);
   return order
     .map((title) => ({
@@ -70,7 +80,11 @@ export function navGroups(role: Role): { title: NavGroupTitle; items: NavEintrag
 
 /** Label zu einem Pfad (für Favoriten-Kacheln). */
 export function navLabel(href: string): string {
-  return NAV.find((n) => n.href === href)?.label ?? href;
+  const n = NAV.find((x) => x.href === href);
+  if (!n) return href;
+  // Unterpunkte mit Eltern-Namen, sonst hiessen zwei Kacheln "Papierkorb"
+  const eltern = n.parent ? NAV.find((x) => x.href === n.parent) : null;
+  return eltern ? `${eltern.label} · ${n.label}` : n.label;
 }
 
 /** Als Favorit hinzufügbar? (Dashboard selbst ausgenommen.) */

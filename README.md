@@ -114,6 +114,11 @@ graph TD
 - Dienstzettel-Druck (`/druck/dienstzettel`) mit allen Mindestangaben des § 2 Abs 2 AVRAG (Fassung 2024), Arbeitgeber-Angaben zentral unter `/zeit/regeln`; Datenschutzinformation für Mitarbeitende nach Art. 13 DSGVO (`/druck/datenschutz-personal`).
 - Dokumente je Person (Dienstzettel, Vertrag, Zeugnis, Führerschein, Unterweisung …) mit Ablaufdatum, Ablage unter `STORAGE_DIR/personal`, Download nur für Admin (`/dokument/personal/<id>`); Datenbankrolle `tdd_ops` hat keinen Zugriff. Aufbewahrung 7 Jahre ab Ende des Austrittsjahres (§ 132 BAO), danach löscht der Retention-Job Dokumente und sensible Felder.
 
+**P1 · Logins & Mein Bereich**
+- Rolle `MITARBEITER` (Selbstservice ohne Klientendaten) und „Mein Bereich“ (`/mein`) für alle Büro-Rollen mit verknüpftem Personal-Datensatz: Zeitkonto, eigene Zeiten des Monats, Urlaubskonto, Krankenstand, Urlaub/Zeitausgleich beantragen (landet als Antrag beim Büro, zurückziehbar), Krankmeldung ab heute/gestern.
+- Austritt am Personal-Datensatz sperrt den Login (beim Speichern, beim Login-Versuch und täglich im Retention-Job; Grund „Austritt“ in der Benutzerverwaltung sichtbar). Login-Verlauf je Konto (`/admin/benutzer/<id>/verlauf`): Anmeldungen, Fehlversuche, Sperren, Passwort-/2FA-/Kontoänderungen mit IP aus dem Audit-Log; letzter Login in der Benutzerliste. Standortbindung wie bisher über den Standort am Konto (Kasse, Personenlisten).
+- Navigation nach Arbeitsbereichen (Start · Klient:innen · Ausgabe · Personal · Logistik · Verwaltung) mit Untermenüs statt flacher Liste; jede Rolle sieht nur ihre Gruppen.
+
 **A4 · Touren & Disposition** (Zentralsystem)
 - Stammdaten: Abholstellen (Betriebe mit Abholtagen, Fenster, Kühlbedarf, Hinweisen), Fahrzeuge (Kühlung, elektrisch, Pickerl, Werkstatt), Fahrer:innen am Personal (Führerschein, Fahrertage, Login-Verknüpfung).
 - Wochenplan (Tourvorlagen je Wochentag mit Stopp-Abfolge) → Tagesdisposition (`/touren`): Touren erzeugen, Fahrer/Fahrzeug zuweisen, Konflikte live (abwesend, Werkstatt, Kühlware ohne Kühlung, Doppelbelegung, Pickerl), Abwesenheiten, Laufzettel-Druck.

@@ -77,7 +77,7 @@ export const users = pgTable("users", {
   username: text("username"), // vorname.nachname – Login alternativ zur E-Mail (041)
   passwordHash: text("password_hash").notNull(),
   displayName: text("display_name").notNull(),
-  role: text("role").notNull(), // ADMIN | ERFASSUNG | AUSGABE | AUSWERTUNG | SACHBEARBEITER | FAHRER
+  role: text("role").notNull(), // ADMIN | ERFASSUNG | AUSGABE | AUSWERTUNG | SACHBEARBEITER | FAHRER | MITARBEITER
   organizationId: integer("organization_id").references(() => organizations.id),
   locationId: integer("location_id").references(() => locations.id),
   totpSecret: text("totp_secret"),
@@ -89,6 +89,8 @@ export const users = pgTable("users", {
   failedAttempts: integer("failed_attempts").notNull().default(0),
   lockedUntil: timestamp("locked_until", { withTimezone: true }),
   mustChangePassword: boolean("must_change_password").notNull().default(false), // Initialpasswort per Mail
+  deaktiviertGrund: text("deaktiviert_grund"), // ADMIN | AUSTRITT (046)
+  deaktiviertAt: timestamp("deaktiviert_at", { withTimezone: true }),
   lastLogin: timestamp("last_login", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });

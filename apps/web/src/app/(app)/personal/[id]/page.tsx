@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { NfcZuweisen } from "../NfcZuweisen";
 import { redirect, notFound } from "next/navigation";
-import { asc, desc, eq } from "drizzle-orm";
-import { staff, locations, users, staffDokumente } from "@tdd/db";
+import { and, asc, desc, eq, ne, or, isNull } from "drizzle-orm";
+import { staff, locations, users, staffDokumente, organizations } from "@tdd/db";
 import { WOCHENTAGE_KURZ } from "@/lib/touren";
 import { verteilungSpeichern } from "../../zeit/azg-actions";
 import { urlaubStammdaten } from "../../abwesenheiten/actions";
@@ -25,7 +25,11 @@ export default async function StaffEditPage({ params }: { params: Promise<{ id: 
   const [rows, locs, fahrerLogins, dokumente] = await Promise.all([
     db().select().from(staff).where(eq(staff.id, id)).limit(1),
     db().select({ id: locations.id, name: locations.name }).from(locations).where(eq(locations.isActive, true)).orderBy(asc(locations.name)),
-    db().select({ id: users.id, name: users.displayName, email: users.email }).from(users).where(eq(users.role, "FAHRER")).orderBy(asc(users.displayName)),
+    // Login-Verknuepfung: alle TDD-Konten, die noch keiner anderen Person gehoeren
+    db().select({ id: users.id, name: users.displayName, email: users.email, role: users.role, isActive: users.isActive }).from(users)
+      .innerJoin(organizations, eq(users.organizationId, organizations.id))
+      .leftJoin(staff, eq(staff.userId, users.id))
+      .where(and(eq(organizations.type, "TDD"), ne(users.role, "SACHBEARBEITER"), or(isNull(staff.id), eq(staff.id, id)))).orderBy(asc(users.displayName)),
     db().select().from(staffDokumente).where(eq(staffDokumente.staffId, id)).orderBy(desc(staffDokumente.createdAt)),
   ]);
   const p = rows[0];
@@ -89,9 +93,9 @@ export default async function StaffEditPage({ params }: { params: Promise<{ id: 
           <div className="field"><label className="lbl">PLZ / Ort</label><div className="flex gap-1"><input name="plz" className="inp mono" defaultValue={p.plz ?? ""} style={{ width: 80 }} /><input name="ort" className="inp" defaultValue={p.ort ?? ""} /></div></div>
           <div className="field"><label className="lbl">Fahrertage (leer = alle)</label>
             <div className="flex gap-2 flex-wrap mt-2 text-[.8125rem]">{[1, 2, 3, 4, 5, 6, 7].map((t) => <label key={t} className="flex items-center gap-1"><input type="checkbox" name="fahrerTage" value={t} defaultChecked={p.fahrerTage.includes(t)} />{WOCHENTAGE_KURZ[t]}</label>)}</div></div>
-          <div className="field sm:col-span-2"><label className="lbl">Login (optional – Touren laufen über das Fahrzeug-Tablet, kein Login nötig)</label>
-            <select name="userId" className="inp" defaultValue={p.userId ?? ""}><option value="">— kein Login —</option>{fahrerLogins.map((u) => <option key={u.id} value={u.id}>{u.name} · {u.email}</option>)}</select>
-            <div className="text-[.72rem] text-muted mt-1">Benutzer mit Rolle FAHRER werden in der Benutzerverwaltung angelegt; hier wird die Person verknüpft.</div></div>
+          <div className="field sm:col-span-2"><label className="lbl">Login (optional – für „Mein Bereich“: eigene Zeiten, Urlaubskonto, Urlaubsantrag)</label>
+            <select name="userId" className="inp" defaultValue={p.userId ?? ""}><option value="">— kein Login —</option>{fahrerLogins.map((u) => <option key={u.id} value={u.id}>{u.name} · {u.email} ({u.role}{u.isActive ? "" : ", gesperrt"})</option>)}</select>
+            <div className="text-[.72rem] text-muted mt-1">Konten werden in der Benutzerverwaltung angelegt (Rolle „Mitarbeiter:in“ für reinen Selbstservice); hier wird die Person verknüpft. Liegt der Austritt zurück, wird der Login automatisch gesperrt. Touren laufen über das Fahrzeug-Tablet, dafür ist kein Login nötig.</div></div>
         </div>
         <div className="p-4 border-t border-[color:var(--border)]"><button type="submit" className="btn primary">Speichern</button></div>
       </form>

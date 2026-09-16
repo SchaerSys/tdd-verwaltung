@@ -37,7 +37,7 @@ ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
 -- die Migrationen laufen in den Integrationstests je Datei parallel und idempotent,
 -- ein Wieder-Anlegen mit kuerzerer Liste wuerde an bestehenden Zeilen scheitern.
 ALTER TABLE users ADD CONSTRAINT users_role_check
-  CHECK (role IN ('ADMIN','ERFASSUNG','AUSGABE','AUSWERTUNG','SACHBEARBEITER','FAHRER'));
+  CHECK (role IN ('ADMIN','ERFASSUNG','AUSGABE','AUSWERTUNG','SACHBEARBEITER','FAHRER','MITARBEITER'));
 -- bestehende Nutzer der TDD-Organisation zuordnen
 UPDATE users SET organization_id = (SELECT id FROM organizations WHERE type='TDD' LIMIT 1)
 WHERE organization_id IS NULL;

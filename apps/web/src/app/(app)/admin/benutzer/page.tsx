@@ -5,14 +5,16 @@ import { locations, users, organizations } from "@tdd/db";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { hasPermission } from "@/lib/rbac";
+import { fmtDateTime } from "@/lib/format";
 import { setUserRole, toggleUserActive, resetUserTotp } from "../actions";
 import { NeuerBenutzer } from "./NeuerBenutzer";
 import { BenutzerBearbeiten } from "./BenutzerBearbeiten";
 
 const ROLE_LABEL: Record<string, string> = {
-  ADMIN: "Admin", ERFASSUNG: "Erfassung", AUSGABE: "Kasse", AUSWERTUNG: "Auswertung", FAHRER: "Fahrer",
+  ADMIN: "Admin", ERFASSUNG: "Erfassung", AUSGABE: "Kasse", AUSWERTUNG: "Auswertung", FAHRER: "Fahrer", MITARBEITER: "Mitarbeiter:in",
 };
 const INTERNAL_ROLES: { value: string; label: string; desc: string }[] = [
+  { value: "MITARBEITER", label: "Mitarbeiter:in", desc: "nur eigener Bereich: Zeiten, Urlaubskonto, Urlaubsantrag" },
   { value: "AUSGABE", label: "Kasse (Zivildiener)", desc: "nur Tresen-Kiosk" },
   { value: "ERFASSUNG", label: "Erfassung", desc: "Personen/Karten, kein Dokumenteneinblick" },
   { value: "AUSWERTUNG", label: "Auswertung", desc: "nur Auswertungen" },
@@ -30,6 +32,7 @@ export default async function BenutzerPage() {
     .select({
       id: users.id, email: users.email, username: users.username, displayName: users.displayName,
       role: users.role, isActive: users.isActive, totpEnabled: users.totpEnabled, locName: locations.name, locationId: users.locationId,
+      lastLogin: users.lastLogin, deaktiviertGrund: users.deaktiviertGrund, lockedUntil: users.lockedUntil,
     })
     .from(users)
     .leftJoin(locations, eq(users.locationId, locations.id))
@@ -57,7 +60,7 @@ export default async function BenutzerPage() {
 
         <div className="twrap">
           <table className="data">
-            <thead><tr><th>Name</th><th>E-Mail</th><th>Rolle ändern</th><th>Standort</th><th>Status</th><th></th></tr></thead>
+            <thead><tr><th>Name</th><th>E-Mail</th><th>Rolle ändern</th><th>Standort</th><th>Letzter Login</th><th>Status</th><th></th></tr></thead>
             <tbody>
               {usrs.map((u) => (
                 <tr key={u.id}>
@@ -79,9 +82,12 @@ export default async function BenutzerPage() {
                         )}
                   </td>
                   <td>{u.locName ?? "—"}</td>
+                  <td className="text-xs"><span className="mono">{u.lastLogin ? fmtDateTime(u.lastLogin) : "nie"}</span> <Link href={`/admin/benutzer/${u.id}/verlauf`} className="text-muted">Verlauf →</Link></td>
                   <td>
                     <div className="flex gap-2 items-center">
-                      {u.isActive ? <span className="pill good"><span className="dot" />Aktiv</span> : <span className="pill bad">Gesperrt</span>}
+                      {u.isActive
+                        ? (u.lockedUntil && u.lockedUntil > new Date() ? <span className="pill warn" title="Zu viele Fehlversuche">Aktiv · kurz gesperrt</span> : <span className="pill good"><span className="dot" />Aktiv</span>)
+                        : <span className="pill bad">{u.deaktiviertGrund === "AUSTRITT" ? "Gesperrt (Austritt)" : "Gesperrt"}</span>}
                       {u.id !== user.id && u.role !== "SACHBEARBEITER" ? (
                         <form action={toggleUserActive}>
                           <input type="hidden" name="userId" value={u.id} />

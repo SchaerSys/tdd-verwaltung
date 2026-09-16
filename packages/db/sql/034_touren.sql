@@ -14,7 +14,7 @@
 -- ── Rollen: FAHRER (nur eigene Tour am Handy) ─────────────────────────────
 ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
 ALTER TABLE users ADD CONSTRAINT users_role_check
-  CHECK (role IN ('ADMIN','ERFASSUNG','AUSGABE','AUSWERTUNG','SACHBEARBEITER','FAHRER'));
+  CHECK (role IN ('ADMIN','ERFASSUNG','AUSGABE','AUSWERTUNG','SACHBEARBEITER','FAHRER','MITARBEITER'));
 
 -- ── Personal: Fahrer-Eigenschaften + Verknuepfung zum Login ───────────────
 ALTER TABLE staff ADD COLUMN IF NOT EXISTS user_id uuid REFERENCES users(id) ON DELETE SET NULL;

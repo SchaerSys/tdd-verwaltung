@@ -12,17 +12,18 @@ import { sendMail } from "@/lib/mail";
 import { appUrl } from "@/lib/auth-tokens";
 import { WEEKDAYS } from "@/lib/opening-hours";
 
-const INTERNAL_ROLES = ["ADMIN", "ERFASSUNG", "AUSGABE", "AUSWERTUNG", "FAHRER"] as const;
+const INTERNAL_ROLES = ["ADMIN", "ERFASSUNG", "AUSGABE", "AUSWERTUNG", "FAHRER", "MITARBEITER"] as const;
 
 /**
- * Fahrer:in mit Login = Personal-Datensatz mit kann_fahren (sofort in der Disposition waehlbar,
- * sieht die Tour am Handy). Gleichnamigen freien Datensatz verknuepfen, sonst anlegen.
+ * Login mit Personal-Datensatz verknuepfen: Fahrer:in (kann_fahren, in der Disposition waehlbar)
+ * oder Mitarbeiter:in (Selbstservice unter /mein braucht den Datensatz fuer Zeiten und Urlaub).
+ * Gleichnamigen freien Datensatz verknuepfen, sonst anlegen.
  */
-async function fahrerSicherstellen(userId: string, displayName: string, email: string, locationId: number | null): Promise<string> {
+async function personalVerknuepfen(userId: string, displayName: string, email: string, locationId: number | null, fahrer: boolean): Promise<string> {
   const schon = (await db().select({ id: staff.id }).from(staff).where(eq(staff.userId, userId)).limit(1))[0];
   if (schon) {
-    await db().update(staff).set({ kannFahren: true, updatedAt: new Date() }).where(eq(staff.id, schon.id));
-    return " – Personal-Datensatz ist verknüpft, in der Disposition wählbar.";
+    if (fahrer) await db().update(staff).set({ kannFahren: true, updatedAt: new Date() }).where(eq(staff.id, schon.id));
+    return fahrer ? " – Personal-Datensatz ist verknüpft, in der Disposition wählbar." : " – Personal-Datensatz ist verknüpft.";
   }
   const teile = displayName.split(/\s+/);
   const firstName = teile.length > 1 ? teile.slice(0, -1).join(" ") : displayName;
@@ -30,13 +31,14 @@ async function fahrerSicherstellen(userId: string, displayName: string, email: s
   const vorhanden = (await db().select({ id: staff.id, userId: staff.userId }).from(staff)
     .where(sql`lower(${staff.firstName}) = lower(${firstName}) AND lower(${staff.lastName}) = lower(${lastName}) AND ${staff.isActive}`).limit(1))[0];
   if (vorhanden && !vorhanden.userId) {
-    await db().update(staff).set({ userId, kannFahren: true, staffType: "FAHRER", updatedAt: new Date() }).where(eq(staff.id, vorhanden.id));
-    return " – mit dem bestehenden Personal-Datensatz verknüpft, in der Disposition wählbar.";
+    await db().update(staff).set({ userId, ...(fahrer ? { kannFahren: true, staffType: "FAHRER" } : {}), updatedAt: new Date() }).where(eq(staff.id, vorhanden.id));
+    return fahrer ? " – mit dem bestehenden Personal-Datensatz verknüpft, in der Disposition wählbar." : " – mit dem bestehenden Personal-Datensatz verknüpft.";
   }
   if (vorhanden) return " – ein gleichnamiger Personal-Datensatz ist schon mit einem anderen Login verknüpft; bitte im Personal prüfen.";
-  await db().insert(staff).values({ firstName, lastName, staffType: "FAHRER", kannFahren: true, userId, email, locationId });
-  return " – Personal-Datensatz (Fahrer:in) angelegt, in der Disposition wählbar.";
+  await db().insert(staff).values({ firstName, lastName, staffType: fahrer ? "FAHRER" : "ANGESTELLT", kannFahren: fahrer, userId, email, locationId });
+  return fahrer ? " – Personal-Datensatz (Fahrer:in) angelegt, in der Disposition wählbar." : " – Personal-Datensatz angelegt (Eintritt, Wochenverteilung und Personalakte bitte ergänzen).";
 }
+const mitPersonal = (role: string) => role === "FAHRER" || role === "MITARBEITER";
 
 export interface UserState { ok?: boolean; error?: string; angelegt?: string; initialpasswort?: string }
 
@@ -92,7 +94,7 @@ export async function createUser(_prev: UserState, formData: FormData): Promise<
   const gesendet = await initialpasswortSenden(email, displayName, pw, username);
   await audit({ actorUserId: admin.id, action: "user.create", entityType: "user", entityId: email, after: { role, locationId } });
 
-  const hinweis = role === "FAHRER" && ins[0] ? await fahrerSicherstellen(ins[0].id, displayName, email, locationId) : "";
+  const hinweis = mitPersonal(role) && ins[0] ? await personalVerknuepfen(ins[0].id, displayName, email, locationId, role === "FAHRER") : "";
   revalidatePath("/admin"); revalidatePath("/admin/benutzer"); revalidatePath("/personal"); revalidatePath("/touren");
   return gesendet
     ? { ok: true, angelegt: `${displayName} (Benutzername ${username}, ${role}) – Initialpasswort per E-Mail verschickt${hinweis}` }
@@ -109,7 +111,7 @@ export async function setUserRole(formData: FormData): Promise<void> {
   if (!(await nurTdd(userId))) return;
   const u = (await db().select({ displayName: users.displayName, email: users.email, locationId: users.locationId }).from(users).where(eq(users.id, userId)).limit(1))[0];
   await db().update(users).set({ role }).where(eq(users.id, userId));
-  if (role === "FAHRER" && u) await fahrerSicherstellen(userId, u.displayName, u.email, u.locationId);
+  if (mitPersonal(role) && u) await personalVerknuepfen(userId, u.displayName, u.email, u.locationId, role === "FAHRER");
   await audit({ actorUserId: admin.id, action: "user.role", entityType: "user", entityId: userId, after: { role } });
   revalidatePath("/admin"); revalidatePath("/admin/benutzer"); revalidatePath("/personal"); revalidatePath("/touren");
 }
@@ -141,7 +143,7 @@ export async function updateUser(_prev: UserState, formData: FormData): Promise<
 
   await db().update(users).set({ email, username, displayName, role: rolleNeu, locationId, ...(pw ? { passwordHash: await hash(pw), mustChangePassword: true, failedAttempts: 0, lockedUntil: null } : {}) }).where(eq(users.id, userId));
   const gesendet = pw ? await initialpasswortSenden(email, displayName, pw, username) : true;
-  const hinweis = rolleNeu === "FAHRER" ? await fahrerSicherstellen(userId, displayName, email, locationId) : "";
+  const hinweis = mitPersonal(rolleNeu) ? await personalVerknuepfen(userId, displayName, email, locationId, rolleNeu === "FAHRER") : "";
   await audit({ actorUserId: admin.id, action: "user.update", entityType: "user", entityId: userId, after: { email, displayName, role: rolleNeu, locationId, passwort: !!pw } });
   revalidatePath("/admin"); revalidatePath("/admin/benutzer"); revalidatePath("/personal"); revalidatePath("/touren");
   return { ok: true, angelegt: [hinweis.replace(/^ – /, ""), pw ? (gesendet ? "neues Initialpasswort per E-Mail verschickt" : "E-Mail nicht sendbar – Initialpasswort persönlich übergeben:") : ""].filter(Boolean).join(" · ") || undefined, initialpasswort: pw && !gesendet ? pw : undefined };
@@ -154,7 +156,7 @@ export async function toggleUserActive(formData: FormData): Promise<void> {
   if (!(await nurTdd(userId))) return;
   const active = String(formData.get("active") ?? "") === "1";
   if (!userId || userId === admin.id) { revalidatePath("/admin"); return; }
-  await db().update(users).set({ isActive: active }).where(eq(users.id, userId));
+  await db().update(users).set({ isActive: active, deaktiviertGrund: active ? null : "ADMIN", deaktiviertAt: active ? null : new Date() }).where(eq(users.id, userId));
   await audit({ actorUserId: admin.id, action: active ? "user.activate" : "user.deactivate", entityType: "user", entityId: userId });
   revalidatePath("/admin");
 }

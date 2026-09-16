@@ -16,6 +16,7 @@ import { purgePersons, deleteFiles } from "@/lib/purge";
  * 4) Personalakten 7 Jahre nach Ende des Austrittsjahres (§ 132 BAO): Dokumente
  *    samt Dateien löschen, Gehalt/SV-Nummer/Geburtsdatum/Notfallkontakt leeren.
  *    Die Person bleibt (Touren-/Zeithistorie ist Betriebsdatum ohne Sensibles).
+ * 5) Logins ausgetretener Mitarbeitender sperren (P1) – Grund AUSTRITT.
  */
 export async function GET(req: Request) {
   const denied = requireJobToken(req);
@@ -57,7 +58,14 @@ export async function GET(req: Request) {
       AND (sv_nummer IS NOT NULL OR geburtsdatum IS NOT NULL OR gehalt_brutto IS NOT NULL OR notfall_name IS NOT NULL OR strasse IS NOT NULL)
     RETURNING id`);
 
+  // 5) Ausgetretene: Login sperren
+  const gesperrt = await db().execute(sql`
+    UPDATE users SET is_active = false, deaktiviert_grund = 'AUSTRITT', deaktiviert_at = now()
+    WHERE is_active AND id IN (SELECT user_id FROM staff WHERE user_id IS NOT NULL AND employment_end IS NOT NULL AND employment_end < current_date)
+    RETURNING id`);
+
   const result = {
+    logins: (gesperrt as unknown as { id: string }[]).length,
     scans: scanRefs.length, scanFiles,
     persons: purged.persons, personFiles: purged.files,
     docs: docRefs.length, docFiles,

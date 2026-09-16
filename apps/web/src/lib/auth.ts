@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
-import { eq } from "drizzle-orm";
+import { and, eq, isNotNull, lt } from "drizzle-orm";
 import { verify } from "@node-rs/argon2";
-import { users, organizations } from "@tdd/db";
+import { users, organizations, staff } from "@tdd/db";
 import { db } from "./db";
 import { audit } from "./audit";
 import { verifySession, signSession, signToken, verifyToken, SESSION_COOKIE, SESSION_MAX_AGE, PRE_AUTH_COOKIE, PRE_AUTH_MAX_AGE, type PreAuthData } from "./session";
@@ -66,6 +66,15 @@ export async function login(email: string, password: string, orgId?: number | nu
   const rows = await db().select().from(users).where(name.includes("@") ? eq(users.email, name) : eq(users.username, name)).limit(1);
   const u = rows[0];
   if (!u || !u.isActive) return null;
+
+  // Ausgetreten (Austritt am Personal-Datensatz liegt in der Vergangenheit)? Kein Login mehr, Konto sperren.
+  const ausgetreten = (await db().select({ id: staff.id }).from(staff)
+    .where(and(eq(staff.userId, u.id), isNotNull(staff.employmentEnd), lt(staff.employmentEnd, new Date().toISOString().slice(0, 10)))).limit(1))[0];
+  if (ausgetreten) {
+    await db().update(users).set({ isActive: false, deaktiviertGrund: "AUSTRITT", deaktiviertAt: new Date() }).where(eq(users.id, u.id));
+    await audit({ actorUserId: u.id, action: "login.austritt", entityType: "user", entityId: u.id });
+    return null;
+  }
 
   // Gesperrt? Dann gar nicht erst prüfen (kostet auch keine argon2-Zeit).
   if (u.lockedUntil && u.lockedUntil > new Date()) return null;
@@ -165,5 +174,6 @@ export function landingFor(role: Role, mustChangePassword = false): string {
   if (role === "SACHBEARBEITER") return "/portal"; // Antragsportal (Gemeinde/Institution)
   if (role === "AUSGABE") return "/kiosk";           // Zivildiener: nur Tresen-Kiosk
   if (role === "FAHRER") return "/fahrt";            // Fahrer: Tour des Tages am Handy
+  if (role === "MITARBEITER") return "/mein";        // Selbstservice: eigene Zeiten und Urlaub
   return "/dashboard";
 }

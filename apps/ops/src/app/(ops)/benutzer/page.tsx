@@ -7,7 +7,7 @@ import { aktivSchalten, entsperren, registrierungAblehnen, registrierungFreigebe
 
 export const dynamic = "force-dynamic";
 
-const ROLLEN = ["ADMIN", "ERFASSUNG", "AUSGABE", "AUSWERTUNG", "SACHBEARBEITER", "FAHRER"];
+const ROLLEN = ["ADMIN", "ERFASSUNG", "AUSGABE", "AUSWERTUNG", "SACHBEARBEITER", "FAHRER", "MITARBEITER"];
 const fmt = (d: Date | null) => (d ? d.toLocaleString("de-AT", { timeZone: "Europe/Vienna", dateStyle: "short", timeStyle: "short" }) : "—");
 
 /**

@@ -10,7 +10,7 @@ import { sendMail } from "@/lib/mail";
 
 export interface BenutzerState { error?: string; info?: string; link?: string }
 
-const ROLLEN = ["ADMIN", "ERFASSUNG", "AUSGABE", "AUSWERTUNG", "SACHBEARBEITER", "FAHRER"] as const;
+const ROLLEN = ["ADMIN", "ERFASSUNG", "AUSGABE", "AUSWERTUNG", "SACHBEARBEITER", "FAHRER", "MITARBEITER"] as const;
 const appUrl = () => process.env.APP_URL ?? "https://tdd.schaer-systems.at";
 
 function rows<T>(res: unknown): T[] {

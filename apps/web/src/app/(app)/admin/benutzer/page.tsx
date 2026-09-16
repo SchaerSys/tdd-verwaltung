@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { eq, asc, and } from "drizzle-orm";
+import { eq, asc, and, ne } from "drizzle-orm";
 import { locations, users, organizations } from "@tdd/db";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { hasPermission } from "@/lib/rbac";
-import { approveUser, rejectUser, setUserRole, toggleUserActive, resetUserTotp } from "../actions";
+import { setUserRole, toggleUserActive, resetUserTotp } from "../actions";
 import { NeuerBenutzer } from "./NeuerBenutzer";
 import { BenutzerBearbeiten } from "./BenutzerBearbeiten";
 
@@ -33,10 +33,9 @@ export default async function BenutzerPage() {
     })
     .from(users)
     .leftJoin(locations, eq(users.locationId, locations.id))
-    .orderBy(asc(users.displayName));
-  const pending = await d.select({ id: users.id, name: users.displayName, email: users.email, orgName: organizations.name, orgType: organizations.type })
-    .from(users).leftJoin(organizations, eq(users.organizationId, organizations.id))
-    .where(and(eq(users.role, "SACHBEARBEITER"), eq(users.emailVerified, true), eq(users.isActive, false)))
+    .innerJoin(organizations, eq(users.organizationId, organizations.id))
+    // Nur die eigenen Konten: Gemeinden/Institutionen verwaltet ausschliesslich der Betreiber (Wartungsplattform).
+    .where(and(eq(organizations.type, "TDD"), ne(users.role, "SACHBEARBEITER")))
     .orderBy(asc(users.displayName));
 
   return (
@@ -44,35 +43,11 @@ export default async function BenutzerPage() {
       <div className="page-h">
         <div>
           <h1>Benutzerverwaltung</h1>
-          <div className="sub">Benutzer anlegen, Rollen &amp; Freigaben</div>
+          <div className="sub">Konten von Tischlein deck dich – Gemeinden und Institutionen verwaltet der Betreiber</div>
         </div>
         <Link href="/admin" className="btn ghost">← Stammdaten</Link>
       </div>
 
-      {/* Registrierungen zur Freigabe */}
-      {pending.length > 0 ? (
-        <div className="panel mb-4" style={{ borderColor: "var(--warn)" }}>
-          <div className="panel-h" style={{ background: "var(--warn-bg)" }}><h3 style={{ color: "var(--warn)" }}>Registrierungen zur Freigabe</h3><span className="pill warn">{pending.length}</span></div>
-          <div className="twrap"><table className="data">
-            <thead><tr><th>Name</th><th>E-Mail</th><th>Organisation</th><th></th></tr></thead>
-            <tbody>
-              {pending.map((u) => (
-                <tr key={u.id}>
-                  <td><b>{u.name}</b></td>
-                  <td className="mono">{u.email}</td>
-                  <td>{u.orgName ? <span className="pill muted">{u.orgType === "GEMEINDE" ? "Gemeinde" : "Institution"}: {u.orgName}</span> : "—"}</td>
-                  <td>
-                    <div className="flex gap-1 justify-end">
-                      <form action={approveUser}><input type="hidden" name="userId" value={u.id} /><button className="btn primary sm" type="submit">Freigeben</button></form>
-                      <form action={rejectUser}><input type="hidden" name="userId" value={u.id} /><button className="btn ghost sm" type="submit">Ablehnen</button></form>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table></div>
-        </div>
-      ) : null}
 
       {/* Benutzer & Rollen */}
       <div className="panel">

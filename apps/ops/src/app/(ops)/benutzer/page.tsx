@@ -3,7 +3,7 @@ import { asc, eq } from "drizzle-orm";
 import { locations, organizations, users } from "@tdd/db";
 import { db } from "@/lib/db";
 import { Einladen, PasswortLink } from "./Einladen";
-import { aktivSchalten, entsperren, rolleSetzen, zfaZuruecksetzen } from "./actions";
+import { aktivSchalten, entsperren, registrierungAblehnen, registrierungFreigeben, rolleSetzen, zfaZuruecksetzen } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +28,8 @@ export default async function BenutzerSeite() {
   ]);
   const jetzt = new Date();
   const intern = liste.filter((u) => u.role !== "SACHBEARBEITER");
-  const portal = liste.filter((u) => u.role === "SACHBEARBEITER");
+  const offen = liste.filter((u) => u.role === "SACHBEARBEITER" && !u.isActive && u.emailVerified && !u.lastLogin);
+  const portal = liste.filter((u) => u.role === "SACHBEARBEITER" && !offen.includes(u));
 
   const Tabelle = ({ zeilen, mitOrg }: { zeilen: typeof liste; mitOrg: boolean }) => (
     <div className="twrap"><table className="data">
@@ -79,6 +80,25 @@ export default async function BenutzerSeite() {
         <Einladen standorte={standorte} organisationen={orgs} />
       </div>
 
+      {offen.length > 0 ? (
+        <div className="panel mb-4" style={{ borderColor: "var(--warn)" }}>
+          <div className="panel-h"><h3>Registrierungen zur Freigabe (Portal)</h3><span className="pill warn">{offen.length}</span></div>
+          <div className="twrap"><table className="data">
+            <thead><tr><th>Name</th><th>E-Mail</th><th>Organisation</th><th></th></tr></thead>
+            <tbody>{offen.map((u) => (
+              <tr key={u.id}>
+                <td><b>{u.name}</b></td><td className="mono">{u.email}</td>
+                <td>{u.org ? <><span className="pill muted">{u.orgType === "GEMEINDE" ? "Gemeinde" : "Institution"}</span> {u.org}</> : "—"}</td>
+                <td><div className="flex gap-1 justify-end">
+                  <form action={registrierungFreigeben}><input type="hidden" name="userId" value={u.id} /><button className="btn primary sm" type="submit">Freigeben</button></form>
+                  <form action={registrierungAblehnen}><input type="hidden" name="userId" value={u.id} /><button className="btn ghost sm" type="submit">Ablehnen</button></form>
+                </div></td>
+              </tr>
+            ))}</tbody>
+          </table></div>
+          <div className="p-3 text-[.72rem] text-muted">Vor der Freigabe prüfen, ob die Person wirklich für diese Gemeinde/Institution arbeitet (Rückruf beim Amt).</div>
+        </div>
+      ) : null}
       <div className="panel mb-4">
         <div className="panel-h"><h3>TDD (Büro, Tresen, Auswertung)</h3><span className="pill muted">{intern.length}</span></div>
         <Tabelle zeilen={intern} mitOrg={false} />

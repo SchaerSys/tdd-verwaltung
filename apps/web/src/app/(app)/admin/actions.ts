@@ -106,6 +106,7 @@ export async function setUserRole(formData: FormData): Promise<void> {
   const role = String(formData.get("role") ?? "");
   if (!userId || !(INTERNAL_ROLES as readonly string[]).includes(role)) { revalidatePath("/admin"); return; }
   if (userId === admin.id) { revalidatePath("/admin"); return; } // eigene Rolle nicht ändern
+  if (!(await nurTdd(userId))) return;
   const u = (await db().select({ displayName: users.displayName, email: users.email, locationId: users.locationId }).from(users).where(eq(users.id, userId)).limit(1))[0];
   await db().update(users).set({ role }).where(eq(users.id, userId));
   if (role === "FAHRER" && u) await fahrerSicherstellen(userId, u.displayName, u.email, u.locationId);
@@ -127,6 +128,7 @@ export async function updateUser(_prev: UserState, formData: FormData): Promise<
   if (!userId || !email || !displayName) return { error: "Name und E-Mail sind Pflicht." };
   const alt = (await db().select({ id: users.id, role: users.role }).from(users).where(eq(users.id, userId)).limit(1))[0];
   if (!alt) return { error: "Benutzer nicht gefunden." };
+  if (!(await nurTdd(userId))) return { error: "Konten von Gemeinden/Institutionen verwaltet der Betreiber." };
   const rolleNeu = alt.role === "SACHBEARBEITER" || userId === admin.id ? alt.role : role;
   if (!(INTERNAL_ROLES as readonly string[]).includes(rolleNeu) && rolleNeu !== "SACHBEARBEITER") return { error: "Ungültige Rolle." };
   const gleich = (await db().select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1))[0];
@@ -149,6 +151,7 @@ export async function updateUser(_prev: UserState, formData: FormData): Promise<
 export async function toggleUserActive(formData: FormData): Promise<void> {
   const admin = await requirePermission("admin:manage");
   const userId = String(formData.get("userId") ?? "");
+  if (!(await nurTdd(userId))) return;
   const active = String(formData.get("active") ?? "") === "1";
   if (!userId || userId === admin.id) { revalidatePath("/admin"); return; }
   await db().update(users).set({ isActive: active }).where(eq(users.id, userId));
@@ -157,30 +160,10 @@ export async function toggleUserActive(formData: FormData): Promise<void> {
 }
 
 /** Gibt eine bestätigte Registrierung frei (Login danach möglich). */
-export async function approveUser(formData: FormData): Promise<void> {
-  const admin = await requirePermission("admin:manage");
-  const userId = String(formData.get("userId") ?? "");
-  const rows = await db().select({ email: users.email, name: users.displayName, active: users.isActive }).from(users).where(eq(users.id, userId)).limit(1);
-  const u = rows[0];
-  if (!u || u.active) { revalidatePath("/admin"); return; }
-
-  await db().update(users).set({ isActive: true }).where(eq(users.id, userId));
-  await sendMail({ to: u.email, subject: "TDD-Verwaltung – Zugang freigegeben",
-    text: `Guten Tag ${u.name},\n\nIhr Zugang wurde freigegeben. Sie können sich jetzt anmelden:\n${appUrl()}/login\n\nFreundliche Grüße\nTischlein deck dich` });
-  await audit({ actorUserId: admin.id, action: "user.approve", entityType: "user", entityId: userId });
-  revalidatePath("/admin");
-}
-
-/** Lehnt eine Registrierung ab (Konto wird entfernt). */
-export async function rejectUser(formData: FormData): Promise<void> {
-  const admin = await requirePermission("admin:manage");
-  const userId = String(formData.get("userId") ?? "");
-  // Nur nicht-aktive (ausstehende) Registrierungen dürfen gelöscht werden
-  const rows = await db().select({ active: users.isActive }).from(users).where(eq(users.id, userId)).limit(1);
-  if (!rows[0] || rows[0].active) { revalidatePath("/admin"); return; }
-  await db().delete(users).where(eq(users.id, userId));
-  await audit({ actorUserId: admin.id, action: "user.reject", entityType: "user", entityId: userId });
-  revalidatePath("/admin");
+/** Nur Konten der eigenen Organisation (TDD) sind aus der Fach-App heraus aenderbar. */
+async function nurTdd(userId: string): Promise<boolean> {
+  const r = (await db().select({ t: organizations.type, role: users.role }).from(users).leftJoin(organizations, eq(users.organizationId, organizations.id)).where(eq(users.id, userId)).limit(1))[0];
+  return !!r && r.t === "TDD" && r.role !== "SACHBEARBEITER";
 }
 
 /** Setzt die Preisregel (Betrag je Erwachsener/Kind) einer Ausgabestelle. */
@@ -228,6 +211,7 @@ export async function setLocationHours(formData: FormData): Promise<void> {
 export async function resetUserTotp(formData: FormData): Promise<void> {
   const admin = await requirePermission("admin:manage");
   const userId = String(formData.get("userId") ?? "");
+  if (!(await nurTdd(userId))) return;
   if (!userId || userId === admin.id) { revalidatePath("/admin/benutzer"); return; }
   await db().update(users).set({ totpEnabled: false, totpSecret: null, totpRecovery: [], totpLastWindow: null }).where(eq(users.id, userId));
   await audit({ actorUserId: admin.id, action: "user.2fa.reset", entityType: "user", entityId: userId });

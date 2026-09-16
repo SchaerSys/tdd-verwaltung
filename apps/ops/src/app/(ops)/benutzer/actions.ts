@@ -71,6 +71,28 @@ export async function passwortLink(_prev: BenutzerState, fd: FormData): Promise<
   return mail.sent ? { info: `Link an ${u.email} verschickt.` } : { info: `Mail nicht gesendet (${mail.info ?? "SMTP"}). Link:`, link };
 }
 
+/** Registrierung einer Gemeinde/Institution freigeben (Konto aktivieren + Mail). */
+export async function registrierungFreigeben(fd: FormData): Promise<void> {
+  const ops = await requireOps();
+  const id = String(fd.get("userId") ?? "");
+  const u = (await db().select({ email: users.email, name: users.displayName, active: users.isActive }).from(users).where(eq(users.id, id)).limit(1))[0];
+  if (!u || u.active) return;
+  await db().update(users).set({ isActive: true }).where(eq(users.id, id));
+  await sendMail({ to: u.email, subject: "TDD-Verwaltung – Zugang freigegeben", text: `Guten Tag ${u.name},\n\nIhr Zugang zum Antragsportal wurde freigegeben. Sie können sich jetzt anmelden:\n${appUrl()}/login\n\nFreundliche Grüße\nTischlein deck dich Vorarlberg` });
+  await audit({ akteur: ops.email, action: "user.approve", entityType: "user", entityId: id });
+  revalidatePath("/benutzer");
+}
+/** Registrierung ablehnen: das nie aktivierte Konto wird entfernt. */
+export async function registrierungAblehnen(fd: FormData): Promise<void> {
+  const ops = await requireOps();
+  const id = String(fd.get("userId") ?? "");
+  const u = (await db().select({ active: users.isActive, verified: users.emailVerified }).from(users).where(eq(users.id, id)).limit(1))[0];
+  if (!u || u.active) return;
+  await db().execute(sql`SELECT ops_reject_registration(${id}::uuid)`);
+  await audit({ akteur: ops.email, action: "user.reject", entityType: "user", entityId: id });
+  revalidatePath("/benutzer");
+}
+
 export async function rolleSetzen(fd: FormData): Promise<void> {
   const ops = await requireOps();
   const id = String(fd.get("userId") ?? "");

@@ -45,7 +45,7 @@ export function konflikte(
   const tag = wochentag(tour.datum);
   const andere = tourenAmTag.filter((t) => t.id !== tour.id && t.datum === tour.datum && t.status !== "AUSGEFALLEN");
 
-  if (!tour.fahrerId) k.push({ code: "FAHRER_FEHLT", schwere: "FEHLER", text: "Kein Fahrer zugewiesen." });
+  if (!tour.fahrerId) k.push({ code: "FAHRER_FEHLT", schwere: "WARNUNG", text: "Kein Fahrer eingeteilt (die Tour geht ans Tablet des Fahrzeugs, der Name fehlt nur auf dem Laufzettel)." });
   else {
     const f = fahrer.find((x) => x.id === tour.fahrerId);
     if (!f) k.push({ code: "FAHRER_UNBEKANNT", schwere: "FEHLER", text: "Fahrer nicht im Personal-Verzeichnis." });

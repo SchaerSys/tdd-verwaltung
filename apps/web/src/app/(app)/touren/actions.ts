@@ -6,7 +6,8 @@ import { and, asc, eq, inArray, max, sql } from "drizzle-orm";
 import { abholstellen, abwesenheiten, angeboteEingang, fahrzeuge, locations, staff, tourStopps, tourVorlageStopps, tourVorlagen, touren } from "@tdd/db";
 import { db } from "@/lib/db";
 import { audit } from "@/lib/audit";
-import { requirePermission } from "@/lib/guard";
+import { requirePermission, tryPermission } from "@/lib/guard";
+import { geraetAusCookie, kopplungscodeErzeugen, geraetTrennen } from "@/lib/geraet";
 import { wochentag } from "@/lib/touren";
 import { geocode } from "@/lib/geo";
 
@@ -204,6 +205,7 @@ export async function tourFreigeben(fd: FormData): Promise<void> {
     if (!t) throw new Error("Tour nicht gefunden.");
     const fehler = t.konflikte.filter((k) => k.schwere === "FEHLER");
     if (fehler.length) throw new Error("Nicht sendbar: " + fehler.map((k) => k.text).join(" "));
+    if (!t.fahrzeugId) throw new Error("Nicht sendbar: kein Fahrzeug – die Tour geht ans Tablet des Fahrzeugs.");
     await db().update(touren).set({ freigegebenAt: new Date(), freigegebenBy: u.id, updatedAt: new Date() }).where(eq(touren.id, id));
     await audit({ actorUserId: u.id, action: "tour.release", entityType: "tour", entityId: id });
   }
@@ -279,38 +281,47 @@ export async function abwesenheitLoeschen(fd: FormData): Promise<void> {
   revalidatePath("/touren");
 }
 
-// ── Fahrer-Handy (eigene Tour) ────────────────────────────────────────────
-/** Nur die eigene Tour: Fahrer ist die Person, deren staff.user_id der angemeldete Benutzer ist (oder tour:manage). */
-async function eigeneTour(userId: string, tourId: string, darfAlles: boolean) {
+// ── Fahrzeug-Tablet / Fahrer-Handy ────────────────────────────────────────
+/**
+ * Wer darf eine Tour bedienen (starten, Stopps melden, beenden)?
+ *  - das gekoppelte Tablet des Fahrzeugs, auf dem die Tour gesendet wurde (kein Login), oder
+ *  - Buero (tour:manage), oder
+ *  - ein Fahrer-Login, dessen Personal-Datensatz als Fahrer:in/Beifahrer:in eingeteilt ist.
+ */
+async function darfTourBedienen(tourId: string): Promise<{ t: typeof touren.$inferSelect; akteur: string; userId: string | null }> {
   const t = (await db().select().from(touren).where(eq(touren.id, tourId)).limit(1))[0];
   if (!t) throw new Error("Tour nicht gefunden.");
-  if (darfAlles) return t;
-  const me = (await db().select({ id: staff.id }).from(staff).where(eq(staff.userId, userId)).limit(1))[0];
-  if (!me || (t.fahrerId !== me.id && t.beifahrerId !== me.id)) throw new Error("Nicht deine Tour.");
-  return t;
+  const g = await geraetAusCookie();
+  if (g && t.fahrzeugId === g.fahrzeugId && t.freigegebenAt) return { t, akteur: `Tablet ${g.name}`, userId: null };
+  const u = await tryPermission("tour:drive", "tour:manage");
+  if (!u) throw new Error("Nicht berechtigt – Tablet nicht gekoppelt oder Tour nicht an dieses Fahrzeug gesendet.");
+  if (u.role === "FAHRER") {
+    const me = (await db().select({ id: staff.id }).from(staff).where(eq(staff.userId, u.id)).limit(1))[0];
+    if (!me || (t.fahrerId !== me.id && t.beifahrerId !== me.id)) throw new Error("Nicht deine Tour.");
+  }
+  return { t, akteur: u.email, userId: u.id };
 }
 export async function tourStarten(fd: FormData): Promise<void> {
-  const u = await requirePermission("tour:drive", "tour:manage");
   const id = String(fd.get("id") ?? "");
-  await eigeneTour(u.id, id, u.role !== "FAHRER");
+  const { userId } = await darfTourBedienen(id);
+  const u = { id: userId };
   await db().update(touren).set({ status: "UNTERWEGS", gestartetAt: new Date(), kmStart: num(fd, "kmStart"), updatedAt: new Date() }).where(and(eq(touren.id, id), inArray(touren.status, ["GEPLANT", "UNTERWEGS"])));
   await audit({ actorUserId: u.id, action: "tour.start", entityType: "tour", entityId: id });
-  revalidatePath("/fahrt"); revalidatePath(`/touren/${id}`); revalidatePath("/touren");
+  revalidatePath("/fahrt"); revalidatePath("/fahrzeug"); revalidatePath(`/touren/${id}`); revalidatePath("/touren");
 }
 export async function tourBeenden(fd: FormData): Promise<void> {
-  const u = await requirePermission("tour:drive", "tour:manage");
   const id = String(fd.get("id") ?? "");
-  await eigeneTour(u.id, id, u.role !== "FAHRER");
+  const { userId } = await darfTourBedienen(id);
+  const u = { id: userId };
   await db().update(touren).set({ status: "ABGESCHLOSSEN", beendetAt: new Date(), kmEnde: num(fd, "kmEnde"), updatedAt: new Date() }).where(eq(touren.id, id));
   await audit({ actorUserId: u.id, action: "tour.end", entityType: "tour", entityId: id });
-  revalidatePath("/fahrt"); revalidatePath(`/touren/${id}`); revalidatePath("/touren");
+  revalidatePath("/fahrt"); revalidatePath("/fahrzeug"); revalidatePath(`/touren/${id}`); revalidatePath("/touren");
 }
 /** Stopp erledigen (mit Mengen) oder als nicht moeglich melden. */
 export async function stoppMelden(fd: FormData): Promise<void> {
-  const u = await requirePermission("tour:drive", "tour:manage");
   const id = String(fd.get("id") ?? ""); const tourId = String(fd.get("tourId") ?? "");
   const status = str(fd, "status") === "NICHT_MOEGLICH" ? "NICHT_MOEGLICH" : str(fd, "status") === "OFFEN" ? "OFFEN" : "ERLEDIGT";
-  await eigeneTour(u.id, tourId, u.role !== "FAHRER");
+  await darfTourBedienen(tourId);
   await db().update(tourStopps).set({
     status, erledigtAt: status === "OFFEN" ? null : new Date(),
     mengeKisten: status === "ERLEDIGT" ? num(fd, "mengeKisten") : null, mengeKg: status === "ERLEDIGT" ? (num(fd, "mengeKg") != null ? String(num(fd, "mengeKg")) : null) : null,
@@ -318,7 +329,27 @@ export async function stoppMelden(fd: FormData): Promise<void> {
   }).where(and(eq(tourStopps.id, id), eq(tourStopps.tourId, tourId)));
   // Erste Erledigung setzt die Tour auf UNTERWEGS, falls der Start vergessen wurde.
   await db().update(touren).set({ status: "UNTERWEGS", gestartetAt: sql`coalesce(${touren.gestartetAt}, now())` }).where(and(eq(touren.id, tourId), eq(touren.status, "GEPLANT")));
-  revalidatePath("/fahrt"); revalidatePath(`/touren/${tourId}`); revalidatePath("/touren");
+  revalidatePath("/fahrt"); revalidatePath("/fahrzeug"); revalidatePath(`/touren/${tourId}`); revalidatePath("/touren");
+}
+
+// ── Fahrzeug-Tablets koppeln ──────────────────────────────────────────────
+export interface KoppelState { code?: string; name?: string; error?: string }
+/** Disposition: Code fuer ein Tablet erzeugen – am Tablet unter /fahrzeug eingeben. */
+export async function tabletCode(_prev: KoppelState, fd: FormData): Promise<KoppelState> {
+  const u = await requirePermission("tour:manage");
+  const fahrzeugId = Number(fd.get("fahrzeugId"));
+  const name = str(fd, "name") ?? "Tablet";
+  if (!fahrzeugId) return { error: "Kein Fahrzeug." };
+  const code = await kopplungscodeErzeugen(fahrzeugId, name, u.id);
+  await audit({ actorUserId: u.id, action: "geraet.code", entityType: "fahrzeug", entityId: String(fahrzeugId), after: { name } });
+  return { code, name };
+}
+export async function tabletTrennen(fd: FormData): Promise<void> {
+  const u = await requirePermission("tour:manage");
+  const id = String(fd.get("id") ?? "");
+  await geraetTrennen(id);
+  await audit({ actorUserId: u.id, action: "geraet.revoke", entityType: "geraet", entityId: id });
+  revalidatePath("/touren/fahrzeuge");
 }
 
 // ── Angebote von der Homepage ─────────────────────────────────────────────

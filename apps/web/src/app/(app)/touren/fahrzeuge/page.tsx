@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { asc } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import { fahrzeuge } from "@tdd/db";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
@@ -8,14 +8,18 @@ import { hasPermission } from "@/lib/rbac";
 import { heuteIso } from "@/lib/touren";
 import { planStammdaten } from "@/lib/touren-daten";
 import { fmtDate } from "@/lib/format";
-import { fahrzeugAnlegen, fahrzeugSpeichern } from "../actions";
+import { fahrzeugAnlegen, fahrzeugSpeichern, tabletTrennen } from "../actions";
+import { TabletKoppeln } from "./TabletKoppeln";
+import { geraete } from "@tdd/db";
+import { fmtDateTime } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
 export default async function FahrzeugeSeite() {
   const user = await getCurrentUser();
   if (!user || !hasPermission(user.role, "tour:manage")) redirect("/dashboard");
-  const [liste, sd] = await Promise.all([db().select().from(fahrzeuge).orderBy(asc(fahrzeuge.kennzeichen)), planStammdaten()]);
+  const [liste, sd, tablets] = await Promise.all([db().select().from(fahrzeuge).orderBy(asc(fahrzeuge.kennzeichen)), planStammdaten(),
+    db().select().from(geraete).where(eq(geraete.isActive, true)).orderBy(asc(geraete.gekoppeltAt))]);
   const heute = heuteIso();
   const bald = (d: string | null) => !!d && d <= heute.slice(0, 4) + "-12-31" && d >= heute; // Pickerl im laufenden Jahr faellig
 
@@ -60,9 +64,21 @@ export default async function FahrzeugeSeite() {
                 {werkstatt ? <span className="pill bad">Werkstatt{f.ausserBetriebBis ? ` bis ${fmtDate(f.ausserBetriebBis)}` : ""}</span> : null}
                 {f.pickerlBis && f.pickerlBis < heute ? <span className="pill bad">Pickerl abgelaufen</span> : bald(f.pickerlBis) ? <span className="pill warn">Pickerl bis {fmtDate(f.pickerlBis)}</span> : null}
                 {!f.isActive ? <span className="pill muted">stillgelegt</span> : null}
+                {tablets.some((t) => t.fahrzeugId === f.id) ? <span className="pill good">📲 Tablet</span> : <span className="pill muted">kein Tablet</span>}
                 <span className="text-xs text-muted ml-auto">{f.ladevolumen ?? ""}</span>
               </summary>
               <form action={fahrzeugSpeichern} className="p-4 border-t border-[color:var(--border)] flex flex-col gap-3"><input type="hidden" name="id" value={f.id} /><Felder f={f} /><div><button className="btn primary sm" type="submit">Speichern</button></div></form>
+              <div className="p-4 border-t border-[color:var(--border)] flex flex-col gap-2">
+                <div className="lbl">Tablet im Fahrzeug</div>
+                {tablets.filter((t) => t.fahrzeugId === f.id).map((t) => (
+                  <div key={t.id} className="flex gap-2 items-center text-[.8125rem] flex-wrap">
+                    <span className="pill good"><span className="dot" />{t.name}</span>
+                    <span className="text-muted text-xs">gekoppelt {fmtDateTime(t.gekoppeltAt)} · zuletzt gesehen {fmtDateTime(t.zuletztGesehen)}</span>
+                    <form action={tabletTrennen}><input type="hidden" name="id" value={t.id} /><button className="btn ghost sm" type="submit">Trennen</button></form>
+                  </div>
+                ))}
+                <TabletKoppeln fahrzeugId={f.id} vorschlag={`Tablet ${f.kennzeichen}`} />
+              </div>
             </details>
           );
         })}

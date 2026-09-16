@@ -555,3 +555,26 @@ export const angeboteEingang = pgTable("angebote_eingang", {
   entschiedenAt: timestamp("entschieden_at", { withTimezone: true }),
   rueckgemeldet: boolean("rueckgemeldet").notNull().default(false),
 });
+
+/** Fahrzeug-Tablets (Migration 038): Geraete-Token statt Fahrer-Login. */
+export const geraete = pgTable("geraete", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  fahrzeugId: integer("fahrzeug_id").notNull().references(() => fahrzeuge.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  tokenHash: text("token_hash").notNull().unique(),
+  userAgent: text("user_agent"),
+  gekoppeltAt: timestamp("gekoppelt_at", { withTimezone: true }).notNull().defaultNow(),
+  gekoppeltBy: uuid("gekoppelt_by").references(() => users.id),
+  zuletztGesehen: timestamp("zuletzt_gesehen", { withTimezone: true }),
+  isActive: boolean("is_active").notNull().default(true),
+});
+
+export const geraetCodes = pgTable("geraet_codes", {
+  code: text("code").primaryKey(),
+  fahrzeugId: integer("fahrzeug_id").notNull().references(() => fahrzeuge.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  usedAt: timestamp("used_at", { withTimezone: true }),
+  createdBy: uuid("created_by").references(() => users.id),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});

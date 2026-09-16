@@ -66,7 +66,7 @@ export default async function DispositionSeite({ searchParams }: { searchParams:
           </form>
         </details>
         <form action={alleFreigeben}><input type="hidden" name="datum" value={datum} />
-          <button className="btn" type="submit" disabled={!liste.some((t) => !t.freigegebenAt && t.status === "GEPLANT" && !t.konflikte.some((k) => k.schwere === "FEHLER"))} title="Alle Touren ohne roten Konflikt an die Fahrer:innen senden">📲 Alle fahrbereiten senden</button></form>
+          <button className="btn" type="submit" disabled={!liste.some((t) => !t.freigegebenAt && t.status === "GEPLANT" && !t.konflikte.some((k) => k.schwere === "FEHLER"))} title="Alle Touren ohne roten Konflikt an die Fahrzeug-Tablets senden">📲 Alle fahrbereiten an die Tablets senden</button></form>
         <span className="text-xs text-muted ml-auto">Wochenplan: <Link href="/touren/vorlagen">{vorlagenHeute.length} Vorlagen für {WOCHENTAGE[wt]}</Link></span>
       </div>
 
@@ -90,7 +90,7 @@ export default async function DispositionSeite({ searchParams }: { searchParams:
                   <span style={{ marginLeft: "auto" }} className="flex gap-1">
                     {t.status === "GEPLANT" ? (
                       <form action={tourFreigeben}><input type="hidden" name="id" value={t.id} /><input type="hidden" name="zurueck" value={t.freigegebenAt ? "1" : "0"} />
-                        <button className={`btn sm ${t.freigegebenAt ? "ghost" : "primary"}`} type="submit" disabled={!t.freigegebenAt && a === "bad"} title={a === "bad" ? "Erst Konflikte lösen" : undefined}>{t.freigegebenAt ? "Zurückholen" : "📲 An Fahrer senden"}</button></form>
+                        <button className={`btn sm ${t.freigegebenAt ? "ghost" : "primary"}`} type="submit" disabled={!t.freigegebenAt && a === "bad"} title={a === "bad" ? "Erst Konflikte lösen" : undefined}>{t.freigegebenAt ? "Zurückholen" : "📲 Ans Tablet senden"}</button></form>
                     ) : null}
                     <Link href={`/touren/${t.id}`} className="btn ghost sm">Öffnen →</Link>
                   </span>
@@ -173,7 +173,7 @@ export default async function DispositionSeite({ searchParams }: { searchParams:
             <Link href="/touren/angebote" className="btn ghost sm">Angebote (Homepage)</Link>
             <Link href="/personal" className="btn ghost sm">Personal (Fahrer:innen)</Link>
           </div>
-          <div className="px-3 pb-3 text-[.72rem] text-muted">Rot = Tour kann so nicht fahren (kein Fahrer/Fahrzeug, abwesend, Werkstatt, Kühlware ohne Kühlung). Gelb = Hinweis (Doppelbelegung, Fahrertag, Pickerl). Fahrer:innen sehen ihre Tour unter /fahrt am Handy.</div>
+          <div className="px-3 pb-3 text-[.72rem] text-muted">Rot = Tour kann so nicht fahren (kein Fahrer/Fahrzeug, abwesend, Werkstatt, Kühlware ohne Kühlung). Gelb = Hinweis (Doppelbelegung, Fahrertag, Pickerl). Gesendete Touren erscheinen auf dem Tablet des Fahrzeugs (/fahrzeug, einmal koppeln unter Fahrzeuge).</div>
         </div>
       </div>
     </div>

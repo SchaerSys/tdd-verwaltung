@@ -26,6 +26,8 @@ describe("A4 Planungslogik", () => {
     const k = konflikte(tour({ fahrerId: null, fahrzeugId: null }), [], fahrer, fahrzeuge, []);
     expect(k.map((x) => x.code)).toEqual(["FAHRER_FEHLT", "FAHRZEUG_FEHLT"]);
     expect(ampel(k)).toBe("bad");
+    // ohne Fahrer, aber mit Fahrzeug: nur ein Hinweis – das Tablet haengt am Fahrzeug
+    expect(ampel(konflikte(tour({ fahrerId: null }), [], fahrer, fahrzeuge, []))).toBe("warn");
   });
   test("Abwesenheit, Werkstatt, Kuehlung, Pickerl", () => {
     const ab: PlanAbwesenheit[] = [{ staffId: "f1", art: "URLAUB", von: "2026-09-15", bis: "2026-09-18" }];

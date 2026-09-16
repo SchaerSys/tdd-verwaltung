@@ -47,7 +47,7 @@ export default async function TourSeite({ params }: { params: Promise<{ id: stri
         <div className="flex gap-2 items-center">
           {t.status === "GEPLANT" ? (
             <form action={tourFreigeben}><input type="hidden" name="id" value={t.id} /><input type="hidden" name="zurueck" value={t.freigegebenAt ? "1" : "0"} />
-              <button className={`btn ${t.freigegebenAt ? "ghost" : "primary"}`} type="submit" disabled={!t.freigegebenAt && a === "bad"} title={a === "bad" ? "Erst Konflikte lösen" : undefined}>{t.freigegebenAt ? "📲 gesendet · zurückholen" : "📲 An Fahrer senden"}</button></form>
+              <button className={`btn ${t.freigegebenAt ? "ghost" : "primary"}`} type="submit" disabled={!t.freigegebenAt && a === "bad"} title={a === "bad" ? "Erst Konflikte lösen" : undefined}>{t.freigegebenAt ? "📲 gesendet · zurückholen" : "📲 Ans Fahrzeug-Tablet senden"}</button></form>
           ) : null}
           <Link href={`/druck/tour?tour=${t.id}`} className="btn ghost" target="_blank">🖨 Laufzettel</Link>
           <Link href={`/touren?datum=${t.datum}`} className="btn ghost">← Disposition</Link>

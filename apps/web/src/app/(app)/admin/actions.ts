@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { eq, sql } from "drizzle-orm";
 import { hash } from "@node-rs/argon2";
-import { users, locations, staff } from "@tdd/db";
+import { users, locations, staff, organizations } from "@tdd/db";
 import { db } from "@/lib/db";
 import { audit } from "@/lib/audit";
 import { requirePermission } from "@/lib/guard";
@@ -56,8 +56,10 @@ export async function createUser(_prev: UserState, formData: FormData): Promise<
   const exists = await db().select({ id: users.id, role: users.role }).from(users).where(eq(users.email, email)).limit(1);
   if (exists[0]) return { error: `Diese E-Mail-Adresse hat schon ein Konto (Rolle ${exists[0].role}). Jede Person braucht eine eigene Adresse – oder die Rolle des bestehenden Kontos ändern.` };
 
+  // Interne Konten gehoeren zur TDD-Organisation – der Login prueft die gewaehlte Organisation.
+  const tdd = (await db().select({ id: organizations.id }).from(organizations).where(eq(organizations.type, "TDD")).limit(1))[0];
   const ins = await db().insert(users).values({
-    email, passwordHash: await hash(pw), displayName, role, locationId, isActive: true, emailVerified: true,
+    email, passwordHash: await hash(pw), displayName, role, locationId, organizationId: tdd?.id ?? null, isActive: true, emailVerified: true,
   }).returning({ id: users.id });
   await audit({ actorUserId: admin.id, action: "user.create", entityType: "user", entityId: email, after: { role, locationId } });
 

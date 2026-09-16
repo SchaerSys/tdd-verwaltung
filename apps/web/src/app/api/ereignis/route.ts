@@ -1,5 +1,6 @@
 import { getCurrentUser } from "@/lib/auth";
 import { meldeEreignis, type EreignisArt } from "@/lib/ereignis";
+import { geraetAusCookie } from "@/lib/geraet";
 
 export const dynamic = "force-dynamic";
 
@@ -9,13 +10,14 @@ export const dynamic = "force-dynamic";
  */
 export async function POST(req: Request): Promise<Response> {
   const user = await getCurrentUser();
-  if (!user) return new Response(null, { status: 204 }); // still: keine Rueckmeldung an Unangemeldete
+  const geraet = user ? null : await geraetAusCookie();
+  if (!user && !geraet) return new Response(null, { status: 204 }); // still: keine Rueckmeldung an Unbekannte
   let body: { kind?: string; route?: string; message?: string; digest?: string; detail?: unknown } = {};
   try { body = (await req.json()) as typeof body; } catch { return new Response(null, { status: 400 }); }
   const kind: EreignisArt = body.kind === "FEHLER" ? "FEHLER" : "LEBENSZEICHEN";
   await meldeEreignis({
-    kind, userId: user.id, role: user.role, locationId: user.locationId, organizationId: user.organizationId,
-    route: body.route ?? null, message: body.message ?? null, digest: body.digest ?? null, detail: body.detail as Record<string, unknown>,
+    kind, userId: user?.id ?? null, role: user?.role ?? "TABLET", locationId: user?.locationId ?? null, organizationId: user?.organizationId ?? null,
+    route: (geraet ? `tablet:${geraet.fahrzeug} ` : "") + (body.route ?? ""), message: body.message ?? null, digest: body.digest ?? null, detail: body.detail as Record<string, unknown>,
   });
   return new Response(null, { status: 204 });
 }

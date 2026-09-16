@@ -21,6 +21,6 @@ export const config = {
   // statische Dateien. Vorher stand hier eine Liste der geschützten Bereiche,
   // und die wurde bei jedem neuen Bereich vergessen (/kiosk, /zeit, /personal, /stempeln).
   matcher: [
-    "/((?!login|registrieren|passwort-vergessen|passwort-neu|konto-bestaetigen|datenschutz|anleitung|api/|_next/|favicon.ico|icon.svg|.*\\.webmanifest|sw.js|kiosk-sw.js).*)",
+    "/((?!login|registrieren|passwort-vergessen|passwort-neu|konto-bestaetigen|datenschutz|anleitung|fahrzeug|api/|_next/|favicon.ico|icon.svg|.*\\.webmanifest|sw.js|kiosk-sw.js).*)",
   ],
 };

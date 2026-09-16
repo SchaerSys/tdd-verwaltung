@@ -40,6 +40,19 @@ async function fahrerSicherstellen(userId: string, displayName: string, email: s
 
 export interface UserState { ok?: boolean; error?: string; angelegt?: string; initialpasswort?: string }
 
+/** Benutzername vorname.nachname aus dem Anzeigenamen; bei Kollision Zaehler (wie mach_benutzername in SQL). */
+async function benutzername(displayName: string, ausser?: string): Promise<string> {
+  const basis0 = displayName.toLowerCase().trim().replace(/ä/g, "ae").replace(/ö/g, "oe").replace(/ü/g, "ue").replace(/ß/g, "ss").replace(/[éè]/g, "e").replace(/à/g, "a").replace(/[^a-z0-9 ]/g, "");
+  const teile = basis0.trim().split(/\s+/).filter(Boolean);
+  const basis = teile.length >= 2 ? `${teile[0]}.${teile[teile.length - 1]}` : (teile[0] || "benutzer");
+  let kandidat = basis; let n = 1;
+  for (;;) {
+    const belegt = (await db().select({ id: users.id }).from(users).where(eq(users.username, kandidat)).limit(1))[0];
+    if (!belegt || belegt.id === ausser) return kandidat;
+    n += 1; kandidat = `${basis}${n}`;
+  }
+}
+
 /** Lesbares Initialpasswort: 3 Bloecke ohne verwechselbare Zeichen. */
 function initialpasswort(): string {
   const z = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
@@ -47,10 +60,10 @@ function initialpasswort(): string {
   return `${teil()}-${teil()}-${teil()}`;
 }
 
-async function initialpasswortSenden(email: string, displayName: string, pw: string): Promise<boolean> {
+async function initialpasswortSenden(email: string, displayName: string, pw: string, username: string): Promise<boolean> {
   const r = await sendMail({
     to: email, subject: "TDD-Verwaltung – Ihr Zugang",
-    text: `Guten Tag ${displayName},\n\nfür Sie wurde ein Zugang zur TDD-Verwaltung angelegt.\n\nAnmeldung: ${appUrl()}/login\nBenutzername: ${email}\nInitialpasswort: ${pw}\n\nBeim ersten Anmelden werden Sie aufgefordert, ein eigenes Passwort festzulegen.\n\nFreundliche Grüße\nTischlein deck dich Vorarlberg`,
+    text: `Guten Tag ${displayName},\n\nfür Sie wurde ein Zugang zur TDD-Verwaltung angelegt.\n\nAnmeldung: ${appUrl()}/login\nBenutzername: ${username} (oder Ihre E-Mail-Adresse ${email})\nInitialpasswort: ${pw}\n\nBeim ersten Anmelden werden Sie aufgefordert, ein eigenes Passwort festzulegen.\n\nFreundliche Grüße\nTischlein deck dich Vorarlberg`,
   });
   return r.sent;
 }
@@ -72,17 +85,18 @@ export async function createUser(_prev: UserState, formData: FormData): Promise<
 
   // Interne Konten gehoeren zur TDD-Organisation – der Login prueft die gewaehlte Organisation.
   const tdd = (await db().select({ id: organizations.id }).from(organizations).where(eq(organizations.type, "TDD")).limit(1))[0];
+  const username = await benutzername(displayName);
   const ins = await db().insert(users).values({
-    email, passwordHash: await hash(pw), displayName, role, locationId, organizationId: tdd?.id ?? null, isActive: true, emailVerified: true, mustChangePassword: true,
+    email, username, passwordHash: await hash(pw), displayName, role, locationId, organizationId: tdd?.id ?? null, isActive: true, emailVerified: true, mustChangePassword: true,
   }).returning({ id: users.id });
-  const gesendet = await initialpasswortSenden(email, displayName, pw);
+  const gesendet = await initialpasswortSenden(email, displayName, pw, username);
   await audit({ actorUserId: admin.id, action: "user.create", entityType: "user", entityId: email, after: { role, locationId } });
 
   const hinweis = role === "FAHRER" && ins[0] ? await fahrerSicherstellen(ins[0].id, displayName, email, locationId) : "";
   revalidatePath("/admin"); revalidatePath("/admin/benutzer"); revalidatePath("/personal"); revalidatePath("/touren");
   return gesendet
-    ? { ok: true, angelegt: `${displayName} (${email}, ${role}) – Initialpasswort per E-Mail verschickt${hinweis}` }
-    : { ok: true, angelegt: `${displayName} (${email}, ${role})${hinweis} – E-Mail konnte nicht gesendet werden, Initialpasswort bitte persönlich übergeben:`, initialpasswort: pw };
+    ? { ok: true, angelegt: `${displayName} (Benutzername ${username}, ${role}) – Initialpasswort per E-Mail verschickt${hinweis}` }
+    : { ok: true, angelegt: `${displayName} (Benutzername ${username}, ${role})${hinweis} – E-Mail konnte nicht gesendet werden, Initialpasswort bitte persönlich übergeben:`, initialpasswort: pw };
 }
 
 /** Ändert die Rolle eines Benutzers. */
@@ -117,9 +131,14 @@ export async function updateUser(_prev: UserState, formData: FormData): Promise<
   if (!(INTERNAL_ROLES as readonly string[]).includes(rolleNeu) && rolleNeu !== "SACHBEARBEITER") return { error: "Ungültige Rolle." };
   const gleich = (await db().select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1))[0];
   if (gleich && gleich.id !== userId) return { error: "Diese E-Mail-Adresse gehört schon einem anderen Konto." };
+  const usernameRoh = String(formData.get("username") ?? "").trim().toLowerCase();
+  const username = usernameRoh || await benutzername(displayName, userId);
+  if (!/^[a-z0-9][a-z0-9._-]{1,60}$/.test(username)) return { error: "Benutzername: nur Kleinbuchstaben, Ziffern, Punkt, Bindestrich (z. B. vorname.nachname)." };
+  const belegt = (await db().select({ id: users.id }).from(users).where(eq(users.username, username)).limit(1))[0];
+  if (belegt && belegt.id !== userId) return { error: `Benutzername „${username}“ ist schon vergeben.` };
 
-  await db().update(users).set({ email, displayName, role: rolleNeu, locationId, ...(pw ? { passwordHash: await hash(pw), mustChangePassword: true, failedAttempts: 0, lockedUntil: null } : {}) }).where(eq(users.id, userId));
-  const gesendet = pw ? await initialpasswortSenden(email, displayName, pw) : true;
+  await db().update(users).set({ email, username, displayName, role: rolleNeu, locationId, ...(pw ? { passwordHash: await hash(pw), mustChangePassword: true, failedAttempts: 0, lockedUntil: null } : {}) }).where(eq(users.id, userId));
+  const gesendet = pw ? await initialpasswortSenden(email, displayName, pw, username) : true;
   const hinweis = rolleNeu === "FAHRER" ? await fahrerSicherstellen(userId, displayName, email, locationId) : "";
   await audit({ actorUserId: admin.id, action: "user.update", entityType: "user", entityId: userId, after: { email, displayName, role: rolleNeu, locationId, passwort: !!pw } });
   revalidatePath("/admin"); revalidatePath("/admin/benutzer"); revalidatePath("/personal"); revalidatePath("/touren");

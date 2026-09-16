@@ -79,8 +79,8 @@ export function LoginForm({ notice }: { notice?: string }) {
             <div className="text-sm text-bad bg-[color:var(--bad)]/10 border border-bad rounded px-3 py-2">{state.error}</div>
           ) : null}
 
-          <label className="flex flex-col gap-1 text-xs text-muted font-semibold">E-Mail
-            <input name="email" type="email" required autoComplete="username" className="inp" />
+          <label className="flex flex-col gap-1 text-xs text-muted font-semibold">E-Mail oder Benutzername
+            <input name="email" type="text" required autoComplete="username" className="inp" placeholder="vorname.nachname" />
           </label>
           <label className="flex flex-col gap-1 text-xs text-muted font-semibold">Passwort
             <input name="password" type="password" required autoComplete="current-password" className="inp" />

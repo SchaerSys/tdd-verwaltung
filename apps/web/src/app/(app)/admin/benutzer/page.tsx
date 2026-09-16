@@ -28,7 +28,7 @@ export default async function BenutzerPage() {
   const locs = await d.select().from(locations).orderBy(asc(locations.type), asc(locations.name));
   const usrs = await d
     .select({
-      id: users.id, email: users.email, displayName: users.displayName,
+      id: users.id, email: users.email, username: users.username, displayName: users.displayName,
       role: users.role, isActive: users.isActive, totpEnabled: users.totpEnabled, locName: locations.name, locationId: users.locationId,
     })
     .from(users)
@@ -86,7 +86,7 @@ export default async function BenutzerPage() {
             <tbody>
               {usrs.map((u) => (
                 <tr key={u.id}>
-                  <td><b>{u.displayName}</b></td>
+                  <td><b>{u.displayName}</b>{u.username ? <div className="text-xs text-muted mono">{u.username}</div> : null}</td>
                   <td className="mono">{u.email}</td>
                   <td>
                     {u.role === "SACHBEARBEITER"
@@ -124,7 +124,7 @@ export default async function BenutzerPage() {
                       ) : null}
                     </div>
                   </td>
-                  <td><BenutzerBearbeiten u={{ id: u.id, displayName: u.displayName, email: u.email, role: u.role, locationId: u.locationId ?? null, isActive: u.isActive }} rollen={INTERNAL_ROLES} orte={locs.map((l) => ({ id: l.id, name: l.name }))} selbst={u.id === user.id} /></td>
+                  <td><BenutzerBearbeiten u={{ id: u.id, displayName: u.displayName, email: u.email, username: u.username ?? null, role: u.role, locationId: u.locationId ?? null, isActive: u.isActive }} rollen={INTERNAL_ROLES} orte={locs.map((l) => ({ id: l.id, name: l.name }))} selbst={u.id === user.id} /></td>
                 </tr>
               ))}
             </tbody>

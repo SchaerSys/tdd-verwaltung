@@ -4,7 +4,7 @@ import { updateUser, type UserState } from "../actions";
 
 interface Rolle { value: string; label: string; desc: string }
 interface Ort { id: number; name: string }
-export interface BenutzerZeile { id: string; displayName: string; email: string; role: string; locationId: number | null; isActive: boolean }
+export interface BenutzerZeile { id: string; displayName: string; email: string; username: string | null; role: string; locationId: number | null; isActive: boolean }
 
 /** Inline-Bearbeitung eines Benutzers: Name, E-Mail, Rolle, Standort, optional neues Passwort. */
 export function BenutzerBearbeiten({ u, rollen, orte, selbst }: { u: BenutzerZeile; rollen: Rolle[]; orte: Ort[]; selbst: boolean }) {
@@ -18,6 +18,7 @@ export function BenutzerBearbeiten({ u, rollen, orte, selbst }: { u: BenutzerZei
       <input type="hidden" name="userId" value={u.id} />
       <div className="field"><label className="lbl">Name</label><input name="displayName" className="inp" defaultValue={u.displayName} required /></div>
       <div className="field"><label className="lbl">E-Mail</label><input name="email" type="email" className="inp" defaultValue={u.email} required /></div>
+      <div className="field"><label className="lbl">Benutzername (Login, z. B. vorname.nachname)</label><input name="username" className="inp mono" defaultValue={u.username ?? ""} placeholder="leer = automatisch aus dem Namen" /></div>
       {u.role === "SACHBEARBEITER" ? <input type="hidden" name="role" value={u.role} /> : (
         <div className="field"><label className="lbl">Rolle</label>
           <select name="role" className="inp" defaultValue={u.role} disabled={selbst}>{rollen.map((r) => <option key={r.value} value={r.value}>{r.label} – {r.desc}</option>)}</select>

@@ -74,9 +74,10 @@ export const organizations = pgTable("organizations", {
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
   email: text("email").notNull().unique(),
+  username: text("username"), // vorname.nachname – Login alternativ zur E-Mail (041)
   passwordHash: text("password_hash").notNull(),
   displayName: text("display_name").notNull(),
-  role: text("role").notNull(), // ADMIN | ERFASSUNG | AUSGABE | AUSWERTUNG | SACHBEARBEITER
+  role: text("role").notNull(), // ADMIN | ERFASSUNG | AUSGABE | AUSWERTUNG | SACHBEARBEITER | FAHRER
   organizationId: integer("organization_id").references(() => organizations.id),
   locationId: integer("location_id").references(() => locations.id),
   totpSecret: text("totp_secret"),

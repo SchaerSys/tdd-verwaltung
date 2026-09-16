@@ -61,7 +61,9 @@ const LOCK_MINUTES = 15;
 export interface LoginResult { user: CurrentUser | null; needsSecondFactor: boolean; }
 
 export async function login(email: string, password: string, orgId?: number | null): Promise<LoginResult | null> {
-  const rows = await db().select().from(users).where(eq(users.email, email.toLowerCase())).limit(1);
+  // Anmeldename: E-Mail oder Benutzername (vorname.nachname), beides klein geschrieben.
+  const name = email.trim().toLowerCase();
+  const rows = await db().select().from(users).where(name.includes("@") ? eq(users.email, name) : eq(users.username, name)).limit(1);
   const u = rows[0];
   if (!u || !u.isActive) return null;
 

@@ -1,6 +1,6 @@
 "use server";
 
-import { eq, isNull } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { persons, locations, personLocationAssignments, cards, distributions } from "@tdd/db";
 import { normalizeName, normalizeAddress, koelnerPhonetik } from "@tdd/core";
 import { db } from "@/lib/db";
@@ -250,11 +250,21 @@ export async function analyzeFamilien(formData: FormData): Promise<FamAnalyze> {
   return { ok: true, total: rows.length, importable, deleted, blocked, noOrt, noAddress, withDebt, headers, parsedRows: rows.length, sample };
 }
 
-export interface FamCommit { ok: boolean; message?: string; persons: number; cards: number; skipped: number; }
+export interface FamCommit { ok: boolean; message?: string; persons: number; cards: number; skipped: number; aktualisiert?: number; zuordnungen?: number; }
 
+/**
+ * Import der Familien – wiederholbar ("auf Neuladen ertuechtigt", Pilot am Tresen):
+ *  - neue Alt-IDs werden angelegt (Person, Zuordnung, Legacy-Karte, Uebernahme-Buchung);
+ *  - bekannte Alt-IDs werden ERGAENZT: fehlende Zuordnung/Legacy-Karte/Uebernahme-Buchung
+ *    kommen dazu, leere Felder werden befuellt (Standard) –
+ *    oder mit modus=ueberschreiben komplett aus dem Altsystem uebernommen (Altsystem fuehrend,
+ *    solange die Ausgabestelle noch nicht im neuen System arbeitet).
+ * Es wird nie etwas geloescht.
+ */
 export async function commitFamilien(formData: FormData): Promise<FamCommit> {
   const user = await guard();
   const file = formData.get("file");
+  const modus = String(formData.get("modus") ?? "ergaenzen") === "ueberschreiben" ? "ueberschreiben" : "ergaenzen";
   if (!(file instanceof File)) return { ok: false, message: "Keine Datei", persons: 0, cards: 0, skipped: 0 };
   const rows = parseFamilien(Buffer.from(await file.arrayBuffer()));
 
@@ -262,18 +272,71 @@ export async function commitFamilien(formData: FormData): Promise<FamCommit> {
   const locList = await db().select({ id: locations.id, name: locations.name, code: locations.locationCode }).from(locations);
   const locByName = new Map(locList.map((l) => [normalizeName(l.name), l]));
 
-  // Bereits importierte Alt-IDs (Wiederholungslauf → überspringen, idempotent)
-  const existing = await db().select({ lid: persons.legacyId }).from(persons).where(isNull(persons.deletedAt));
-  const existingIds = new Set(existing.map((p) => p.lid).filter((x): x is number => x != null));
+  // Bereits importierte Alt-IDs → Person (Wiederholungslauf ergaenzt statt zu ueberspringen)
+  const existing = await db().select({ id: persons.id, lid: persons.legacyId, address: persons.address, phone: persons.phone, householdSize: persons.householdSize, childrenCount: persons.childrenCount, gruppe: persons.gruppe, ausgabeNumber: persons.ausgabeNumber, note: persons.note })
+    .from(persons).where(isNull(persons.deletedAt));
+  const existingById = new Map(existing.filter((p) => p.lid != null).map((p) => [p.lid!, p]));
 
-  let nPersons = 0, nCards = 0, skipped = 0;
+  let nPersons = 0, nCards = 0, skipped = 0, nAktualisiert = 0, nZuordnungen = 0;
   const seen = new Set<number>();
   const importDate = today();
 
   for (const r of rows) {
     if (r.deleted || r.error || r.oldId == null) { skipped++; continue; }
-    if (existingIds.has(r.oldId) || seen.has(r.oldId)) { skipped++; continue; }
+    if (seen.has(r.oldId)) { skipped++; continue; }
     seen.add(r.oldId);
+
+    const bekannt = existingById.get(r.oldId);
+    if (bekannt) {
+      const loc = r.ortLabel ? locByName.get(normalizeName(r.ortLabel)) : undefined;
+      const set: Partial<typeof persons.$inferInsert> = {};
+      if (modus === "ueberschreiben") {
+        const lnN = normalizeName(r.lastName), fnN = normalizeName(r.firstName);
+        Object.assign(set, { firstName: r.firstName, lastName: r.lastName, address: r.address, phone: r.phone,
+          householdSize: r.adults + r.children, childrenCount: r.children, gruppe: r.gruppe, ausgabeNumber: r.nummer, note: r.note,
+          lastNameNorm: lnN, firstNameNorm: fnN, addressNorm: normalizeAddress(r.address), lastNamePhon: koelnerPhonetik(lnN), firstNamePhon: koelnerPhonetik(fnN) });
+      } else {
+        if (!bekannt.address && r.address) { set.address = r.address; set.addressNorm = normalizeAddress(r.address); }
+        if (!bekannt.phone && r.phone) set.phone = r.phone;
+        if (bekannt.householdSize == null) { set.householdSize = r.adults + r.children; set.childrenCount = r.children; }
+        if (bekannt.gruppe == null && r.gruppe != null) set.gruppe = r.gruppe;
+        if (bekannt.ausgabeNumber == null && r.nummer != null) set.ausgabeNumber = r.nummer;
+        if (!bekannt.note && r.note) set.note = r.note;
+      }
+      if (Object.keys(set).length) { await db().update(persons).set({ ...set, updatedBy: user.id, updatedAt: new Date() }).where(eq(persons.id, bekannt.id)); nAktualisiert++; }
+
+      if (loc) {
+        const zu = await db().select({ id: personLocationAssignments.id }).from(personLocationAssignments).where(and(eq(personLocationAssignments.personId, bekannt.id), eq(personLocationAssignments.isActive, true))).limit(1);
+        if (!zu[0]) { await db().insert(personLocationAssignments).values({ personId: bekannt.id, locationId: loc.id }); nZuordnungen++; }
+        const karte = await db().select({ id: cards.id, status: cards.status, legacy: cards.legacy }).from(cards).where(and(eq(cards.personId, bekannt.id), isNull(cards.deletedAt))).limit(1);
+        if (!karte[0]) {
+          const legacyNumber = String(r.oldId).padStart(6, "0");
+          const cardIns = await db().insert(cards).values({
+            cardNumber: legacyNumber, personId: bekannt.id, locationId: loc.id,
+            validFrom: r.lAnwesenheit ?? importDate, validTo: r.karte ?? importDate,
+            status: r.blocked ? "GESPERRT" : "AKTIV", blockReason: r.blocked ? (r.note ?? "aus Altsystem gesperrt").slice(0, 250) : null,
+            legacy: true, createdBy: user.id,
+          }).onConflictDoNothing({ target: cards.cardNumber }).returning({ id: cards.id });
+          if (cardIns[0]) {
+            nCards++;
+            if (r.schulden > 0 || r.lAnwesenheit) {
+              await db().insert(distributions).values({
+                cardId: cardIns[0].id, personId: bekannt.id, locationId: loc.id, distributedBy: user.id,
+                distributedAt: new Date(`${r.lAnwesenheit ?? importDate}T12:00:00`),
+                amountDue: r.schulden > 0 ? String(r.schulden) : "0", amountPaid: "0", note: "Übernahme Altsystem",
+              });
+            }
+          }
+        } else if (modus === "ueberschreiben" && karte[0].legacy) {
+          // Sperrstatus aus dem Altsystem nur auf Alt-Karten uebertragen (neue EAN-Karten gehoeren dem neuen System).
+          const soll = r.blocked ? "GESPERRT" : "AKTIV";
+          if (karte[0].status !== soll && (karte[0].status === "AKTIV" || karte[0].status === "GESPERRT")) {
+            await db().update(cards).set({ status: soll, blockReason: r.blocked ? (r.note ?? "aus Altsystem gesperrt").slice(0, 250) : null, updatedAt: new Date() }).where(eq(cards.id, karte[0].id));
+          }
+        }
+      }
+      continue;
+    }
 
     const lnNorm = normalizeName(r.lastName), fnNorm = normalizeName(r.firstName);
     const loc = r.ortLabel ? locByName.get(normalizeName(r.ortLabel)) : undefined;
@@ -318,6 +381,6 @@ export async function commitFamilien(formData: FormData): Promise<FamCommit> {
     }
   }
 
-  await audit({ actorUserId: user.id, action: "migration.familien", entityType: "person", after: { persons: nPersons, cards: nCards, skipped } });
-  return { ok: true, persons: nPersons, cards: nCards, skipped };
+  await audit({ actorUserId: user.id, action: "migration.familien", entityType: "person", after: { modus, persons: nPersons, cards: nCards, skipped, aktualisiert: nAktualisiert, zuordnungen: nZuordnungen } });
+  return { ok: true, persons: nPersons, cards: nCards, skipped, aktualisiert: nAktualisiert, zuordnungen: nZuordnungen };
 }

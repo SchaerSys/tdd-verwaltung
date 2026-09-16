@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { lookupCard, searchByName, recordDistribution, getActiveCards, issueCardKiosk, savePersonNote, payDebt, blockCardKiosk, unblockCardKiosk, todayStats, type Eligibility, type CachedCard, type IssueResult } from "./actions";
+import { lookupCard, searchByName, recordDistribution, getActiveCards, issueCardKiosk, savePersonNote, saveBirthDate, payDebt, blockCardKiosk, unblockCardKiosk, todayStats, type Eligibility, type CachedCard, type IssueResult } from "./actions";
+import { KameraScan } from "./KameraScan";
 import { Footer } from "@/components/Footer";
 import { fmtDate, fmtDateTime } from "@/lib/format";
 
@@ -34,6 +35,8 @@ export function KioskClient({ locationName, initialCards, logout }: { locationNa
   const [online, setOnline] = useState(true);
   const [pending, setPending] = useState(0);
   const [scanVal, setScanVal] = useState("");
+  const [geb, setGeb] = useState("");
+  const [gebFehler, setGebFehler] = useState<string | null>(null);
   const [result, setResult] = useState<Eligibility | null>(null);
   const [confirmed, setConfirmed] = useState<string | null>(null);
   const [today, setToday] = useState<{ count: number; persons: number; sum: number } | null>(null);
@@ -218,6 +221,7 @@ export function KioskClient({ locationName, initialCards, logout }: { locationNa
                 onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); void doScan(scanVal); } }}
               />
               <button className="btn primary" onClick={() => void doScan(scanVal)}>Prüfen</button>
+              <KameraScan onCode={(c) => { setScanVal(c); void doScan(c); }} />
             </div>
 
             <div className="namesearch">
@@ -311,6 +315,16 @@ export function KioskClient({ locationName, initialCards, logout }: { locationNa
                         <input type="checkbox" checked={moneyForgotten} onChange={(e) => setMoneyForgotten(e.target.checked)} />
                         Geld vergessen
                       </label>
+                    </div>
+                  ) : null}
+                  {result.personId && !result.birthDate ? (
+                    <div className="k-note" style={{ borderColor: "var(--warn)" }}>
+                      <span>Geburtsdatum fehlt – bitte erfragen</span>
+                      <div className="flex gap-2 items-center">
+                        <input type="date" className="inp mono" value={geb} onChange={(e) => setGeb(e.target.value)} max={new Date().toISOString().slice(0, 10)} />
+                        <button className="btn sm" disabled={!geb} onClick={() => void (async () => { if (!result.personId) return; const r = await saveBirthDate(result.personId, geb); if (r.ok) { setResult({ ...result, birthDate: geb }); setGeb(""); setGebFehler(null); } else setGebFehler(r.error ?? "Fehler"); })()}>Speichern</button>
+                      </div>
+                      {gebFehler ? <div className="text-xs" style={{ color: "var(--bad)" }}>{gebFehler}</div> : null}
                     </div>
                   ) : null}
                   <div className="k-note">

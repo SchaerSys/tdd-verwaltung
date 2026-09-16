@@ -21,7 +21,7 @@ const ICONS: Record<string, string> = {
   "/dashboard": "🏠", "/personen": "👤", "/personen/papierkorb": "🗑", "/personen/dubletten": "⧉",
   "/bewilligt": "✅", "/karten": "💳", "/karten/papierkorb": "🗑", "/auswertungen": "📊",
   "/kiosk": "📷", "/ausgaben": "📦", "/admin": "🛠", "/admin/benutzer": "👥", "/admin/import": "⬆️",
-  "/admin/migration": "🔄", "/personal": "🧑‍💼", "/zeit": "⏱️", "/urlaub": "🌴",
+  "/admin/migration": "🔄", "/admin/pilot": "🚀", "/personal": "🧑‍💼", "/zeit": "⏱️", "/urlaub": "🌴",
   "/touren": "🚚", "/touren/vorlagen": "📅", "/touren/abholstellen": "🏪", "/touren/fahrzeuge": "🚐", "/touren/angebote": "📥", "/touren/standorte": "🗺️",
 };
 

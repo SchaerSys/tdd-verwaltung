@@ -37,6 +37,7 @@ export const NAV: NavDef[] = [
   { href: "/admin/benutzer", label: "Benutzerverwaltung", perm: "admin:manage", group: "Verwaltung" },
   { href: "/admin/import", label: "Import", perm: "admin:manage", group: "Verwaltung" },
   { href: "/admin/migration", label: "Übernahme Altsystem", perm: "admin:manage", group: "Verwaltung" },
+  { href: "/admin/pilot", label: "Pilot am Tresen", perm: "admin:manage", group: "Verwaltung" },
 ];
 
 /** Alle Nav-Einträge, die die Rolle sehen darf. */

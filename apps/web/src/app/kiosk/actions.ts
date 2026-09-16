@@ -31,6 +31,7 @@ export interface Eligibility {
   note?: string | null;       // persistente Notiz (bleibt bei jedem Scan sichtbar)
   reissued?: boolean;         // Alt-Karte gescannt → neue EAN-Karte wurde erzeugt (bitte drucken)
   visitsToday?: number;       // Anzahl heutiger Ausgaben (Doppelausgabe-Warnung am Tresen)
+  birthDate?: string | null;  // fehlt bei fast allen Altdaten – beim Erstkontakt nachfragen
 }
 
 /** Erwachsene = Haushalt gesamt − Kinder (mind. 1). */
@@ -92,7 +93,7 @@ export async function lookupCard(rawCode: string): Promise<Eligibility> {
       locationId: cards.locationId, legacy: cards.legacy,
       personId: persons.id, first: persons.firstName, last: persons.lastName,
       photoRef: persons.photoRef, householdSize: persons.householdSize, childrenCount: persons.childrenCount,
-      ausgabeNumber: persons.ausgabeNumber, gruppe: persons.gruppe, note: persons.note,
+      ausgabeNumber: persons.ausgabeNumber, gruppe: persons.gruppe, note: persons.note, birthDate: persons.birthDate,
     })
     .from(cards)
     .innerJoin(persons, eq(cards.personId, persons.id))
@@ -102,7 +103,7 @@ export async function lookupCard(rawCode: string): Promise<Eligibility> {
   const c = rows[0];
   if (!c) return { status: "NOTFOUND", cardNumber: code };
 
-  const base = { cardId: c.cardId, cardNumber: c.number, personId: c.personId, name: `${c.first} ${c.last}`, validTo: c.validTo, photoRef: c.photoRef };
+  const base = { cardId: c.cardId, cardNumber: c.number, personId: c.personId, name: `${c.first} ${c.last}`, validTo: c.validTo, photoRef: c.photoRef, birthDate: c.birthDate };
   const todayStr = new Date().toISOString().slice(0, 10);
 
   if (c.status === "GESPERRT") {
@@ -281,6 +282,20 @@ export async function unblockCardKiosk(cardId: string): Promise<{ ok: boolean }>
   const user = await guard();
   await db().update(cards).set({ status: "AKTIV", blockReason: null, updatedAt: new Date() }).where(eq(cards.id, cardId));
   await audit({ actorUserId: user.id, action: "card.unblock.kiosk", entityType: "card", entityId: cardId });
+  return { ok: true };
+}
+
+/**
+ * Geburtsdatum beim Erstkontakt nachtragen (Pilot): die Altsoftware kannte keines, die
+ * Dublettenpruefung braucht es. Nur setzen, wenn noch leer – Korrekturen im Backoffice.
+ */
+export async function saveBirthDate(personId: string, datum: string): Promise<{ ok: boolean; error?: string }> {
+  const user = await guard();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(datum)) return { ok: false, error: "Datum ungültig" };
+  const jahr = Number(datum.slice(0, 4));
+  if (jahr < 1900 || datum > new Date().toISOString().slice(0, 10)) return { ok: false, error: "Datum unplausibel" };
+  await db().update(persons).set({ birthDate: datum, updatedBy: user.id, updatedAt: new Date() }).where(and(eq(persons.id, personId), isNull(persons.birthDate)));
+  await audit({ actorUserId: user.id, action: "person.birthdate.kiosk", entityType: "person", entityId: personId });
   return { ok: true };
 }
 

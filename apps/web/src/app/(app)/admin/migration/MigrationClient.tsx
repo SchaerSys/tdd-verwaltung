@@ -15,6 +15,7 @@ export function MigrationClient() {
   const [famFile, setFamFile] = useState<File | null>(null);
   const [analyze, setAnalyze] = useState<FamAnalyze | null>(null);
   const [commit, setCommit] = useState<FamCommit | null>(null);
+  const [modus, setModus] = useState<"ergaenzen" | "ueberschreiben">("ergaenzen");
   const [famBusy, setFamBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -35,7 +36,7 @@ export function MigrationClient() {
   async function runCommit() {
     if (!famFile) return;
     setFamBusy(true); setErr(null);
-    try { setCommit(await commitFamilien(fd(famFile))); }
+    try { const f = fd(famFile); f.append("modus", modus); setCommit(await commitFamilien(f)); }
     catch (e) { setErr(`Import fehlgeschlagen: ${String(e)}`); }
     finally { setFamBusy(false); }
   }
@@ -95,15 +96,22 @@ export function MigrationClient() {
                 </tbody>
               </table></div>
               {analyze.noOrt > 0 ? <div className="pill warn">Achtung: {analyze.noOrt} Familien haben keinen bekannten Ort – bitte zuerst Schritt 1 (Orte) ausführen.</div> : null}
+              <div className="panel" style={{ padding: 12 }}>
+                <div className="lbl" style={{ marginBottom: 6 }}>Wiederholungslauf – was passiert mit schon bekannten Familien (Alt-ID vorhanden)?</div>
+                <label className="flex items-start gap-2 text-[.8125rem]"><input type="radio" name="modus" checked={modus === "ergaenzen"} onChange={() => setModus("ergaenzen")} />
+                  <span><b>Ergänzen</b> (Standard): fehlende Zuordnung, Alt-Karte und Übernahme-Buchung kommen dazu, leere Felder werden befüllt. Änderungen im neuen System bleiben.</span></label>
+                <label className="flex items-start gap-2 text-[.8125rem] mt-1"><input type="radio" name="modus" checked={modus === "ueberschreiben"} onChange={() => setModus("ueberschreiben")} />
+                  <span><b>Altsystem ist führend</b>: Name, Adresse, Telefon, Haushalt, Gruppe/Nummer, Notiz und Sperre der Alt-Karte werden aus der Datei übernommen. Für Ausgabestellen, die noch im alten System arbeiten.</span></label>
+              </div>
               <div className="flex gap-2 justify-end">
-                <button className="btn primary" disabled={famBusy || analyze.importable === 0} onClick={() => void runCommit()}>{famBusy ? "Importiere…" : `${analyze.importable} Familien importieren`}</button>
+                <button className="btn primary" disabled={famBusy || analyze.importable === 0} onClick={() => void runCommit()}>{famBusy ? "Importiere…" : `${analyze.importable} Familien importieren / abgleichen`}</button>
               </div>
             </>
           ) : analyze && !analyze.ok ? <div className="pill bad">{analyze.message}</div> : null}
 
           {commit ? (
             commit.ok
-              ? <div className="panel" style={{ borderColor: "var(--good)" }}><div className="p-4">✓ Import abgeschlossen: <b>{commit.persons}</b> Personen, <b>{commit.cards}</b> Karten angelegt, {commit.skipped} übersprungen.</div></div>
+              ? <div className="panel" style={{ borderColor: "var(--good)" }}><div className="p-4">✓ Import abgeschlossen: <b>{commit.persons}</b> Personen neu, <b>{commit.aktualisiert ?? 0}</b> aktualisiert, <b>{commit.cards}</b> Karten angelegt, {commit.zuordnungen ?? 0} Zuordnungen ergänzt, {commit.skipped} übersprungen (gelöscht/doppelt/fehlerhaft).</div></div>
               : <div className="pill bad">{commit.message}</div>
           ) : null}
         </div>

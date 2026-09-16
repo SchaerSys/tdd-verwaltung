@@ -86,6 +86,7 @@ export default async function DispositionSeite({ searchParams }: { searchParams:
                   <span className="pill muted">{t.stopps.length} Stopps{erledigt ? ` · ${erledigt} erledigt` : ""}</span>
                   {t.stopps.some((s) => s.kuehlbedarf) ? <span className="pill tag-out">❄ Kühlware</span> : null}
                   {t.freigegebenAt ? <span className="pill good">📲 gesendet</span> : t.status === "GEPLANT" ? <span className="pill warn">noch nicht gesendet</span> : null}
+                  {t.status === "UNTERWEGS" && t.positionAt ? <span className={`pill ${Date.now() - t.positionAt.getTime() < 10 * 60000 ? "good" : "muted"}`} title="Letzte Position des Fahrzeugs (Geofencing)">📍 {t.positionAt.toLocaleTimeString("de-AT", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Vienna" })}</span> : null}
                   {t.streckeKm ? <span className="pill muted">{t.streckeKm} km · {t.fahrzeitMin} min</span> : null}
                   <span style={{ marginLeft: "auto" }} className="flex gap-1">
                     {t.status === "GEPLANT" ? (

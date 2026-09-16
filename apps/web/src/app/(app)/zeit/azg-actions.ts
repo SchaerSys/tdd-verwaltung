@@ -25,6 +25,7 @@ export async function regelnSpeichern(fd: FormData): Promise<void> {
     svTraeger: String(fd.get("svTraeger") ?? "").trim() || "Österreichische Gesundheitskasse (ÖGK)",
     kvEinsicht: String(fd.get("kvEinsicht") ?? "").trim() || null,
     ausgabeStempelt: fd.get("ausgabeStempelt") === "on",
+    ortungAufbewahrungTage: num(fd, "ortungAufbewahrungTage", 1, 3650, 90),
     // Zivildienst-Grenzen laut ZISA
     ziviWocheMinMin: num(fd, "ziviWocheMinStd", 0, 60, 36) * 60, ziviWocheMaxMin: num(fd, "ziviWocheMaxStd", 1, 60, 45) * 60,
     ziviTagMaxMin: num(fd, "ziviTagMaxStd", 1, 12, 10) * 60, ziviRuhezeitMin: num(fd, "ziviRuhezeitStd", 1, 24, 11) * 60,

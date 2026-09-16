@@ -18,7 +18,8 @@ export async function standortAdresse(fd: FormData): Promise<void> {
   const l = (await db().select().from(locations).where(eq(locations.id, id)).limit(1))[0];
   if (!l) return;
   const p = await geocode([strasse, [plz, l.city].filter(Boolean).join(" ")].filter(Boolean).join(", "));
-  await db().update(locations).set({ strasse, plz, ...(p ? { lat: p.lat, lng: p.lng } : {}) }).where(eq(locations.id, id));
+  const gf = parseInt(String(fd.get("geofenceM") ?? ""), 10);
+  await db().update(locations).set({ strasse, plz, ...(Number.isFinite(gf) ? { geofenceM: Math.min(1000, Math.max(30, gf)) } : {}), ...(p ? { lat: p.lat, lng: p.lng } : {}) }).where(eq(locations.id, id));
   await audit({ actorUserId: u.id, action: "location.address", entityType: "location", entityId: String(id), after: { strasse, plz, gefunden: p?.anzeige ?? null } });
   revalidatePath("/touren/standorte");
 }

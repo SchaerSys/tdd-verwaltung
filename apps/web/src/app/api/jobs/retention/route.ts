@@ -17,6 +17,7 @@ import { purgePersons, deleteFiles } from "@/lib/purge";
  *    samt Dateien löschen, Gehalt/SV-Nummer/Geburtsdatum/Notfallkontakt leeren.
  *    Die Person bleibt (Touren-/Zeithistorie ist Betriebsdatum ohne Sensibles).
  * 5) Logins ausgetretener Mitarbeitender sperren (P1) – Grund AUSTRITT.
+ * 6) Geofencing: Ereignisse nach der eingestellten Frist loeschen, Positionen beendeter Touren leeren.
  */
 export async function GET(req: Request) {
   const denied = requireJobToken(req);
@@ -64,8 +65,13 @@ export async function GET(req: Request) {
     WHERE is_active AND id IN (SELECT user_id FROM staff WHERE user_id IS NOT NULL AND employment_end IS NOT NULL AND employment_end < current_date)
     RETURNING id`);
 
+  // 6) Geofencing-Ereignisse
+  const { ladeRegeln } = await import("@/lib/azg-daten");
+  const { geofenceAufraeumen } = await import("@/lib/geofence-daten");
+  const ortung = await geofenceAufraeumen((await ladeRegeln()).ortungAufbewahrungTage);
+
   const result = {
-    logins: (gesperrt as unknown as { id: string }[]).length,
+    ortung, logins: (gesperrt as unknown as { id: string }[]).length,
     scans: scanRefs.length, scanFiles,
     persons: purged.persons, personFiles: purged.files,
     docs: docRefs.length, docFiles,

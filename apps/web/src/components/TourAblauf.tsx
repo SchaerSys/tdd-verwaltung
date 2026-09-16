@@ -2,6 +2,7 @@ import { zeitKurz } from "@/lib/touren";
 import type { TourAnzeige } from "@/lib/touren-daten";
 import { stoppMelden, tourBeenden, tourStarten } from "@/app/(app)/touren/actions";
 import { TourKarte } from "@/components/TourKarte";
+import { Ortung } from "@/components/Ortung";
 
 export type Strecke = { km: number; minuten: number; geometrie: [number, number][] } | null;
 
@@ -11,7 +12,7 @@ export type Strecke = { km: number; minuten: number; geometrie: [number, number]
  */
 export interface FahrerOption { id: string; name: string }
 
-export function TourAblauf({ liste, strecken, fahrer }: { liste: TourAnzeige[]; strecken: Map<string, Strecke>; fahrer: FahrerOption[] }) {
+export function TourAblauf({ liste, strecken, fahrer, ortung = new Set<string>() }: { liste: TourAnzeige[]; strecken: Map<string, Strecke>; fahrer: FahrerOption[]; /** Tour-IDs, fuer die die fahrende Person der Ortung zugestimmt hat */ ortung?: Set<string> }) {
   return (
     <>
       {liste.map((t) => {
@@ -34,6 +35,7 @@ export function TourAblauf({ liste, strecken, fahrer }: { liste: TourAnzeige[]; 
             </div>
 
             {punkte.length ? <div className="p-2 border-b border-[color:var(--border)]"><TourKarte punkte={punkte} route={strecke?.geometrie} hoehe={260} />{strecke ? <div className="text-xs text-muted mt-1 text-center">{strecke.km} km · ca. {strecke.minuten} min Fahrzeit</div> : null}</div> : null}
+            {t.status === "UNTERWEGS" ? (ortung.has(t.id) ? <Ortung tourId={t.id} /> : <div className="p-2 text-xs text-muted border-b border-[color:var(--border)]">Ortung aus – keine Zustimmung der fahrenden Person hinterlegt. Stopps bitte von Hand abhaken.</div>) : null}
             {t.status === "UNTERWEGS" && naechster && naviNaechster ? (
               <div className="p-3 border-b border-[color:var(--border)]"><a href={naviNaechster} className="btn primary" style={{ display: "block", textAlign: "center", fontSize: "1.05rem", padding: "12px" }}>🧭 Navigation zu Stopp {t.stopps.indexOf(naechster) + 1}: {naechster.name}</a></div>
             ) : null}

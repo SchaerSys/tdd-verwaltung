@@ -39,6 +39,7 @@ export const locations = pgTable("locations", {
   plz: text("plz"),
   lat: doublePrecision("lat"),
   lng: doublePrecision("lng"),
+  geofenceM: integer("geofence_m").notNull().default(150), // Geofence-Radius (052)
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -442,6 +443,7 @@ export const staff = pgTable("staff", {
   ziviBescheid: text("zivi_bescheid"),
   ziviFehltageVor: smallint("zivi_fehltage_vor").notNull().default(0),
   // Ausgabestation (049): persoenliche PIN = Berechtigung fuer die Ausgabe am Laptop
+  ortungZustimmungAm: date("ortung_zustimmung_am"), // Zustimmung Fahrzeugortung (052)
   pinHash: text("pin_hash"),
   pinMussAendern: boolean("pin_muss_aendern").notNull().default(false),
   pinFehlversuche: integer("pin_fehlversuche").notNull().default(0),
@@ -538,6 +540,7 @@ export const abholstellen = pgTable("abholstellen", {
   hinweise: text("hinweise"),
   lat: doublePrecision("lat"),
   lng: doublePrecision("lng"),
+  geofenceM: integer("geofence_m").notNull().default(150), // Geofence-Radius (052)
   isActive: boolean("is_active").notNull().default(true),
   angebotId: integer("angebot_id"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -605,6 +608,11 @@ export const touren = pgTable("touren", {
   hinweise: text("hinweise"),
   streckeKm: numeric("strecke_km", { precision: 7, scale: 1 }),
   fahrzeitMin: integer("fahrzeit_min"),
+  positionLat: doublePrecision("position_lat"), // letzte Position waehrend der Tour (052)
+  positionLng: doublePrecision("position_lng"),
+  positionAt: timestamp("position_at", { withTimezone: true }),
+  positionGenauigkeitM: integer("position_genauigkeit_m"),
+  bewegungAt: timestamp("bewegung_at", { withTimezone: true }),
   freigegebenAt: timestamp("freigegeben_at", { withTimezone: true }), // an den Fahrer gesendet
   freigegebenBy: uuid("freigegeben_by").references(() => users.id),
   createdBy: uuid("created_by").references(() => users.id),
@@ -626,6 +634,21 @@ export const tourStopps = pgTable("tour_stopps", {
   mengeKg: numeric("menge_kg", { precision: 8, scale: 1 }),
   bemerkung: text("bemerkung"),
 });
+
+// Geofencing: Ankunft/Abfahrt an Stellen waehrend der Tour (052)
+export const tourEreignisse = pgTable("tour_ereignisse", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tourId: uuid("tour_id").notNull().references(() => touren.id, { onDelete: "cascade" }),
+  stoppId: uuid("stopp_id").references(() => tourStopps.id, { onDelete: "set null" }),
+  art: text("art").notNull(), // ANKUNFT | ABFAHRT | STILLSTAND | LAGER_ANKUNFT | LAGER_ABFAHRT
+  stelleTyp: text("stelle_typ"), // ABHOLSTELLE | STANDORT
+  stelleId: integer("stelle_id"),
+  stelleName: text("stelle_name"),
+  at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
+  lat: doublePrecision("lat"),
+  lng: doublePrecision("lng"),
+  genauigkeitM: integer("genauigkeit_m"),
+}, (t) => ({ tourIdx: index("idx_tour_ereignisse_tour").on(t.tourId, t.at) }));
 
 export const angeboteEingang = pgTable("angebote_eingang", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
@@ -713,6 +736,7 @@ export const zeitRegeln = pgTable("zeit_regeln", {
   ziviRuhezeitMin: integer("zivi_ruhezeit_min").notNull().default(660),
   ziviSonntagErlaubt: boolean("zivi_sonntag_erlaubt").notNull().default(false),
   ziviFreistellungMonat: smallint("zivi_freistellung_monat").notNull().default(2),
+  ortungAufbewahrungTage: integer("ortung_aufbewahrung_tage").notNull().default(90), // Geofence-Ereignisse (052)
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

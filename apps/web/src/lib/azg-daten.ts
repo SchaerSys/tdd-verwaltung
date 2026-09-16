@@ -5,8 +5,8 @@ import { feiertagsKarte } from "./feiertage";
 import { monatAuswertung, REGELN_STANDARD, type MonatAuswertung, type Verteilung, type ZeitRegeln } from "./azg";
 import { viennaLocalToUtc, type Ev, type EventKind } from "./zeit";
 
-export interface Arbeitgeber { arbeitgeberName: string; arbeitgeberAnschrift: string | null; bvKasse: string | null; svTraeger: string; kvEinsicht: string | null; ausgabeStempelt: boolean }
-const ARBEITGEBER_STANDARD: Arbeitgeber = { arbeitgeberName: "Tischlein deck dich Vorarlberg", arbeitgeberAnschrift: null, bvKasse: null, svTraeger: "Österreichische Gesundheitskasse (ÖGK)", kvEinsicht: null, ausgabeStempelt: true };
+export interface Arbeitgeber { arbeitgeberName: string; arbeitgeberAnschrift: string | null; bvKasse: string | null; svTraeger: string; kvEinsicht: string | null; ausgabeStempelt: boolean; ortungAufbewahrungTage: number }
+const ARBEITGEBER_STANDARD: Arbeitgeber = { arbeitgeberName: "Tischlein deck dich Vorarlberg", arbeitgeberAnschrift: null, bvKasse: null, svTraeger: "Österreichische Gesundheitskasse (ÖGK)", kvEinsicht: null, ausgabeStempelt: true, ortungAufbewahrungTage: 90 };
 
 /** Zivildienst-Grenzen laut ZISA (ZDG § 23) – als ZeitRegeln im ZDG-Modus plus Wochenminimum und Freistellung. */
 export interface ZiviRegeln { zivi: ZeitRegeln; ziviWocheMinMin: number; ziviFreistellungMonat: number }
@@ -26,7 +26,7 @@ export async function ladeRegeln(): Promise<AlleRegeln> {
   if (!r) return { ...REGELN_STANDARD, kollektivvertrag: null, ...ARBEITGEBER_STANDARD, ...ZIVI_STANDARD };
   return { maxTagMin: r.maxTagMin, maxWocheMin: r.maxWocheMin, pauseAbMin: r.pauseAbMin, pauseMin: r.pauseMin, ruhezeitMin: r.ruhezeitMin,
     normalarbeitszeitWocheMin: r.normalarbeitszeitWocheMin, mehrarbeitZuschlag: r.mehrarbeitZuschlag, ueberstundenZuschlag: r.ueberstundenZuschlag, kollektivvertrag: r.kollektivvertrag,
-    arbeitgeberName: r.arbeitgeberName, arbeitgeberAnschrift: r.arbeitgeberAnschrift, bvKasse: r.bvKasse, svTraeger: r.svTraeger, kvEinsicht: r.kvEinsicht, ausgabeStempelt: r.ausgabeStempelt,
+    arbeitgeberName: r.arbeitgeberName, arbeitgeberAnschrift: r.arbeitgeberAnschrift, bvKasse: r.bvKasse, svTraeger: r.svTraeger, kvEinsicht: r.kvEinsicht, ausgabeStempelt: r.ausgabeStempelt, ortungAufbewahrungTage: r.ortungAufbewahrungTage,
     zivi: { maxTagMin: r.ziviTagMaxMin, maxWocheMin: r.ziviWocheMaxMin, pauseAbMin: r.ziviPauseAbMin, pauseMin: r.ziviPauseMin, ruhezeitMin: r.ziviRuhezeitMin, normalarbeitszeitWocheMin: r.ziviWocheMaxMin, mehrarbeitZuschlag: 0, ueberstundenZuschlag: 0, gesetz: "ZDG", sonntagErlaubt: r.ziviSonntagErlaubt },
     ziviWocheMinMin: r.ziviWocheMinMin, ziviFreistellungMonat: r.ziviFreistellungMonat };
 }

@@ -20,6 +20,8 @@ export default async function AbholstelleSeite({ params }: { params: Promise<{ i
   if (!id) notFound();
   const a = (await db().select().from(abholstellen).where(eq(abholstellen.id, id)).limit(1))[0];
   if (!a) notFound();
+  const { abholstelleStatistik } = await import("@/lib/geofence-daten");
+  const stat = await abholstelleStatistik(Number(id));
   const [vorlagen, letzte] = await Promise.all([
     db().select({ id: tourVorlagen.id, name: tourVorlagen.name, wochentag: tourVorlagen.wochentag }).from(tourVorlageStopps).innerJoin(tourVorlagen, eq(tourVorlageStopps.vorlageId, tourVorlagen.id)).where(eq(tourVorlageStopps.abholstelleId, id)),
     db().select({ id: touren.id, datum: touren.datum, name: touren.name, status: tourStopps.status, kisten: tourStopps.mengeKisten, kg: tourStopps.mengeKg }).from(tourStopps).innerJoin(touren, eq(tourStopps.tourId, touren.id)).where(eq(tourStopps.abholstelleId, id)).orderBy(desc(touren.datum)).limit(20),
@@ -46,7 +48,7 @@ export default async function AbholstelleSeite({ params }: { params: Promise<{ i
             </ul>
           </div>
           <div className="panel">
-            <div className="panel-h"><h3>Letzte Abholungen</h3></div>
+            <div className="panel-h"><h3>Letzte Abholungen</h3>{stat.n ? <span className="pill muted" title="Aus der Ortung (Ankunft bis Abfahrt), letzte 90 Tage">Ø Aufenthalt {stat.schnittMin} min · {stat.n} Besuche</span> : null}</div>
             <div className="twrap"><table className="data">
               <thead><tr><th>Datum</th><th>Tour</th><th>Stand</th><th className="text-right">Menge</th></tr></thead>
               <tbody>{letzte.map((l) => <tr key={l.id + l.datum}><td className="mono text-xs">{fmtDate(l.datum)}</td><td><Link href={`/touren/${l.id}`}>{l.name}</Link></td><td>{l.status === "ERLEDIGT" ? <span className="pill good">erledigt</span> : l.status === "NICHT_MOEGLICH" ? <span className="pill bad">nicht möglich</span> : <span className="pill muted">offen</span>}</td><td className="mono text-right text-xs">{l.kisten != null ? `${l.kisten} K.` : ""}{l.kg != null ? ` ${l.kg} kg` : ""}</td></tr>)}

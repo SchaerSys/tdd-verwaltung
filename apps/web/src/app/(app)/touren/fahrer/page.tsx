@@ -49,7 +49,7 @@ export default async function FahrerSeite() {
 
       <div className="panel">
         <div className="twrap"><table className="data">
-          <thead><tr><th>Name</th><th>Art</th><th>Telefon</th><th>Adresse</th><th>Führerschein</th><th>Fahrertage</th><th>Login</th><th></th></tr></thead>
+          <thead><tr><th>Name</th><th>Art</th><th>Telefon</th><th>Adresse</th><th>Führerschein</th><th>Fahrertage</th><th>Ortung</th><th>Login</th><th></th></tr></thead>
           <tbody>{liste.map((f) => (
             <tr key={f.id} style={f.isActive ? undefined : { opacity: .55 }}>
               <td><Link href={`/personal/${f.id}`} className="font-semibold hover:underline">{f.lastName} {f.firstName}</Link>{!f.isActive ? <span className="pill muted" style={{ marginLeft: 6 }}>inaktiv</span> : null}</td>
@@ -58,11 +58,12 @@ export default async function FahrerSeite() {
               <td className="text-xs">{[f.strasse, [f.plz, f.ort].filter(Boolean).join(" ")].filter(Boolean).join(", ") || "—"}</td>
               <td className="mono text-xs">{f.fuehrerschein ?? "—"}</td>
               <td className="mono text-xs">{f.fahrerTage.length ? f.fahrerTage.map((t) => WOCHENTAGE_KURZ[t]).join(" ") : "alle"}</td>
+              <td className="text-xs">{f.ortungZustimmungAm ? <span className="pill good" title={`Zustimmung vom ${f.ortungZustimmungAm}`}>📍 ja</span> : <span className="pill muted" title="Ohne Zustimmung keine Ortung – im Personal-Datensatz eintragen">nein</span>}</td>
               <td className="text-xs">{f.userId ? <span className="pill muted">ja</span> : <span className="text-muted">nein (nicht nötig)</span>}</td>
               <td><Link href={`/personal/${f.id}`} className="btn ghost sm">Bearbeiten →</Link></td>
             </tr>
           ))}
-          {liste.length === 0 ? <tr><td colSpan={8}><div className="empty">Noch niemand hinterlegt. Oben „Fahrer:in hinterlegen“ – Name und Telefon genügen.</div></td></tr> : null}
+          {liste.length === 0 ? <tr><td colSpan={9}><div className="empty">Noch niemand hinterlegt. Oben „Fahrer:in hinterlegen“ – Name und Telefon genügen.</div></td></tr> : null}
           </tbody>
         </table></div>
         <div className="p-3 text-[.72rem] text-muted">Alle Personen aus dem Personal-Verzeichnis mit „fährt Touren“ erscheinen hier. Zeiterfassung und Urlaub sind für Fahrer:innen optional – die Felder stehen im Personal-Datensatz.</div>

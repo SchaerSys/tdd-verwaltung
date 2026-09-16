@@ -62,6 +62,7 @@ export async function updateStaff(fd: FormData): Promise<void> {
     kannFahren: staffType === "FAHRER" || fd.get("kannFahren") === "on", fuehrerschein: str(fd, "fuehrerschein"),
     strasse: str(fd, "strasse"), plz: str(fd, "plz"), ort: str(fd, "ort"),
     fahrerTage: fd.getAll("fahrerTage").map(Number).filter((n) => n >= 1 && n <= 7),
+    ortungZustimmungAm: (() => { const v = str(fd, "ortungZustimmungAm"); return v && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null; })(),
     userId: str(fd, "userId") || null,
   }).where(eq(staff.id, id));
   await audit({ actorUserId: u.id, action: "staff.update", entityType: "staff", entityId: id });

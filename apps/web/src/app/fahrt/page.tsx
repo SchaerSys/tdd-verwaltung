@@ -5,6 +5,7 @@ import { fahrerZuBenutzer, ladeTouren, planStammdaten } from "@/lib/touren-daten
 import { fmtDate } from "@/lib/format";
 import { streckeBerechnen } from "@/app/(app)/touren/karte-actions";
 import { TourAblauf } from "@/components/TourAblauf";
+import { ortungErlaubt } from "@/lib/touren-daten";
 
 export const dynamic = "force-dynamic";
 
@@ -35,7 +36,7 @@ export default async function FahrtSeite({ searchParams }: { searchParams: Promi
       {!me && !alle ? <div className="panel"><div className="p-4 text-[.9rem]">Dein Login ist noch keiner Person im Personal-Verzeichnis zugeordnet. Bitte im Büro melden.</div></div> : null}
       {liste.length === 0 ? <div className="panel"><div className="empty">Keine Tour für dich an diesem Tag.</div></div> : null}
 
-      <TourAblauf liste={liste} strecken={strecken} fahrer={fahrerListe} />
+      <TourAblauf liste={liste} strecken={strecken} fahrer={fahrerListe} ortung={await ortungErlaubt(liste)} />
     </div>
   );
 }

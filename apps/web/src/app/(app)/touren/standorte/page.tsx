@@ -37,6 +37,7 @@ export default async function StandorteKarteSeite() {
                   <input type="hidden" name="id" value={l.id} />
                   <input name="strasse" className="inp sm" defaultValue={l.strasse ?? ""} placeholder="Straße Nr." style={{ width: 200 }} />
                   <input name="plz" className="inp sm mono" defaultValue={l.plz ?? ""} placeholder="PLZ" style={{ width: 70 }} />
+                  <input name="geofenceM" className="inp sm mono" defaultValue={l.geofenceM} title="Geofence-Radius in Metern" style={{ width: 70 }} /><span className="text-xs text-muted">m</span>
                   <span className="text-[.8125rem]">{l.city}</span>
                   <span className="mono text-xs text-muted">{l.lat != null ? `${l.lat.toFixed(5)}, ${l.lng!.toFixed(5)}` : "—"}</span>
                   <button className="btn ghost sm" type="submit">Speichern &amp; Adresse suchen</button>

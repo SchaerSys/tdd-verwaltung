@@ -13,6 +13,8 @@ import { stoppMelden, tourFreigeben, tourLoeschen, tourStoppEntfernen, tourStopp
 import { streckeBerechnen } from "../karte-actions";
 import { osrmVerfuegbar } from "@/lib/geo";
 import { TourKartePanel } from "../KartePanel";
+import { tourZeitleiste } from "@/lib/geofence-daten";
+import { touren as tourenTabelle } from "@tdd/db";
 import { locations } from "@tdd/db";
 
 export const dynamic = "force-dynamic";
@@ -30,8 +32,11 @@ export default async function TourSeite({ params }: { params: Promise<{ id: stri
   const offen = t.status === "GEPLANT";
   // Karte: Startstandort + Stopps mit Koordinaten, Strecke in aktueller Reihenfolge
   const start = t.startLocationId ? (await db().select({ name: locations.name, lat: locations.lat, lng: locations.lng }).from(locations).where(eq(locations.id, t.startLocationId)).limit(1))[0] : undefined;
-  const [osrm, strecke] = await Promise.all([osrmVerfuegbar(), streckeBerechnen("tour", t.id)]);
+  const [osrm, strecke, zeitleiste, posRow] = await Promise.all([osrmVerfuegbar(), streckeBerechnen("tour", t.id), tourZeitleiste(t.id),
+    db().select({ lat: tourenTabelle.positionLat, lng: tourenTabelle.positionLng, at: tourenTabelle.positionAt, acc: tourenTabelle.positionGenauigkeitM }).from(tourenTabelle).where(eq(tourenTabelle.id, t.id)).limit(1)]);
+  const pos = posRow[0]?.lat != null && posRow[0]?.lng != null && posRow[0]?.at ? { lat: posRow[0].lat, lng: posRow[0].lng, at: posRow[0].at, acc: posRow[0].acc } : null;
   const punkte = [
+    ...(pos ? [{ lat: pos.lat, lng: pos.lng, nr: "🚚", label: "Fahrzeug", untertitel: `zuletzt ${fmtDateTime(pos.at)}${pos.acc ? ` · ±${pos.acc} m` : ""}`, farbe: "#f59e0b" }] : []),
     ...(start?.lat && start.lng ? [{ lat: start.lat, lng: start.lng, nr: "S", label: start.name, untertitel: "Start", farbe: "#1d4ed8" }] : []),
     ...t.stopps.filter((s) => s.lat != null && s.lng != null).map((s, i) => ({ lat: s.lat!, lng: s.lng!, nr: String(t.stopps.indexOf(s) + 1), label: s.name, untertitel: s.adresse, farbe: s.art === "LIEFERUNG" ? "#0f766e" : "#981313", i })),
   ];
@@ -122,6 +127,15 @@ export default async function TourSeite({ params }: { params: Promise<{ id: stri
             </form>
             {t.konflikte.length ? <ul className="px-3 pb-3 flex flex-col gap-1 text-[.8125rem]">{t.konflikte.map((k) => <li key={k.code} style={{ color: k.schwere === "FEHLER" ? "var(--bad)" : "var(--warn)" }}>{k.schwere === "FEHLER" ? "✕" : "△"} {k.text}</li>)}</ul> : null}
           </div>
+          {zeitleiste.ereignisse.length || pos ? (
+            <div className="panel">
+              <div className="panel-h"><h3>Ortung</h3>{pos ? <span className="pill good"><span className="dot" />zuletzt {fmtDateTime(pos.at)}</span> : <span className="pill muted">keine Position mehr</span>}{zeitleiste.ausgelassen.length ? <span className="pill warn">{zeitleiste.ausgelassen.length} Stopp(s) ausgelassen</span> : null}</div>
+              {zeitleiste.aufenthalte.length ? <div className="twrap"><table className="data" style={{ fontSize: ".78rem" }}><thead><tr><th>Stelle</th><th>Ankunft</th><th>Abfahrt</th><th className="text-right">Dauer</th></tr></thead>
+                <tbody>{zeitleiste.aufenthalte.map((a, i) => <tr key={i}><td>{a.stelleName ?? "?"}</td><td className="mono">{fmtDateTime(a.ankunft)}</td><td className="mono">{a.abfahrt ? fmtDateTime(a.abfahrt) : <span className="pill good">vor Ort</span>}</td><td className="mono text-right">{a.minuten} min</td></tr>)}</tbody></table></div> : null}
+              {zeitleiste.ereignisse.some((e) => e.art === "STILLSTAND") ? <div className="p-3 text-[.78rem]" style={{ color: "var(--warn)" }}>{zeitleiste.ereignisse.filter((e) => e.art === "STILLSTAND").map((e) => <div key={e.id}>Stillstand {fmtDateTime(e.at)} {e.stelleName ?? ""}</div>)}</div> : null}
+              <div className="p-3 text-[.7rem] text-muted border-t border-[color:var(--border)]">Nur Ankunft/Abfahrt an geplanten Stellen und die letzte Position während der Tour; kein Verlauf. Ereignisse werden nach der eingestellten Frist gelöscht (Regeln).</div>
+            </div>
+          ) : null}
           <div className="panel">
             <div className="panel-h"><h3>Fahrt</h3></div>
             <div className="p-3 text-[.8125rem] flex flex-col gap-1">

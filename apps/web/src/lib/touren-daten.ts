@@ -15,6 +15,7 @@ export interface TourAnzeige {
   fahrer: string | null; beifahrer: string | null; fahrzeug: string | null; fahrzeugKuehlung: boolean; start: string | null;
   kmStart: number | null; kmEnde: number | null; gestartetAt: Date | null; beendetAt: Date | null;
   freigegebenAt: Date | null; streckeKm: string | null; fahrzeitMin: number | null;
+  positionAt: Date | null; // Geofencing: letzte Position waehrend der Tour
   stopps: StoppAnzeige[]; konflikte: Konflikt[];
 }
 
@@ -68,7 +69,7 @@ export async function ladeTouren(where: { datum?: string; id?: string; fahrerSta
       fahrerId: t.fahrerId, beifahrerId: t.beifahrerId, fahrzeugId: t.fahrzeugId, startLocationId: t.startLocationId,
       fahrer: fahrerName(t.fahrerId), beifahrer: fahrerName(t.beifahrerId), fahrzeug: w ? `${w.kennzeichen} · ${w.bezeichnung}` : null, fahrzeugKuehlung: w?.kuehlung ?? false,
       start: start ? start.name : null, kmStart: t.kmStart, kmEnde: t.kmEnde, gestartetAt: t.gestartetAt, beendetAt: t.beendetAt,
-      freigegebenAt: t.freigegebenAt, streckeKm: t.streckeKm, fahrzeitMin: t.fahrzeitMin,
+      freigegebenAt: t.freigegebenAt, streckeKm: t.streckeKm, fahrzeitMin: t.fahrzeitMin, positionAt: t.positionAt,
       stopps: stopps.filter((s) => s.s.tourId === t.id).map((s) => ({
         id: s.s.id, reihenfolge: s.s.reihenfolge, art: s.s.art, status: s.s.status, hinweis: s.s.hinweis, bemerkung: s.s.bemerkung,
         mengeKisten: s.s.mengeKisten, mengeKg: s.s.mengeKg, erledigtAt: s.s.erledigtAt,
@@ -86,4 +87,13 @@ export async function ladeTouren(where: { datum?: string; id?: string; fahrerSta
 /** Personal-Datensatz des angemeldeten Fahrers (staff.user_id). */
 export async function fahrerZuBenutzer(userId: string) {
   return (await db().select({ id: staff.id, firstName: staff.firstName, lastName: staff.lastName }).from(staff).where(eq(staff.userId, userId)).limit(1))[0] ?? null;
+}
+
+/** Touren, deren fahrende Person der Fahrzeugortung zugestimmt hat (Geofencing am Tablet). */
+export async function ortungErlaubt(liste: TourAnzeige[]): Promise<Set<string>> {
+  const ids = [...new Set(liste.map((t) => t.fahrerId).filter((x): x is string => !!x))];
+  if (!ids.length) return new Set();
+  const rows = await db().select({ id: staff.id, z: staff.ortungZustimmungAm }).from(staff).where(inArray(staff.id, ids));
+  const ok = new Set(rows.filter((r) => r.z).map((r) => r.id));
+  return new Set(liste.filter((t) => t.fahrerId && ok.has(t.fahrerId)).map((t) => t.id));
 }

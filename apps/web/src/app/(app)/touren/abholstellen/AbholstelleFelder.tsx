@@ -6,7 +6,7 @@ export const ABHOL_ART_LABEL: Record<string, string> = {
 
 export interface AbholstelleWerte {
   name: string; art: string; strasse: string | null; plz: string | null; ort: string | null; ansprechperson: string | null; telefon: string | null; email: string | null;
-  kuehlbedarf: boolean; abholtage: number[]; fensterVon: string | null; fensterBis: string | null; hinweise: string | null; isActive?: boolean;
+  kuehlbedarf: boolean; abholtage: number[]; fensterVon: string | null; fensterBis: string | null; hinweise: string | null; isActive?: boolean; geofenceM?: number;
 }
 
 /** Formularfelder einer Abholstelle (Anlegen und Bearbeiten). */
@@ -26,6 +26,7 @@ export function AbholstelleFelder({ a }: { a?: AbholstelleWerte }) {
         <div className="flex gap-2 flex-wrap mt-2 text-[.8125rem]">{[1, 2, 3, 4, 5, 6, 7].map((t) => <label key={t} className="flex items-center gap-1"><input type="checkbox" name="abholtage" value={t} defaultChecked={a?.abholtage.includes(t)} />{WOCHENTAGE_KURZ[t]}</label>)}</div></div>
       <div className="field"><label className="lbl">Abholfenster von – bis</label><div className="flex gap-1"><input name="fensterVon" type="time" className="inp mono" defaultValue={a?.fensterVon?.slice(0, 5) ?? ""} /><input name="fensterBis" type="time" className="inp mono" defaultValue={a?.fensterBis?.slice(0, 5) ?? ""} /></div></div>
       <div className="field"><label className="lbl">Hinweise für Fahrer:innen</label><input name="hinweise" className="inp" defaultValue={a?.hinweise ?? ""} placeholder="Rampe hinten, Klingel am Tor, Kisten zurückbringen" /></div>
+      <div className="field"><label className="lbl">Geofence-Radius (m)</label><input name="geofenceM" className="inp mono" inputMode="numeric" defaultValue={a?.geofenceM ?? 150} /><div className="text-[.7rem] text-muted">Ankunft/Abfahrt gilt innerhalb dieses Kreises um die Koordinaten (30–1000 m, Standard 150; in Ortszentren eher 100)</div></div>
       {a && a.isActive !== undefined ? <div className="field"><label className="lbl">Status</label><label className="flex items-center gap-1 mt-2 text-[.8125rem]"><input type="checkbox" name="isActive" defaultChecked={a.isActive} /> aktiv</label></div> : null}
     </div>
   );

@@ -6,6 +6,7 @@ import { ladeTouren, planStammdaten } from "@/lib/touren-daten";
 import { streckeBerechnen } from "@/app/(app)/touren/karte-actions";
 import { fmtDate } from "@/lib/format";
 import { TourAblauf } from "@/components/TourAblauf";
+import { ortungErlaubt } from "@/lib/touren-daten";
 import { Lebenszeichen } from "@/components/Lebenszeichen";
 import { KoppelnForm } from "./KoppelnForm";
 
@@ -42,7 +43,7 @@ export default async function FahrzeugSeite({ searchParams }: { searchParams: Pr
           <Link href={`/fahrzeug?datum=${datumPlus(datum, 1)}`} className="btn ghost sm">→</Link>
         </div>
         {liste.length === 0 ? <div className="panel"><div className="empty">Keine Tour für dieses Fahrzeug an diesem Tag. Sobald das Büro eine Tour sendet, erscheint sie hier von selbst.</div></div> : null}
-        <TourAblauf liste={liste} strecken={strecken} fahrer={fahrerListe} />
+        <TourAblauf liste={liste} strecken={strecken} fahrer={fahrerListe} ortung={await ortungErlaubt(liste)} />
         <div className="text-[.7rem] text-muted text-center py-4">Tischlein deck dich · Fahrzeug-Tablet · Seite lädt Änderungen beim Öffnen; zum Aktualisieren nach unten ziehen.</div>
       </main>
     </div>

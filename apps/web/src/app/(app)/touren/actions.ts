@@ -54,6 +54,7 @@ function abholstelleWerte(fd: FormData) {
     ansprechperson: str(fd, "ansprechperson"), telefon: str(fd, "telefon"), email: str(fd, "email"),
     kuehlbedarf: fd.get("kuehlbedarf") === "on", abholtage: tage(fd, "abholtage"),
     fensterVon: str(fd, "fensterVon"), fensterBis: str(fd, "fensterBis"), hinweise: str(fd, "hinweise"), updatedAt: new Date(),
+    geofenceM: Math.min(1000, Math.max(30, num(fd, "geofenceM") ?? 150)),
   };
 }
 export async function abholstelleAnlegen(fd: FormData): Promise<void> {
@@ -319,6 +320,8 @@ export async function tourBeenden(fd: FormData): Promise<void> {
   const { userId } = await darfTourBedienen(id);
   const u = { id: userId };
   await db().update(touren).set({ status: "ABGESCHLOSSEN", beendetAt: new Date(), kmEnde: num(fd, "kmEnde"), updatedAt: new Date() }).where(eq(touren.id, id));
+  const { positionLoeschen } = await import("@/lib/geofence-daten");
+  await positionLoeschen(id); // Geofencing: keine Position ueber das Tourende hinaus
   await audit({ actorUserId: u.id, action: "tour.end", entityType: "tour", entityId: id });
   revalidatePath("/fahrt"); revalidatePath("/fahrzeug"); revalidatePath(`/touren/${id}`); revalidatePath("/touren");
 }

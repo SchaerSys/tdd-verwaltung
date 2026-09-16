@@ -155,10 +155,35 @@ graph TD
 ## Sicherheit & Datenschutz (DSGVO)
 
 - **Zwei DB-Rollen:** `tdd_app` (Fach-App, RBAC-gefiltert) und `tdd_ops` (Wartung, **kein** PII-Lesezugriff – nur Aggregat-Views).
-- **Row-Level-Security** trennt Mandanten (TDD, 96 Vorarlberger Gemeinden, Institutionen) auf Datenbankebene.
+- **Row-Level-Security** trennt Organisationen (TDD, 96 Vorarlberger Gemeinden, Institutionen) auf Datenbankebene.
+- **Mandanten (Unternehmen)** als globale Ebene darüber: jede Tabelle trägt `tenant_id`, Postgres filtert
+  über eine Sitzungsvariable (`app.current_tenant_id`) – siehe [Mandantenfähigkeit](#mandantenfähigkeit).
 - **RBAC serverseitig** erzwungen (z. B. „Kasse" sieht keine Personenlisten oder Dokumente).
 - **Passwörter** ausschließlich als argon2id-Hash; **On-Premise-OCR** ohne Cloud-Dritte; **EU-Hosting**.
 - **Löschfristen** (Personendaten 3 Jahre, Rohscans 90 Tage) und **append-only Audit-Log**.
+
+### Mandantenfähigkeit
+
+Seit Migration 053 ist CareOS mandantenfähig: Über den Organisationen (Gemeinden, Institutionen, Träger)
+liegt die Ebene **Mandant = Unternehmen** (`tenants`). Der Bestand gehört dem Mandanten
+„Tischlein deck dich Vorarlberg“ (`e3b29c11-0000-4000-a000-000000000000`).
+
+- **Datenbank:** `tenant_id` auf allen Fachtabellen (Default aus der Sitzungsvariable
+  `app.current_tenant_id`), Fremdschlüssel mit `ON DELETE CASCADE`, Eindeutigkeiten je Mandant
+  (Standortkennung, Kartennummer, Personalnummer, Benutzername). Für `tdd_app` gilt eine
+  *restriktive* RLS-Policy `tenant_isolation` (UND-verknüpft mit den bestehenden Organisations-Policies):
+  ohne Kontext ist nichts sichtbar, fremde Mandanten weder lesbar noch schreibbar.
+  `tdd_ops` sieht ohne Kontext alle Mandanten (nur Metadaten), mit Kontext nur den gewählten.
+- **Anwendung:** ein Verbindungspool je Mandant (`-c app.current_tenant_id=…` beim Verbindungsaufbau),
+  Kontext per `AsyncLocalStorage` (`runWithTenant`/`currentTenantId` in `@tdd/db`). Der Mandant kommt aus der
+  signierten Session, bei Geräten (Fahrzeug-Tablet, Ausgabestation) aus dem Cookie-Präfix, sonst aus dem
+  Header `x-tenant-id`, den die Middleware aus `TENANT_HOSTS` (`host=uuid;host2=uuid`) ableitet;
+  Rückfall `DEFAULT_TENANT_ID`. Hintergrundjobs laufen je aktivem Mandanten.
+- **Wartungsplattform:** Mandanten-Auswahl im Kopf (steuert den Pool), Seite „Mandanten (Unternehmen)“ zum
+  Anlegen (`ops_create_tenant`: Organisation, Zeitregeln, Löschfristen, Auswahllisten werden mitgeliefert)
+  und Schalten. Neue Mandanten bekommen ihr erstes Admin-Konto per Einladung.
+- **Migrationen** laufen mit gesetztem Bestandsmandanten; alle Migrationen sind wiederholbar
+  (Integrationstests spielen sie jeweils komplett ein). Isolationstest: `apps/web/test/integration/tenants.test.ts`.
 
 ---
 

@@ -43,6 +43,8 @@ services:
       SMTP_PASS: ${SMTP_PASS}
       SMTP_FROM: ${SMTP_FROM}
       OSRM_URL: http://osrm:5000
+      DEFAULT_TENANT_ID: ${DEFAULT_TENANT_ID:-e3b29c11-0000-4000-a000-000000000000}
+      TENANT_HOSTS: ${TENANT_HOSTS:-}
       HOMEPAGE_API_URL: ${HOMEPAGE_API_URL:-}
       UEBERGABE_TOKEN: ${UEBERGABE_TOKEN:-}
     volumes:
@@ -67,6 +69,7 @@ services:
     restart: unless-stopped
     environment:
       OPS_DATABASE_URL: ${OPS_DATABASE_URL}
+      DEFAULT_TENANT_ID: ${DEFAULT_TENANT_ID:-e3b29c11-0000-4000-a000-000000000000}
       OPS_SESSION_SECRET: ${OPS_SESSION_SECRET}
       NODE_ENV: production
       APP_URL: ${APP_URL}

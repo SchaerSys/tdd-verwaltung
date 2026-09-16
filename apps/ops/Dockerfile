@@ -24,5 +24,8 @@ COPY --from=builder /app/apps/ops/.next/standalone ./
 COPY --from=builder /app/apps/ops/.next/static ./apps/ops/.next/static
 COPY --from=builder /app/apps/ops/public ./apps/ops/public
 COPY --from=builder /app/apps/ops/scripts ./apps/ops/scripts
+# Docker setzt HOSTNAME auf die Container-ID; Next wuerde dann nur an diese Adresse binden
+# und der Healthcheck ueber 127.0.0.1 schlaegt fehl. Deshalb explizit auf allen Adressen lauschen.
+ENV HOSTNAME=0.0.0.0
 EXPOSE 3000
 CMD ["node", "apps/ops/server.js"]

@@ -30,5 +30,8 @@ COPY --from=builder /app/apps/web/public ./apps/web/public
 # vollständig mitkopiert – daher explizit nachziehen (OCR läuft on-prem).
 COPY --from=builder /app/node_modules/tesseract.js ./node_modules/tesseract.js
 COPY --from=builder /app/node_modules/tesseract.js-core ./node_modules/tesseract.js-core
+# Docker setzt HOSTNAME auf die Container-ID; Next wuerde dann nur an diese Adresse binden
+# und der Healthcheck ueber 127.0.0.1 schlaegt fehl. Deshalb explizit auf allen Adressen lauschen.
+ENV HOSTNAME=0.0.0.0
 EXPOSE 3000
 CMD ["node", "apps/web/server.js"]

@@ -18,6 +18,7 @@ export interface CurrentUser {
   organizationType: string | null;
   organizationName: string | null;
   totpEnabled: boolean;
+  mustChangePassword: boolean;
 }
 
 async function loadUser(where: ReturnType<typeof eq>): Promise<CurrentUser | null> {
@@ -25,7 +26,7 @@ async function loadUser(where: ReturnType<typeof eq>): Promise<CurrentUser | nul
     .select({
       id: users.id, email: users.email, displayName: users.displayName, role: users.role,
       locationId: users.locationId, isActive: users.isActive, organizationId: users.organizationId,
-      orgType: organizations.type, orgName: organizations.name, totpEnabled: users.totpEnabled,
+      orgType: organizations.type, orgName: organizations.name, totpEnabled: users.totpEnabled, mustChangePassword: users.mustChangePassword,
     })
     .from(users)
     .leftJoin(organizations, eq(users.organizationId, organizations.id))
@@ -37,7 +38,7 @@ async function loadUser(where: ReturnType<typeof eq>): Promise<CurrentUser | nul
     id: u.id, email: u.email, displayName: u.displayName, role: u.role as Role,
     locationId: u.locationId ?? null, organizationId: u.organizationId ?? null,
     organizationType: u.orgType ?? null, organizationName: u.orgName ?? null,
-    totpEnabled: u.totpEnabled,
+    totpEnabled: u.totpEnabled, mustChangePassword: u.mustChangePassword,
   };
 }
 
@@ -157,7 +158,8 @@ export async function logout(): Promise<void> {
 }
 
 /** Landeseite nach dem Login je nach Rolle. */
-export function landingFor(role: Role): string {
+export function landingFor(role: Role, mustChangePassword = false): string {
+  if (mustChangePassword) return "/passwort-aendern"; // Initialpasswort: zuerst eigenes Passwort setzen
   if (role === "SACHBEARBEITER") return "/portal"; // Antragsportal (Gemeinde/Institution)
   if (role === "AUSGABE") return "/kiosk";           // Zivildiener: nur Tresen-Kiosk
   if (role === "FAHRER") return "/fahrt";            // Fahrer: Tour des Tages am Handy

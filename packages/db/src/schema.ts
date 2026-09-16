@@ -87,6 +87,7 @@ export const users = pgTable("users", {
   emailVerified: boolean("email_verified").notNull().default(true),
   failedAttempts: integer("failed_attempts").notNull().default(0),
   lockedUntil: timestamp("locked_until", { withTimezone: true }),
+  mustChangePassword: boolean("must_change_password").notNull().default(false), // Initialpasswort per Mail
   lastLogin: timestamp("last_login", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
@@ -401,7 +402,10 @@ export const staff = pgTable("staff", {
   weeklyHours: numeric("weekly_hours", { precision: 5, scale: 2 }),
   vacationDaysYear: numeric("vacation_days_year", { precision: 5, scale: 1 }),
   nfcCardId: text("nfc_card_id").unique(),
-  userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }), // Login des Fahrers (A4)
+  userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }), // optionaler Login (A4)
+  strasse: text("strasse"),
+  plz: text("plz"),
+  ort: text("ort"),
   kannFahren: boolean("kann_fahren").notNull().default(false),
   fuehrerschein: text("fuehrerschein"),
   fahrerTage: smallint("fahrer_tage").array().notNull().default([]),

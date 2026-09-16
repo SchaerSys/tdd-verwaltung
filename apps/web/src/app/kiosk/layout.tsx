@@ -12,6 +12,7 @@ export const metadata: Metadata = {
 export default async function KioskLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
+  if (user.mustChangePassword) redirect("/passwort-aendern"); // Initialpasswort zuerst ersetzen
   if (!hasPermission(user.role, "distribution:record")) redirect("/dashboard");
   return <><Lebenszeichen bereich="kiosk" />{children}</>;
 }

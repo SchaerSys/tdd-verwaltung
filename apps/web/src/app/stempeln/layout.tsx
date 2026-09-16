@@ -11,6 +11,7 @@ export const metadata: Metadata = {
 export default async function StempelLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
+  if (user.mustChangePassword) redirect("/passwort-aendern"); // Initialpasswort zuerst ersetzen
   if (!hasPermission(user.role, "staff:manage")) redirect("/dashboard");
   return <><Lebenszeichen bereich="stempeln" />{children}</>;
 }

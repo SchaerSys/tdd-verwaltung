@@ -33,7 +33,7 @@ export async function loginAction(_prev: LoginState, formData: FormData): Promis
   if (ergebnis.needsSecondFactor) redirect("/login/2fa");
   const user = ergebnis.user!;
   await audit({ actorUserId: user.id, action: "login", entityType: "user", entityId: user.id });
-  redirect(landingFor(user.role));
+  redirect(landingFor(user.role, user.mustChangePassword));
 }
 
 /** Zweiter Schritt: Einmalcode oder Wiederherstellungscode. */
@@ -42,7 +42,7 @@ export async function secondFactorAction(_prev: LoginState, formData: FormData):
   const user = await completeSecondFactor(code);
   if (!user) return { error: "Der Code ist ungültig oder abgelaufen. Bitte neu anmelden, falls es weiter nicht klappt." };
   await audit({ actorUserId: user.id, action: "login", entityType: "user", entityId: user.id, after: { zweiterFaktor: true } });
-  redirect(landingFor(user.role));
+  redirect(landingFor(user.role, user.mustChangePassword));
 }
 
 // ── Passwort vergessen ────────────────────────────────────────────────────

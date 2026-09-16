@@ -22,7 +22,7 @@ const ICONS: Record<string, string> = {
   "/bewilligt": "✅", "/karten": "💳", "/karten/papierkorb": "🗑", "/auswertungen": "📊",
   "/kiosk": "📷", "/ausgaben": "📦", "/admin": "🛠", "/admin/benutzer": "👥", "/admin/import": "⬆️",
   "/admin/migration": "🔄", "/admin/pilot": "🚀", "/personal": "🧑‍💼", "/zeit": "⏱️", "/urlaub": "🌴",
-  "/touren": "🚚", "/touren/vorlagen": "📅", "/touren/abholstellen": "🏪", "/touren/fahrzeuge": "🚐", "/touren/angebote": "📥", "/touren/standorte": "🗺️",
+  "/touren": "🚚", "/touren/vorlagen": "📅", "/touren/abholstellen": "🏪", "/touren/fahrzeuge": "🚐", "/touren/fahrer": "🧑‍✈️", "/touren/angebote": "📥", "/touren/standorte": "🗺️",
 };
 
 export function AppSidebar({

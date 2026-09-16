@@ -1,7 +1,6 @@
 "use client";
 import { useActionState } from "react";
 import { createUser, type UserState } from "../actions";
-import { MIN_PASSWORD_LENGTH } from "@/lib/constants";
 
 interface Rolle { value: string; label: string; desc: string }
 interface Ort { id: number; name: string }
@@ -15,7 +14,6 @@ export function NeuerBenutzer({ rollen, orte }: { rollen: Rolle[]; orte: Ort[] }
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
         <input name="displayName" className="inp" placeholder="Name" required />
         <input name="email" type="email" className="inp" placeholder="E-Mail" required />
-        <input name="password" type="text" className="inp mono" placeholder={`Passwort (min. ${MIN_PASSWORD_LENGTH})`} minLength={MIN_PASSWORD_LENGTH} required />
         <select name="role" className="inp" defaultValue="AUSGABE">
           {rollen.map((r) => <option key={r.value} value={r.value}>{r.label} – {r.desc}</option>)}
         </select>
@@ -26,8 +24,8 @@ export function NeuerBenutzer({ rollen, orte }: { rollen: Rolle[]; orte: Ort[] }
         <button type="submit" className="btn primary" disabled={pending}>{pending ? "Lege an…" : "Anlegen"}</button>
       </div>
       {state.error ? <div className="text-sm mt-2" style={{ color: "var(--bad)" }}>{state.error}</div> : null}
-      {state.ok ? <div className="text-sm mt-2" style={{ color: "var(--good)" }}>✓ {state.angelegt} angelegt. Fahrer:innen danach im Personal-Datensatz unter „Fahrdienst“ mit der Person verknüpfen.</div> : null}
-      <div className="sub mt-1">Zivildiener → Rolle „Kasse": sehen ausschließlich den Tresen-Kiosk, keine weiteren Daten. Fahrer:innen sehen nur ihre Tour am Handy.</div>
+      {state.ok ? <div className="text-sm mt-2" style={{ color: "var(--good)" }}>✓ {state.angelegt}{state.initialpasswort ? <code className="mono ml-2 select-all" style={{ fontSize: "1rem" }}>{state.initialpasswort}</code> : null}</div> : null}
+      <div className="sub mt-1">Kein Passwort eintippen: Die Person bekommt ein Initialpasswort per E-Mail und legt beim ersten Login ihr eigenes fest. Zivildiener → Rolle „Kasse“ (nur Tresen-Kiosk).</div>
     </form>
   );
 }

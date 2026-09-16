@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import { geraetAusCookie } from "@/lib/geraet";
 import { datumPlus, heuteIso, WOCHENTAGE, wochentag } from "@/lib/touren";
-import { ladeTouren } from "@/lib/touren-daten";
+import { ladeTouren, planStammdaten } from "@/lib/touren-daten";
 import { streckeBerechnen } from "@/app/(app)/touren/karte-actions";
 import { fmtDate } from "@/lib/format";
 import { TourAblauf } from "@/components/TourAblauf";
@@ -26,6 +26,7 @@ export default async function FahrzeugSeite({ searchParams }: { searchParams: Pr
   const datum = /^\d{4}-\d{2}-\d{2}$/.test(sp.datum ?? "") ? sp.datum! : heuteIso();
   const liste = (await ladeTouren({ datum })).filter((t) => t.fahrzeugId === g.fahrzeugId && (t.freigegebenAt || t.status === "UNTERWEGS" || t.status === "ABGESCHLOSSEN"));
   const strecken = new Map(await Promise.all(liste.map(async (t) => [t.id, await streckeBerechnen("tour", t.id)] as const)));
+  const fahrerListe = (await planStammdaten()).fahrer.filter((f) => f.kannFahren).map((f) => ({ id: f.id, name: `${f.firstName} ${f.lastName}` }));
 
   return (
     <div className="min-h-screen" style={{ background: "var(--bg)" }}>
@@ -41,7 +42,7 @@ export default async function FahrzeugSeite({ searchParams }: { searchParams: Pr
           <Link href={`/fahrzeug?datum=${datumPlus(datum, 1)}`} className="btn ghost sm">→</Link>
         </div>
         {liste.length === 0 ? <div className="panel"><div className="empty">Keine Tour für dieses Fahrzeug an diesem Tag. Sobald das Büro eine Tour sendet, erscheint sie hier von selbst.</div></div> : null}
-        <TourAblauf liste={liste} strecken={strecken} />
+        <TourAblauf liste={liste} strecken={strecken} fahrer={fahrerListe} />
         <div className="text-[.7rem] text-muted text-center py-4">Tischlein deck dich · Fahrzeug-Tablet · Seite lädt Änderungen beim Öffnen; zum Aktualisieren nach unten ziehen.</div>
       </main>
     </div>

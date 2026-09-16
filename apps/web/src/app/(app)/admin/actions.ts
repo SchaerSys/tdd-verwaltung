@@ -3,13 +3,13 @@
 import { revalidatePath } from "next/cache";
 import { eq, sql } from "drizzle-orm";
 import { hash } from "@node-rs/argon2";
+import { randomInt } from "node:crypto";
 import { users, locations, staff, organizations } from "@tdd/db";
 import { db } from "@/lib/db";
 import { audit } from "@/lib/audit";
 import { requirePermission } from "@/lib/guard";
 import { sendMail } from "@/lib/mail";
 import { appUrl } from "@/lib/auth-tokens";
-import { MIN_PASSWORD_LENGTH } from "@/lib/constants";
 import { WEEKDAYS } from "@/lib/opening-hours";
 
 const INTERNAL_ROLES = ["ADMIN", "ERFASSUNG", "AUSGABE", "AUSWERTUNG", "FAHRER"] as const;
@@ -38,7 +38,22 @@ async function fahrerSicherstellen(userId: string, displayName: string, email: s
   return " – Personal-Datensatz (Fahrer:in) angelegt, in der Disposition wählbar.";
 }
 
-export interface UserState { ok?: boolean; error?: string; angelegt?: string }
+export interface UserState { ok?: boolean; error?: string; angelegt?: string; initialpasswort?: string }
+
+/** Lesbares Initialpasswort: 3 Bloecke ohne verwechselbare Zeichen. */
+function initialpasswort(): string {
+  const z = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
+  const teil = () => Array.from({ length: 4 }, () => z[randomInt(0, z.length)]).join("");
+  return `${teil()}-${teil()}-${teil()}`;
+}
+
+async function initialpasswortSenden(email: string, displayName: string, pw: string): Promise<boolean> {
+  const r = await sendMail({
+    to: email, subject: "TDD-Verwaltung – Ihr Zugang",
+    text: `Guten Tag ${displayName},\n\nfür Sie wurde ein Zugang zur TDD-Verwaltung angelegt.\n\nAnmeldung: ${appUrl()}/login\nBenutzername: ${email}\nInitialpasswort: ${pw}\n\nBeim ersten Anmelden werden Sie aufgefordert, ein eigenes Passwort festzulegen.\n\nFreundliche Grüße\nTischlein deck dich Vorarlberg`,
+  });
+  return r.sent;
+}
 
 /** Legt einen internen TDD-Benutzer an (Zivildiener, Fahrer etc.) mit gewählter Rolle – mit Rueckmeldung. */
 export async function createUser(_prev: UserState, formData: FormData): Promise<UserState> {
@@ -46,12 +61,11 @@ export async function createUser(_prev: UserState, formData: FormData): Promise<
   const email = String(formData.get("email") ?? "").toLowerCase().trim();
   const displayName = String(formData.get("displayName") ?? "").trim();
   const role = String(formData.get("role") ?? "");
-  const pw = String(formData.get("password") ?? "");
+  const pw = initialpasswort(); // kein Admin vergibt Passwoerter: Initialpasswort per Mail, Wechsel beim ersten Login
   const locRaw = formData.get("locationId");
   const locationId = locRaw && String(locRaw) !== "" ? parseInt(String(locRaw), 10) : null;
   if (!email || !displayName) return { error: "Name und E-Mail sind Pflicht." };
   if (!(INTERNAL_ROLES as readonly string[]).includes(role)) return { error: "Ungültige Rolle." };
-  if (pw.length < MIN_PASSWORD_LENGTH) return { error: `Das Passwort muss mindestens ${MIN_PASSWORD_LENGTH} Zeichen haben.` };
 
   const exists = await db().select({ id: users.id, role: users.role }).from(users).where(eq(users.email, email)).limit(1);
   if (exists[0]) return { error: `Diese E-Mail-Adresse hat schon ein Konto (Rolle ${exists[0].role}). Jede Person braucht eine eigene Adresse – oder die Rolle des bestehenden Kontos ändern.` };
@@ -59,13 +73,16 @@ export async function createUser(_prev: UserState, formData: FormData): Promise<
   // Interne Konten gehoeren zur TDD-Organisation – der Login prueft die gewaehlte Organisation.
   const tdd = (await db().select({ id: organizations.id }).from(organizations).where(eq(organizations.type, "TDD")).limit(1))[0];
   const ins = await db().insert(users).values({
-    email, passwordHash: await hash(pw), displayName, role, locationId, organizationId: tdd?.id ?? null, isActive: true, emailVerified: true,
+    email, passwordHash: await hash(pw), displayName, role, locationId, organizationId: tdd?.id ?? null, isActive: true, emailVerified: true, mustChangePassword: true,
   }).returning({ id: users.id });
+  const gesendet = await initialpasswortSenden(email, displayName, pw);
   await audit({ actorUserId: admin.id, action: "user.create", entityType: "user", entityId: email, after: { role, locationId } });
 
   const hinweis = role === "FAHRER" && ins[0] ? await fahrerSicherstellen(ins[0].id, displayName, email, locationId) : "";
   revalidatePath("/admin"); revalidatePath("/admin/benutzer"); revalidatePath("/personal"); revalidatePath("/touren");
-  return { ok: true, angelegt: `${displayName} (${email}, ${role})${hinweis}` };
+  return gesendet
+    ? { ok: true, angelegt: `${displayName} (${email}, ${role}) – Initialpasswort per E-Mail verschickt${hinweis}` }
+    : { ok: true, angelegt: `${displayName} (${email}, ${role})${hinweis} – E-Mail konnte nicht gesendet werden, Initialpasswort bitte persönlich übergeben:`, initialpasswort: pw };
 }
 
 /** Ändert die Rolle eines Benutzers. */
@@ -89,7 +106,8 @@ export async function updateUser(_prev: UserState, formData: FormData): Promise<
   const email = String(formData.get("email") ?? "").toLowerCase().trim();
   const displayName = String(formData.get("displayName") ?? "").trim();
   const role = String(formData.get("role") ?? "");
-  const pw = String(formData.get("password") ?? "");
+  const neuSenden = formData.get("initialpasswort") === "on";
+  const pw = neuSenden ? initialpasswort() : "";
   const locRaw = formData.get("locationId");
   const locationId = locRaw && String(locRaw) !== "" ? parseInt(String(locRaw), 10) : null;
   if (!userId || !email || !displayName) return { error: "Name und E-Mail sind Pflicht." };
@@ -97,15 +115,15 @@ export async function updateUser(_prev: UserState, formData: FormData): Promise<
   if (!alt) return { error: "Benutzer nicht gefunden." };
   const rolleNeu = alt.role === "SACHBEARBEITER" || userId === admin.id ? alt.role : role;
   if (!(INTERNAL_ROLES as readonly string[]).includes(rolleNeu) && rolleNeu !== "SACHBEARBEITER") return { error: "Ungültige Rolle." };
-  if (pw && pw.length < MIN_PASSWORD_LENGTH) return { error: `Das neue Passwort muss mindestens ${MIN_PASSWORD_LENGTH} Zeichen haben.` };
   const gleich = (await db().select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1))[0];
   if (gleich && gleich.id !== userId) return { error: "Diese E-Mail-Adresse gehört schon einem anderen Konto." };
 
-  await db().update(users).set({ email, displayName, role: rolleNeu, locationId, ...(pw ? { passwordHash: await hash(pw), failedAttempts: 0, lockedUntil: null } : {}) }).where(eq(users.id, userId));
+  await db().update(users).set({ email, displayName, role: rolleNeu, locationId, ...(pw ? { passwordHash: await hash(pw), mustChangePassword: true, failedAttempts: 0, lockedUntil: null } : {}) }).where(eq(users.id, userId));
+  const gesendet = pw ? await initialpasswortSenden(email, displayName, pw) : true;
   const hinweis = rolleNeu === "FAHRER" ? await fahrerSicherstellen(userId, displayName, email, locationId) : "";
   await audit({ actorUserId: admin.id, action: "user.update", entityType: "user", entityId: userId, after: { email, displayName, role: rolleNeu, locationId, passwort: !!pw } });
   revalidatePath("/admin"); revalidatePath("/admin/benutzer"); revalidatePath("/personal"); revalidatePath("/touren");
-  return { ok: true, angelegt: hinweis ? hinweis.replace(/^ – /, "") : undefined };
+  return { ok: true, angelegt: [hinweis.replace(/^ – /, ""), pw ? (gesendet ? "neues Initialpasswort per E-Mail verschickt" : "E-Mail nicht sendbar – Initialpasswort persönlich übergeben:") : ""].filter(Boolean).join(" · ") || undefined, initialpasswort: pw && !gesendet ? pw : undefined };
 }
 
 /** Aktiviert/sperrt einen Benutzer. */

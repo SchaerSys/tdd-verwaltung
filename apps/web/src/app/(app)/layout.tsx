@@ -19,6 +19,7 @@ async function logoutAction() {
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
+  if (user.mustChangePassword) redirect("/passwort-aendern"); // Initialpasswort zuerst ersetzen
   if (user.role === "SACHBEARBEITER") redirect("/portal");
   // Zivildiener/Ausgabe: ausschließlich Tresen-Kiosk, kein Einblick ins Backoffice.
   if (user.role === "AUSGABE") redirect("/kiosk");

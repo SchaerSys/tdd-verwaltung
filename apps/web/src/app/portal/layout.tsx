@@ -14,6 +14,7 @@ async function logoutAction() {
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
+  if (user.mustChangePassword) redirect("/passwort-aendern"); // Initialpasswort zuerst ersetzen
   if (!hasPermission(user.role, "antrag:manage")) redirect("/dashboard");
 
   const typeLabel = user.organizationType === "GEMEINDE" ? "Gemeinde"

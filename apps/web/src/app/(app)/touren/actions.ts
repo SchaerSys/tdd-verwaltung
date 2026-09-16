@@ -305,8 +305,13 @@ export async function tourStarten(fd: FormData): Promise<void> {
   const id = String(fd.get("id") ?? "");
   const { userId } = await darfTourBedienen(id);
   const u = { id: userId };
-  await db().update(touren).set({ status: "UNTERWEGS", gestartetAt: new Date(), kmStart: num(fd, "kmStart"), updatedAt: new Date() }).where(and(eq(touren.id, id), inArray(touren.status, ["GEPLANT", "UNTERWEGS"])));
-  await audit({ actorUserId: u.id, action: "tour.start", entityType: "tour", entityId: id });
+  // Wer faehrt, wird am Tablet beim Start bestaetigt (kein Login noetig) – das ist der Nachweis.
+  const fahrerId = str(fd, "fahrerId"); const beifahrerId = str(fd, "beifahrerId");
+  await db().update(touren).set({
+    status: "UNTERWEGS", gestartetAt: new Date(), kmStart: num(fd, "kmStart"), updatedAt: new Date(),
+    ...(fahrerId ? { fahrerId } : {}), ...(fd.has("beifahrerId") ? { beifahrerId } : {}),
+  }).where(and(eq(touren.id, id), inArray(touren.status, ["GEPLANT", "UNTERWEGS"])));
+  await audit({ actorUserId: u.id, action: "tour.start", entityType: "tour", entityId: id, after: { fahrerId, beifahrerId } });
   revalidatePath("/fahrt"); revalidatePath("/fahrzeug"); revalidatePath(`/touren/${id}`); revalidatePath("/touren");
 }
 export async function tourBeenden(fd: FormData): Promise<void> {

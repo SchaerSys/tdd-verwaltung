@@ -1,7 +1,6 @@
 "use client";
 import { useActionState, useState } from "react";
 import { updateUser, type UserState } from "../actions";
-import { MIN_PASSWORD_LENGTH } from "@/lib/constants";
 
 interface Rolle { value: string; label: string; desc: string }
 interface Ort { id: number; name: string }
@@ -27,9 +26,9 @@ export function BenutzerBearbeiten({ u, rollen, orte, selbst }: { u: BenutzerZei
       )}
       <div className="field"><label className="lbl">Standort</label>
         <select name="locationId" className="inp" defaultValue={u.locationId ?? ""}><option value="">—</option>{orte.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}</select></div>
-      <div className="field"><label className="lbl">Neues Passwort (leer = unverändert)</label><input name="password" type="text" className="inp mono" minLength={MIN_PASSWORD_LENGTH} autoComplete="off" placeholder={`min. ${MIN_PASSWORD_LENGTH} Zeichen`} /></div>
+      <label className="flex items-center gap-2 text-[.8125rem]"><input type="checkbox" name="initialpasswort" /> Neues Initialpasswort per E-Mail senden (Passwort vergessen) – Wechsel beim nächsten Login Pflicht</label>
       {state.error ? <div className="text-sm" style={{ color: "var(--bad)" }}>{state.error}</div> : null}
-      {state.ok ? <div className="text-sm" style={{ color: "var(--good)" }}>✓ gespeichert{state.angelegt ? ` – ${state.angelegt}` : ""}</div> : null}
+      {state.ok ? <div className="text-sm" style={{ color: "var(--good)" }}>✓ gespeichert{state.angelegt ? ` – ${state.angelegt}` : ""}{state.initialpasswort ? <code className="mono ml-2 select-all">{state.initialpasswort}</code> : null}</div> : null}
       <div className="flex gap-2">
         <button className="btn primary sm" type="submit" disabled={pending}>{pending ? "Speichere…" : "Speichern"}</button>
         <button className="btn ghost sm" type="button" onClick={() => setOffen(false)}>Schließen</button>

@@ -9,7 +9,9 @@ export type Strecke = { km: number; minuten: number; geometrie: [number, number]
  * Tour-Ablauf fuer das Tablet: Karte, Start, Navigation zum naechsten Stopp, Stopps abhaken,
  * Mengen, Tour beenden. Gleich fuer Fahrzeug-Tablet (/fahrzeug) und Buero/Fahrer-Login (/fahrt).
  */
-export function TourAblauf({ liste, strecken }: { liste: TourAnzeige[]; strecken: Map<string, Strecke> }) {
+export interface FahrerOption { id: string; name: string }
+
+export function TourAblauf({ liste, strecken, fahrer }: { liste: TourAnzeige[]; strecken: Map<string, Strecke>; fahrer: FahrerOption[] }) {
   return (
     <>
       {liste.map((t) => {
@@ -26,7 +28,7 @@ export function TourAblauf({ liste, strecken }: { liste: TourAnzeige[]; strecken
                 <span className="mono text-sm text-muted">{zeitKurz(t.startzeit)}</span>
                 <span className={`pill ${t.status === "ABGESCHLOSSEN" ? "good" : t.status === "UNTERWEGS" ? "tag-out" : t.status === "AUSGEFALLEN" ? "bad" : "muted"}`}>{t.status === "GEPLANT" ? "geplant" : t.status === "UNTERWEGS" ? "unterwegs" : t.status === "ABGESCHLOSSEN" ? "fertig" : "ausgefallen"}</span>
               </div>
-              <div className="text-sm text-muted mt-1">{t.fahrzeug ?? "kein Fahrzeug"}{t.fahrzeugKuehlung ? " ❄" : ""}{t.beifahrer ? ` · mit ${t.beifahrer}` : ""}{t.start ? ` · Start ${t.start}` : ""}</div>
+              <div className="text-sm text-muted mt-1">{t.fahrer ? `🧑‍✈️ ${t.fahrer}` : "Fahrer:in beim Start wählen"}{t.beifahrer ? ` · mit ${t.beifahrer}` : ""} · {t.fahrzeug ?? "kein Fahrzeug"}{t.fahrzeugKuehlung ? " ❄" : ""}{t.start ? ` · Start ${t.start}` : ""}</div>
               {t.hinweise ? <div className="text-sm mt-1 p-2 rounded" style={{ background: "var(--warn-bg)" }}>{t.hinweise}</div> : null}
               {t.konflikte.some((k) => k.schwere === "FEHLER") ? <div className="text-sm mt-1" style={{ color: "var(--bad)" }}>{t.konflikte.filter((k) => k.schwere === "FEHLER").map((k) => k.text).join(" · ")}</div> : null}
             </div>
@@ -36,10 +38,20 @@ export function TourAblauf({ liste, strecken }: { liste: TourAnzeige[]; strecken
               <div className="p-3 border-b border-[color:var(--border)]"><a href={naviNaechster} className="btn primary" style={{ display: "block", textAlign: "center", fontSize: "1.05rem", padding: "12px" }}>🧭 Navigation zu Stopp {t.stopps.indexOf(naechster) + 1}: {naechster.name}</a></div>
             ) : null}
             {t.status === "GEPLANT" ? (
-              <form action={tourStarten} className="p-3 flex gap-2 items-end border-b border-[color:var(--border)]">
+              <form action={tourStarten} className="p-3 grid gap-2 border-b border-[color:var(--border)]" style={{ gridTemplateColumns: "1fr 1fr" }}>
                 <input type="hidden" name="id" value={t.id} />
-                <div className="field flex-1"><label className="lbl">Kilometerstand Start</label><input name="kmStart" inputMode="numeric" className="inp mono" style={{ fontSize: "1.1rem" }} placeholder="optional" /></div>
-                <button className="btn primary" type="submit" style={{ fontSize: "1.05rem", padding: "12px 18px" }}>▶ Tour starten</button>
+                <div className="field"><label className="lbl">Wer fährt?</label>
+                  <select name="fahrerId" className="inp" defaultValue={t.fahrerId ?? ""} style={{ fontSize: "1.05rem" }} required>
+                    <option value="">— bitte wählen —</option>
+                    {fahrer.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
+                  </select></div>
+                <div className="field"><label className="lbl">Beifahrer:in</label>
+                  <select name="beifahrerId" className="inp" defaultValue={t.beifahrerId ?? ""} style={{ fontSize: "1.05rem" }}>
+                    <option value="">—</option>
+                    {fahrer.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
+                  </select></div>
+                <div className="field"><label className="lbl">Kilometerstand Start</label><input name="kmStart" inputMode="numeric" className="inp mono" style={{ fontSize: "1.1rem" }} placeholder="optional" /></div>
+                <button className="btn primary self-end" type="submit" style={{ fontSize: "1.05rem", padding: "12px 18px" }}>▶ Tour starten</button>
               </form>
             ) : null}
 

@@ -72,9 +72,11 @@ export default async function StaffEditPage({ params }: { params: Promise<{ id: 
               : <label className="flex items-center gap-2 text-[.8125rem] mt-2"><input type="checkbox" name="kannFahren" defaultChecked={p.kannFahren} /> kann zusätzlich als Fahrer:in eingeteilt werden</label>}
           </div>
           <div className="field"><label className="lbl">Führerschein</label><input name="fuehrerschein" className="inp" defaultValue={p.fuehrerschein ?? ""} placeholder="z. B. B, C1" /></div>
+          <div className="field"><label className="lbl">Straße</label><input name="strasse" className="inp" defaultValue={p.strasse ?? ""} /></div>
+          <div className="field"><label className="lbl">PLZ / Ort</label><div className="flex gap-1"><input name="plz" className="inp mono" defaultValue={p.plz ?? ""} style={{ width: 80 }} /><input name="ort" className="inp" defaultValue={p.ort ?? ""} /></div></div>
           <div className="field"><label className="lbl">Fahrertage (leer = alle)</label>
             <div className="flex gap-2 flex-wrap mt-2 text-[.8125rem]">{[1, 2, 3, 4, 5, 6, 7].map((t) => <label key={t} className="flex items-center gap-1"><input type="checkbox" name="fahrerTage" value={t} defaultChecked={p.fahrerTage.includes(t)} />{WOCHENTAGE_KURZ[t]}</label>)}</div></div>
-          <div className="field sm:col-span-2"><label className="lbl">Login für die Tour am Handy (Benutzer mit Rolle FAHRER)</label>
+          <div className="field sm:col-span-2"><label className="lbl">Login (optional – Touren laufen über das Fahrzeug-Tablet, kein Login nötig)</label>
             <select name="userId" className="inp" defaultValue={p.userId ?? ""}><option value="">— kein Login —</option>{fahrerLogins.map((u) => <option key={u.id} value={u.id}>{u.name} · {u.email}</option>)}</select>
             <div className="text-[.72rem] text-muted mt-1">Benutzer mit Rolle FAHRER werden in der Benutzerverwaltung angelegt; hier wird die Person verknüpft.</div></div>
         </div>

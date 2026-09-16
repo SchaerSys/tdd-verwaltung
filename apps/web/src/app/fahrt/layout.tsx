@@ -17,6 +17,7 @@ async function logoutAction() {
 export default async function FahrtLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
+  if (user.mustChangePassword) redirect("/passwort-aendern"); // Initialpasswort zuerst ersetzen
   if (!hasPermission(user.role, "tour:drive")) redirect("/dashboard");
   return (
     <div className="min-h-screen" style={{ background: "var(--bg)" }}>

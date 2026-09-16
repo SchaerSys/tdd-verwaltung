@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { datumPlus, heuteIso, WOCHENTAGE, wochentag } from "@/lib/touren";
-import { fahrerZuBenutzer, ladeTouren } from "@/lib/touren-daten";
+import { fahrerZuBenutzer, ladeTouren, planStammdaten } from "@/lib/touren-daten";
 import { fmtDate } from "@/lib/format";
 import { streckeBerechnen } from "@/app/(app)/touren/karte-actions";
 import { TourAblauf } from "@/components/TourAblauf";
@@ -22,6 +22,7 @@ export default async function FahrtSeite({ searchParams }: { searchParams: Promi
   const roh = me ? (await ladeTouren({ datum })).filter((t) => alle || t.fahrerId === me.id || t.beifahrerId === me.id) : alle ? await ladeTouren({ datum }) : [];
   const liste = roh.filter((t) => alle || t.freigegebenAt || t.status !== "GEPLANT");
   const strecken = new Map(await Promise.all(liste.map(async (t) => [t.id, await streckeBerechnen("tour", t.id)] as const)));
+  const fahrerListe = (await planStammdaten()).fahrer.filter((f) => f.kannFahren).map((f) => ({ id: f.id, name: `${f.firstName} ${f.lastName}` }));
 
   return (
     <div className="flex flex-col gap-3">
@@ -34,7 +35,7 @@ export default async function FahrtSeite({ searchParams }: { searchParams: Promi
       {!me && !alle ? <div className="panel"><div className="p-4 text-[.9rem]">Dein Login ist noch keiner Person im Personal-Verzeichnis zugeordnet. Bitte im Büro melden.</div></div> : null}
       {liste.length === 0 ? <div className="panel"><div className="empty">Keine Tour für dich an diesem Tag.</div></div> : null}
 
-      <TourAblauf liste={liste} strecken={strecken} />
+      <TourAblauf liste={liste} strecken={strecken} fahrer={fahrerListe} />
     </div>
   );
 }

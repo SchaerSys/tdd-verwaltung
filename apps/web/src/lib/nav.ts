@@ -31,6 +31,7 @@ export const NAV: NavDef[] = [
   { href: "/touren/vorlagen", label: "Wochenplan", perm: "tour:manage", group: "Zentralsystem", parent: "/touren" },
   { href: "/touren/abholstellen", label: "Abholstellen", perm: "tour:manage", group: "Zentralsystem", parent: "/touren" },
   { href: "/touren/fahrzeuge", label: "Fahrzeuge", perm: "tour:manage", group: "Zentralsystem", parent: "/touren" },
+  { href: "/touren/fahrer", label: "Fahrer:innen", perm: "tour:manage", group: "Zentralsystem", parent: "/touren" },
   { href: "/touren/angebote", label: "Angebote (Homepage)", perm: "tour:manage", group: "Zentralsystem", parent: "/touren" },
   { href: "/touren/standorte", label: "Standorte (Karte)", perm: "tour:manage", group: "Zentralsystem", parent: "/touren" },
   { href: "/admin", label: "Stammdaten", perm: "admin:manage", group: "Verwaltung" },

@@ -47,6 +47,7 @@ export async function updateStaff(fd: FormData): Promise<void> {
     nfcCardId: normalizeNfcId(str(fd, "nfcCardId")), note: str(fd, "note"), updatedAt: new Date(),
     // A4: Fahrer-Eigenschaften und Login-Verknuepfung (fuer die Tour am Handy)
     kannFahren: staffType === "FAHRER" || fd.get("kannFahren") === "on", fuehrerschein: str(fd, "fuehrerschein"),
+    strasse: str(fd, "strasse"), plz: str(fd, "plz"), ort: str(fd, "ort"),
     fahrerTage: fd.getAll("fahrerTage").map(Number).filter((n) => n >= 1 && n <= 7),
     userId: str(fd, "userId") || null,
   }).where(eq(staff.id, id));

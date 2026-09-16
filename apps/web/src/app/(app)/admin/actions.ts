@@ -9,12 +9,15 @@ import { audit } from "@/lib/audit";
 import { requirePermission } from "@/lib/guard";
 import { sendMail } from "@/lib/mail";
 import { appUrl } from "@/lib/auth-tokens";
+import { MIN_PASSWORD_LENGTH } from "@/lib/constants";
 import { WEEKDAYS } from "@/lib/opening-hours";
 
 const INTERNAL_ROLES = ["ADMIN", "ERFASSUNG", "AUSGABE", "AUSWERTUNG", "FAHRER"] as const;
 
-/** Legt einen internen TDD-Benutzer an (Zivildiener etc.) mit gewählter Rolle. */
-export async function createUser(formData: FormData): Promise<void> {
+export interface UserState { ok?: boolean; error?: string; angelegt?: string }
+
+/** Legt einen internen TDD-Benutzer an (Zivildiener, Fahrer etc.) mit gewählter Rolle – mit Rueckmeldung. */
+export async function createUser(_prev: UserState, formData: FormData): Promise<UserState> {
   const admin = await requirePermission("admin:manage");
   const email = String(formData.get("email") ?? "").toLowerCase().trim();
   const displayName = String(formData.get("displayName") ?? "").trim();
@@ -22,16 +25,19 @@ export async function createUser(formData: FormData): Promise<void> {
   const pw = String(formData.get("password") ?? "");
   const locRaw = formData.get("locationId");
   const locationId = locRaw && String(locRaw) !== "" ? parseInt(String(locRaw), 10) : null;
-  if (!email || !displayName || !(INTERNAL_ROLES as readonly string[]).includes(role) || pw.length < 8) { revalidatePath("/admin"); return; }
+  if (!email || !displayName) return { error: "Name und E-Mail sind Pflicht." };
+  if (!(INTERNAL_ROLES as readonly string[]).includes(role)) return { error: "Ungültige Rolle." };
+  if (pw.length < MIN_PASSWORD_LENGTH) return { error: `Das Passwort muss mindestens ${MIN_PASSWORD_LENGTH} Zeichen haben.` };
 
-  const exists = await db().select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
-  if (exists[0]) { revalidatePath("/admin"); return; }
+  const exists = await db().select({ id: users.id, role: users.role }).from(users).where(eq(users.email, email)).limit(1);
+  if (exists[0]) return { error: `Diese E-Mail-Adresse hat schon ein Konto (Rolle ${exists[0].role}). Jede Person braucht eine eigene Adresse – oder die Rolle des bestehenden Kontos ändern.` };
 
   await db().insert(users).values({
     email, passwordHash: await hash(pw), displayName, role, locationId, isActive: true, emailVerified: true,
   });
   await audit({ actorUserId: admin.id, action: "user.create", entityType: "user", entityId: email, after: { role, locationId } });
-  revalidatePath("/admin");
+  revalidatePath("/admin"); revalidatePath("/admin/benutzer");
+  return { ok: true, angelegt: `${displayName} (${email}, ${role})` };
 }
 
 /** Ändert die Rolle eines Benutzers. */

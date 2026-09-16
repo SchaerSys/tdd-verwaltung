@@ -5,7 +5,8 @@ import { locations, users, organizations } from "@tdd/db";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { hasPermission } from "@/lib/rbac";
-import { approveUser, rejectUser, createUser, setUserRole, toggleUserActive, resetUserTotp } from "../actions";
+import { approveUser, rejectUser, setUserRole, toggleUserActive, resetUserTotp } from "../actions";
+import { NeuerBenutzer } from "./NeuerBenutzer";
 
 const ROLE_LABEL: Record<string, string> = {
   ADMIN: "Admin", ERFASSUNG: "Erfassung", AUSGABE: "Kasse", AUSWERTUNG: "Auswertung", FAHRER: "Fahrer",
@@ -76,23 +77,7 @@ export default async function BenutzerPage() {
       <div className="panel">
         <div className="panel-h"><h3>Benutzer &amp; Rollen</h3><span className="pill muted">{usrs.length}</span></div>
 
-        <form action={createUser} className="p-4 border-b border-[color:var(--border)]">
-          <div className="lbl mb-2">Neuen Benutzer anlegen</div>
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            <input name="displayName" className="inp" placeholder="Name" required />
-            <input name="email" type="email" className="inp" placeholder="E-Mail" required />
-            <input name="password" type="text" className="inp mono" placeholder="Passwort (min. 8)" minLength={8} required />
-            <select name="role" className="inp" defaultValue="AUSGABE">
-              {INTERNAL_ROLES.map((r) => <option key={r.value} value={r.value}>{r.label} – {r.desc}</option>)}
-            </select>
-            <select name="locationId" className="inp" defaultValue="">
-              <option value="">— Standort (optional) —</option>
-              {locs.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
-            </select>
-            <button type="submit" className="btn primary">Anlegen</button>
-          </div>
-          <div className="sub mt-1">Zivildiener → Rolle „Kasse": sehen ausschließlich den Tresen-Kiosk, keine weiteren Daten.</div>
-        </form>
+        <NeuerBenutzer rollen={INTERNAL_ROLES} orte={locs.map((l) => ({ id: l.id, name: l.name }))} />
 
         <div className="twrap">
           <table className="data">

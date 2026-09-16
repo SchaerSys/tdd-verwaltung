@@ -6,6 +6,8 @@ import { getCurrentUser } from "@/lib/auth";
 import { hasPermission } from "@/lib/rbac";
 import { positionMelden } from "@/lib/geofence-daten";
 
+import { mitMandant } from "@/lib/tenant-request";
+
 export const dynamic = "force-dynamic";
 
 /**
@@ -14,6 +16,10 @@ export const dynamic = "force-dynamic";
  * Gespeichert werden nur Ankunft/Abfahrt-Ereignisse und die letzte Position – kein Verlauf.
  */
 export async function POST(req: Request): Promise<Response> {
+  return mitMandant(() => post(req));
+}
+
+async function post(req: Request): Promise<Response> {
   let body: { tourId?: string; lat?: number; lng?: number; genauigkeitM?: number | null } = {};
   try { body = (await req.json()) as typeof body; } catch { return Response.json({ ortung: false, grund: "Ungültige Anfrage" }, { status: 400 }); }
   const tourId = String(body.tourId ?? "");

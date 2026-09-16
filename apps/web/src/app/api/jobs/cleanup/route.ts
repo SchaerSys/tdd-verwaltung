@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { audit } from "@/lib/audit";
 import { requireJobToken } from "@/lib/job-auth";
+import { fuerAlleMandanten } from "@/lib/tenant-jobs";
 
 /**
  * Papierkorb-Automatik: verschiebt Karten, die seit mehr als 6 Monaten nicht mehr
@@ -13,6 +14,12 @@ import { requireJobToken } from "@/lib/job-auth";
 export async function GET(req: Request) {
   const denied = requireJobToken(req);
   if (denied) return denied;
+  // Je aktivem Mandanten im eigenen Kontext (Pool mit GUC, RLS) – Ergebnisse je Mandant
+  const ergebnis = await fuerAlleMandanten(() => lauf());
+  return Response.json(ergebnis);
+}
+
+async function lauf(): Promise<unknown> {
 
   const res = await db().execute(sql`
     UPDATE cards
@@ -27,5 +34,5 @@ export async function GET(req: Request) {
   await db().execute(sql`DELETE FROM app_events WHERE at < now() - interval '30 days'`);
 
   await audit({ action: "job.card.trash", entityType: "job", after: { moved } });
-  return Response.json({ moved });
+  return { moved };
 }

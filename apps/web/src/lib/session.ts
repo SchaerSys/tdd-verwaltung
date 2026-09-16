@@ -14,6 +14,8 @@ export interface SessionData {
   uid: string;
   role: string;
   orgId?: number | null;
+  /** Mandant (Unternehmen) des Kontos – Grundlage fuer den Pool-Kontext (053). */
+  tenantId?: string | null;
   az?: AusgabeSession | null;
   exp: number; // Unix-Sekunden
 }

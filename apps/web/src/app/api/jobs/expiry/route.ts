@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { sendMail } from "@/lib/mail";
 import { audit } from "@/lib/audit";
 import { requireJobToken } from "@/lib/job-auth";
+import { fuerAlleMandanten } from "@/lib/tenant-jobs";
 
 /**
  * Karten-Ablauf-Job: markiert abgelaufene Karten als ABGELAUFEN und benachrichtigt
@@ -14,6 +15,12 @@ import { requireJobToken } from "@/lib/job-auth";
 export async function GET(req: Request) {
   const denied = requireJobToken(req);
   if (denied) return denied;
+  // Je aktivem Mandanten im eigenen Kontext (Pool mit GUC, RLS) – Ergebnisse je Mandant
+  const ergebnis = await fuerAlleMandanten(() => lauf());
+  return Response.json(ergebnis);
+}
+
+async function lauf(): Promise<unknown> {
   const todayStr = new Date().toISOString().slice(0, 10);
 
   const expired = await db()
@@ -35,5 +42,5 @@ export async function GET(req: Request) {
   }
 
   await audit({ action: "job.card.expiry", entityType: "job", after: { expired: expired.length, mailed } });
-  return Response.json({ expired: expired.length, mailed });
+  return { expired: expired.length, mailed };
 }

@@ -3,6 +3,7 @@ import { redirect, notFound } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { staff, locations, zeitRegeln } from "@tdd/db";
 import { db } from "@/lib/db";
+import { currentTenantId } from "@tdd/db";
 import { getCurrentUser } from "@/lib/auth";
 import { hasPermission } from "@/lib/rbac";
 import { PrintButton } from "@/components/PrintButton";
@@ -28,7 +29,7 @@ export default async function DienstzettelDruck({ searchParams }: { searchParams
   const [rows, regelnRows] = await Promise.all([
     db().select({ p: staff, ort: locations.name, ortStrasse: locations.strasse, ortPlz: locations.plz, ortOrt: locations.city })
       .from(staff).leftJoin(locations, eq(locations.id, staff.locationId)).where(eq(staff.id, sp.staff)).limit(1),
-    db().select().from(zeitRegeln).where(eq(zeitRegeln.id, 1)).limit(1),
+    db().select().from(zeitRegeln).where(eq(zeitRegeln.tenantId, currentTenantId())).limit(1),
   ]);
   const row = rows[0];
   if (!row) notFound();

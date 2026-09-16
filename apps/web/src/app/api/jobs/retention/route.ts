@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { audit } from "@/lib/audit";
 import { requireJobToken } from "@/lib/job-auth";
+import { fuerAlleMandanten } from "@/lib/tenant-jobs";
 import { purgePersons, deleteFiles } from "@/lib/purge";
 
 /**
@@ -22,6 +23,12 @@ import { purgePersons, deleteFiles } from "@/lib/purge";
 export async function GET(req: Request) {
   const denied = requireJobToken(req);
   if (denied) return denied;
+  // Je aktivem Mandanten im eigenen Kontext (Pool mit GUC, RLS) – Ergebnisse je Mandant
+  const ergebnis = await fuerAlleMandanten(() => lauf());
+  return Response.json(ergebnis);
+}
+
+async function lauf(): Promise<unknown> {
 
   // 1) Abgelaufene Rohscans (auch solche ohne Personenbezug)
   const scans = await db().execute(sql`
@@ -78,5 +85,5 @@ export async function GET(req: Request) {
     staffDocs: aktenRefs.length, staffDocFiles: aktenFiles, staffBereinigt: (bereinigt as unknown as { id: string }[]).length,
   };
   await audit({ action: "job.retention", entityType: "job", after: result });
-  return Response.json(result);
+  return result;
 }

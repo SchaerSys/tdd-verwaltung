@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { and, eq } from "drizzle-orm";
 import { betriebsfreieTage, staff, zeitAbschluesse, zeitRegeln } from "@tdd/db";
 import { db } from "@/lib/db";
+import { currentTenantId } from "@tdd/db";
 import { audit } from "@/lib/audit";
 import { requirePermission } from "@/lib/guard";
 import { ladeMonat } from "@/lib/azg-daten";
@@ -33,7 +34,7 @@ export async function regelnSpeichern(fd: FormData): Promise<void> {
     ziviFreistellungMonat: num(fd, "ziviFreistellungMonat", 0, 10, 2), ziviSonntagErlaubt: fd.get("ziviSonntagErlaubt") === "on",
     updatedAt: new Date(),
   };
-  await db().insert(zeitRegeln).values({ id: 1, ...set }).onConflictDoUpdate({ target: zeitRegeln.id, set });
+  await db().insert(zeitRegeln).values({ tenantId: currentTenantId(), ...set }).onConflictDoUpdate({ target: zeitRegeln.tenantId, set }); // eine Zeile je Mandant (053)
   await audit({ actorUserId: u.id, action: "zeit.regeln", entityType: "zeit_regeln", entityId: "1", after: set });
   revalidatePath("/zeit/regeln");
 }

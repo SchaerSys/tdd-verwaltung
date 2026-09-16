@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { and, eq, isNotNull, lt } from "drizzle-orm";
 import { verify } from "@node-rs/argon2";
-import { users, organizations, staff } from "@tdd/db";
+import { users, organizations, staff, currentTenantId } from "@tdd/db";
 import { db } from "./db";
 import { audit } from "./audit";
 import { verifySession, signSession, signToken, verifyToken, SESSION_COOKIE, SESSION_MAX_AGE, PRE_AUTH_COOKIE, PRE_AUTH_MAX_AGE, type PreAuthData, type AusgabeSession } from "./session";
@@ -22,6 +22,8 @@ export interface CurrentUser {
   /** Ausgabe-Sitzung (Station oder Buero): Standort und handelnde Person kommen aus der Sitzung. */
   sitzungId: string | null;
   staffId: string | null;
+  /** Mandant (Unternehmen) des Kontos. */
+  tenantId: string;
 }
 
 async function loadUser(where: ReturnType<typeof eq>): Promise<CurrentUser | null> {
@@ -30,6 +32,7 @@ async function loadUser(where: ReturnType<typeof eq>): Promise<CurrentUser | nul
       id: users.id, email: users.email, displayName: users.displayName, role: users.role,
       locationId: users.locationId, isActive: users.isActive, organizationId: users.organizationId,
       orgType: organizations.type, orgName: organizations.name, totpEnabled: users.totpEnabled, mustChangePassword: users.mustChangePassword,
+      tenantId: users.tenantId,
     })
     .from(users)
     .leftJoin(organizations, eq(users.organizationId, organizations.id))
@@ -42,6 +45,7 @@ async function loadUser(where: ReturnType<typeof eq>): Promise<CurrentUser | nul
     locationId: u.locationId ?? null, organizationId: u.organizationId ?? null,
     organizationType: u.orgType ?? null, organizationName: u.orgName ?? null,
     totpEnabled: u.totpEnabled, mustChangePassword: u.mustChangePassword, sitzungId: null, staffId: null,
+    tenantId: u.tenantId ?? currentTenantId(),
   };
 }
 
@@ -71,7 +75,7 @@ export async function ausgabeSession(): Promise<AusgabeSession | null> {
  */
 export async function sessionMitAusgabe(uid: string, role: string, orgId: number | null, az: AusgabeSession | null): Promise<void> {
   const store = await cookies();
-  store.set(SESSION_COOKIE, signSession({ uid, role, orgId, az }), {
+  store.set(SESSION_COOKIE, signSession({ uid, role, orgId, tenantId: currentTenantId(), az }), {
     httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/", maxAge: SESSION_MAX_AGE,
   });
 }
@@ -134,14 +138,14 @@ export async function login(email: string, password: string, orgId?: number | nu
     return { user: null, needsSecondFactor: true };
   }
 
-  await startSession(u.id, u.role, u.organizationId ?? null);
+  await startSession(u.id, u.role, u.organizationId ?? null, u.tenantId);
   return { user: await loadUser(eq(users.id, u.id)), needsSecondFactor: false };
 }
 
 /** Setzt das Session-Cookie und merkt den Login. */
-async function startSession(uid: string, role: string, orgId: number | null): Promise<void> {
+async function startSession(uid: string, role: string, orgId: number | null, tenantId?: string | null): Promise<void> {
   const store = await cookies();
-  store.set(SESSION_COOKIE, signSession({ uid, role, orgId }), {
+  store.set(SESSION_COOKIE, signSession({ uid, role, orgId, tenantId: tenantId ?? currentTenantId() }), {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
@@ -185,7 +189,7 @@ export async function completeSecondFactor(code: string): Promise<CurrentUser | 
       after: { verbleibend: u.totpRecovery.length - 1 } });
   }
 
-  await startSession(u.id, u.role, u.organizationId ?? null);
+  await startSession(u.id, u.role, u.organizationId ?? null, u.tenantId);
   return loadUser(eq(users.id, u.id));
 }
 

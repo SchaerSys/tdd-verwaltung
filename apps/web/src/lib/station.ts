@@ -4,6 +4,8 @@ import { hash, verify } from "@node-rs/argon2";
 import { and, desc, eq, gt, isNull, sql } from "drizzle-orm";
 import { ausgabeSitzungen, distributions, geraetCodes, geraete, staff, timeEvents, zeitRegeln } from "@tdd/db";
 import { db } from "./db";
+import { currentTenantId } from "@tdd/db";
+import { tokenAusCookie } from "./geraet";
 import { audit } from "./audit";
 import { statusFromLast, type EventKind } from "./zeit";
 
@@ -25,8 +27,8 @@ export interface Station { id: string; name: string; gekoppeltAt: Date }
 
 export async function stationAusCookie(): Promise<Station | null> {
   const store = await cookies();
-  const roh = store.get(STATION_COOKIE)?.value;
-  if (!roh || roh.length < 32) return null;
+  const roh = tokenAusCookie(store.get(STATION_COOKIE)?.value);
+  if (!roh) return null;
   const g = (await db().select({ id: geraete.id, name: geraete.name, gekoppeltAt: geraete.gekoppeltAt, zuletzt: geraete.zuletztGesehen })
     .from(geraete).where(and(eq(geraete.tokenHash, sha(roh)), eq(geraete.isActive, true), eq(geraete.art, "AUSGABE"))).limit(1))[0];
   if (!g) return null;
@@ -57,7 +59,7 @@ export async function stationKoppeln(code: string, userAgent: string | null): Pr
   const ins = await db().insert(geraete).values({ art: "AUSGABE", fahrzeugId: null, name: c.name, tokenHash: sha(token), userAgent: userAgent?.slice(0, 200) ?? null, gekoppeltBy: c.createdBy, zuletztGesehen: new Date() }).returning({ id: geraete.id, gekoppeltAt: geraete.gekoppeltAt });
   await db().update(geraetCodes).set({ usedAt: new Date() }).where(eq(geraetCodes.code, c.code));
   const store = await cookies();
-  store.set(STATION_COOKIE, token, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/", maxAge: STATION_MAX_AGE });
+  store.set(STATION_COOKIE, `${currentTenantId()}:${token}`, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/", maxAge: STATION_MAX_AGE });
   return { id: ins[0]!.id, name: c.name, gekoppeltAt: ins[0]!.gekoppeltAt };
 }
 
@@ -121,7 +123,7 @@ export async function sitzungStarten(p: { geraetId: string | null; locationId: n
   if (p.staffId) await sitzungenAutoSchliessen(eq(ausgabeSitzungen.staffId, p.staffId));
   let kommen = false;
   if (p.staffId) {
-    const regel = (await db().select({ st: zeitRegeln.ausgabeStempelt }).from(zeitRegeln).where(eq(zeitRegeln.id, 1)).limit(1))[0];
+    const regel = (await db().select({ st: zeitRegeln.ausgabeStempelt }).from(zeitRegeln).where(eq(zeitRegeln.tenantId, currentTenantId())).limit(1))[0];
     if ((regel?.st ?? true) && (await stempelStatus(p.staffId)) === "OUT") {
       await db().insert(timeEvents).values({ staffId: p.staffId, kind: "IN", source: "AUSGABE", createdBy: p.userId });
       kommen = true;

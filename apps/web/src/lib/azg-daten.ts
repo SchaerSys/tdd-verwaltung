@@ -1,6 +1,7 @@
 import { and, asc, eq, gte, inArray, lt, lte } from "drizzle-orm";
 import { abwesenheiten, betriebsfreieTage, staff, timeEvents, zeitAbschluesse, zeitRegeln } from "@tdd/db";
 import { db } from "./db";
+import { currentTenantId } from "@tdd/db";
 import { feiertagsKarte } from "./feiertage";
 import { monatAuswertung, REGELN_STANDARD, type MonatAuswertung, type Verteilung, type ZeitRegeln } from "./azg";
 import { viennaLocalToUtc, type Ev, type EventKind } from "./zeit";
@@ -22,7 +23,7 @@ export function regelnFuer(r: AlleRegeln, staffType: string): ZeitRegeln {
 }
 
 export async function ladeRegeln(): Promise<AlleRegeln> {
-  const r = (await db().select().from(zeitRegeln).where(eq(zeitRegeln.id, 1)).limit(1))[0];
+  const r = (await db().select().from(zeitRegeln).where(eq(zeitRegeln.tenantId, currentTenantId())).limit(1))[0]; // eine Zeile je Mandant (053)
   if (!r) return { ...REGELN_STANDARD, kollektivvertrag: null, ...ARBEITGEBER_STANDARD, ...ZIVI_STANDARD };
   return { maxTagMin: r.maxTagMin, maxWocheMin: r.maxWocheMin, pauseAbMin: r.pauseAbMin, pauseMin: r.pauseMin, ruhezeitMin: r.ruhezeitMin,
     normalarbeitszeitWocheMin: r.normalarbeitszeitWocheMin, mehrarbeitZuschlag: r.mehrarbeitZuschlag, ueberstundenZuschlag: r.ueberstundenZuschlag, kollektivvertrag: r.kollektivvertrag,

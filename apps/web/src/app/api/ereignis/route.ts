@@ -3,6 +3,8 @@ import { meldeEreignis, type EreignisArt } from "@/lib/ereignis";
 import { geraetAusCookie } from "@/lib/geraet";
 import { stationAusCookie } from "@/lib/station";
 
+import { mitMandant } from "@/lib/tenant-request";
+
 export const dynamic = "force-dynamic";
 
 /**
@@ -10,6 +12,10 @@ export const dynamic = "force-dynamic";
  * window.onerror). Nur fuer angemeldete Benutzer, Inhalt wird serverseitig gefiltert.
  */
 export async function POST(req: Request): Promise<Response> {
+  return mitMandant(() => post(req));
+}
+
+async function post(req: Request): Promise<Response> {
   const user = await getCurrentUser();
   const geraet = user ? null : await geraetAusCookie();
   const station = user || geraet ? null : await stationAusCookie();

@@ -1,8 +1,15 @@
 import { createHash, randomBytes, randomInt } from "node:crypto";
 import { cookies } from "next/headers";
 import { and, eq, gt, isNull } from "drizzle-orm";
-import { fahrzeuge, geraetCodes, geraete } from "@tdd/db";
+import { fahrzeuge, geraetCodes, geraete, currentTenantId } from "@tdd/db";
 import { db } from "./db";
+
+/** Cookie-Wert "<tenant>:<token>" (053) oder nur "<token>" (Altbestand = Standard-Mandant). */
+export function tokenAusCookie(v: string | undefined): string | null {
+  if (!v) return null;
+  const t = v.includes(":") ? v.slice(v.indexOf(":") + 1) : v;
+  return t.length >= 32 ? t : null;
+}
 
 /**
  * Fahrzeug-Tablet: kein Benutzer-Login, sondern ein Geraete-Token im Cookie, das genau
@@ -19,8 +26,8 @@ export interface Geraet { id: string; name: string; fahrzeugId: number; fahrzeug
 /** Das Geraet hinter dem Cookie – oder null. Merkt sich nebenbei „zuletzt gesehen“. */
 export async function geraetAusCookie(): Promise<Geraet | null> {
   const store = await cookies();
-  const roh = store.get(GERAET_COOKIE)?.value;
-  if (!roh || roh.length < 32) return null;
+  const roh = tokenAusCookie(store.get(GERAET_COOKIE)?.value);
+  if (!roh) return null;
   const g = (await db().select({ id: geraete.id, name: geraete.name, fahrzeugId: geraete.fahrzeugId, kennzeichen: fahrzeuge.kennzeichen, bezeichnung: fahrzeuge.bezeichnung, kuehlung: fahrzeuge.kuehlung, zuletzt: geraete.zuletztGesehen })
     .from(geraete).innerJoin(fahrzeuge, eq(geraete.fahrzeugId, fahrzeuge.id))
     .where(and(eq(geraete.tokenHash, sha(roh)), eq(geraete.isActive, true), eq(geraete.art, "FAHRZEUG"))).limit(1))[0];
@@ -53,7 +60,7 @@ export async function koppeln(code: string, userAgent: string | null): Promise<G
   const ins = await db().insert(geraete).values({ fahrzeugId: c.fahrzeugId, name: c.name, tokenHash: sha(token), userAgent: userAgent?.slice(0, 200) ?? null, gekoppeltBy: c.createdBy, zuletztGesehen: new Date() }).returning({ id: geraete.id });
   await db().update(geraetCodes).set({ usedAt: new Date() }).where(eq(geraetCodes.code, c.code));
   const store = await cookies();
-  store.set(GERAET_COOKIE, token, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/", maxAge: GERAET_MAX_AGE });
+  store.set(GERAET_COOKIE, `${currentTenantId()}:${token}`, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/", maxAge: GERAET_MAX_AGE });
   const fz = (await db().select({ kennzeichen: fahrzeuge.kennzeichen, bezeichnung: fahrzeuge.bezeichnung, kuehlung: fahrzeuge.kuehlung }).from(fahrzeuge).where(eq(fahrzeuge.id, c.fahrzeugId)).limit(1))[0]!;
   return { id: ins[0]!.id, name: c.name, fahrzeugId: c.fahrzeugId, fahrzeug: `${fz.kennzeichen} · ${fz.bezeichnung}`, kuehlung: fz.kuehlung };
 }

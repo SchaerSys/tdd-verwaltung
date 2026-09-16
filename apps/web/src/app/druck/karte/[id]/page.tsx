@@ -10,10 +10,16 @@ import { hasPermission } from "@/lib/rbac";
 import { PrintButton } from "@/components/PrintButton";
 import { fmtDate } from "@/lib/format";
 
+/**
+ * Barcode je Kartenart: neue Karten sind EAN-13 (13 Ziffern), Alt-Karten aus dem
+ * Altsystem tragen die 6-stellige Familien-ID – die bekommt Code 128, sonst bricht
+ * der Druck (Fehlerkennung 4088121456: "EAN-13 must be 12 or 13 digits").
+ */
 async function barcode(cardNumber: string): Promise<string> {
+  const ean = /^\d{13}$/.test(cardNumber);
   const png = await bwipjs.toBuffer({
-    bcid: "ean13",
-    text: cardNumber.slice(0, 12), // Prüfziffer wird von bwip-js ergänzt
+    bcid: ean ? "ean13" : "code128",
+    text: ean ? cardNumber.slice(0, 12) : cardNumber, // EAN: Prüfziffer wird von bwip-js ergänzt
     scale: 3,
     height: 12,
     includetext: true,
@@ -31,7 +37,7 @@ export default async function DruckPage({ params }: { params: Promise<{ id: stri
   const { id } = await params;
   const rows = await db()
     .select({
-      number: cards.cardNumber, validTo: cards.validTo, status: cards.status,
+      number: cards.cardNumber, validTo: cards.validTo, status: cards.status, legacy: cards.legacy,
       personId: persons.id, first: persons.firstName, last: persons.lastName,
       photoRef: persons.photoRef, ausgabeNumber: persons.ausgabeNumber, gruppe: persons.gruppe,
       loc: locations.name, locType: locations.type,
@@ -57,6 +63,7 @@ export default async function DruckPage({ params }: { params: Promise<{ id: stri
           <span className="pill muted">{isLaden ? "Etikett (Laden)" : "Plastikkarte · Zebra ZC350"}</span>
           <PrintButton />
         </div>
+        {c.legacy ? <div className="no-print" style={{ padding: "8px 20px", background: "#fff6e0", borderBottom: "1px solid #e8c77a", fontSize: 13 }}>Alt-Karte aus dem Altsystem (6-stellige Familien-ID als Code 128). Beim ersten Scan am Tresen entsteht automatisch eine neue EAN-Karte – die ist dann zu drucken.</div> : null}
       </div>
 
       {isLaden ? (

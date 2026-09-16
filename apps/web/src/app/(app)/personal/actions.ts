@@ -20,12 +20,14 @@ export async function createStaff(fd: FormData): Promise<void> {
   const u = await guard();
   const firstName = str(fd, "firstName"); const lastName = str(fd, "lastName");
   if (!firstName || !lastName) { revalidatePath("/personal"); return; }
+  const staffType = type(fd);
   await db().insert(staff).values({
-    firstName, lastName, staffType: type(fd),
+    firstName, lastName, staffType,
     email: str(fd, "email"), phone: str(fd, "phone"), locationId: intId(fd, "locationId"),
     employmentStart: str(fd, "employmentStart"), employmentEnd: str(fd, "employmentEnd"),
     weeklyHours: dec(fd, "weeklyHours"), vacationDaysYear: dec(fd, "vacationDaysYear"),
     nfcCardId: normalizeNfcId(str(fd, "nfcCardId")), note: str(fd, "note"),
+    kannFahren: staffType === "FAHRER" || fd.get("kannFahren") === "on", // Fahrer:in ist sofort in der Disposition waehlbar
   });
   await audit({ actorUserId: u.id, action: "staff.create", entityType: "staff", entityId: `${lastName} ${firstName}` });
   revalidatePath("/personal");
@@ -36,14 +38,15 @@ export async function updateStaff(fd: FormData): Promise<void> {
   const id = String(fd.get("id") ?? ""); if (!id) throw new Error("Kein Datensatz");
   const firstName = str(fd, "firstName"); const lastName = str(fd, "lastName");
   if (!firstName || !lastName) throw new Error("Vor- und Nachname sind Pflicht.");
+  const staffType = type(fd);
   await db().update(staff).set({
-    firstName, lastName, staffType: type(fd),
+    firstName, lastName, staffType,
     email: str(fd, "email"), phone: str(fd, "phone"), locationId: intId(fd, "locationId"),
     employmentStart: str(fd, "employmentStart"), employmentEnd: str(fd, "employmentEnd"),
     weeklyHours: dec(fd, "weeklyHours"), vacationDaysYear: dec(fd, "vacationDaysYear"),
     nfcCardId: normalizeNfcId(str(fd, "nfcCardId")), note: str(fd, "note"), updatedAt: new Date(),
     // A4: Fahrer-Eigenschaften und Login-Verknuepfung (fuer die Tour am Handy)
-    kannFahren: fd.get("kannFahren") === "on", fuehrerschein: str(fd, "fuehrerschein"),
+    kannFahren: staffType === "FAHRER" || fd.get("kannFahren") === "on", fuehrerschein: str(fd, "fuehrerschein"),
     fahrerTage: fd.getAll("fahrerTage").map(Number).filter((n) => n >= 1 && n <= 7),
     userId: str(fd, "userId") || null,
   }).where(eq(staff.id, id));

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { eq, sql } from "drizzle-orm";
 import { hash } from "@node-rs/argon2";
-import { users, locations } from "@tdd/db";
+import { users, locations, staff } from "@tdd/db";
 import { db } from "@/lib/db";
 import { audit } from "@/lib/audit";
 import { requirePermission } from "@/lib/guard";
@@ -32,12 +32,32 @@ export async function createUser(_prev: UserState, formData: FormData): Promise<
   const exists = await db().select({ id: users.id, role: users.role }).from(users).where(eq(users.email, email)).limit(1);
   if (exists[0]) return { error: `Diese E-Mail-Adresse hat schon ein Konto (Rolle ${exists[0].role}). Jede Person braucht eine eigene Adresse – oder die Rolle des bestehenden Kontos ändern.` };
 
-  await db().insert(users).values({
+  const ins = await db().insert(users).values({
     email, passwordHash: await hash(pw), displayName, role, locationId, isActive: true, emailVerified: true,
-  });
+  }).returning({ id: users.id });
   await audit({ actorUserId: admin.id, action: "user.create", entityType: "user", entityId: email, after: { role, locationId } });
-  revalidatePath("/admin"); revalidatePath("/admin/benutzer");
-  return { ok: true, angelegt: `${displayName} (${email}, ${role})` };
+
+  // Fahrer:in: gleich im Personal-Verzeichnis anlegen (oder gleichnamigen Datensatz verknuepfen),
+  // damit die Person sofort in der Disposition waehlbar ist und ihre Tour am Handy sieht.
+  let hinweis = "";
+  if (role === "FAHRER" && ins[0]) {
+    const teile = displayName.split(/\s+/);
+    const firstName = teile.length > 1 ? teile.slice(0, -1).join(" ") : displayName;
+    const lastName = teile.length > 1 ? teile[teile.length - 1]! : "";
+    const vorhanden = (await db().select({ id: staff.id, userId: staff.userId }).from(staff)
+      .where(sql`lower(${staff.firstName}) = lower(${firstName}) AND lower(${staff.lastName}) = lower(${lastName}) AND ${staff.isActive}`).limit(1))[0];
+    if (vorhanden && !vorhanden.userId) {
+      await db().update(staff).set({ userId: ins[0].id, kannFahren: true, updatedAt: new Date() }).where(eq(staff.id, vorhanden.id));
+      hinweis = " – mit dem bestehenden Personal-Datensatz verknüpft, in der Disposition wählbar.";
+    } else if (!vorhanden) {
+      await db().insert(staff).values({ firstName, lastName: lastName || "–", staffType: "FAHRER", kannFahren: true, userId: ins[0].id, email, locationId });
+      hinweis = " – Personal-Datensatz (Fahrer:in) angelegt, in der Disposition wählbar.";
+    } else {
+      hinweis = " – ein gleichnamiger Personal-Datensatz ist schon mit einem anderen Login verknüpft; bitte im Personal prüfen.";
+    }
+  }
+  revalidatePath("/admin"); revalidatePath("/admin/benutzer"); revalidatePath("/personal"); revalidatePath("/touren");
+  return { ok: true, angelegt: `${displayName} (${email}, ${role})${hinweis}` };
 }
 
 /** Ändert die Rolle eines Benutzers. */

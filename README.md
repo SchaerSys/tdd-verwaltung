@@ -91,6 +91,10 @@ graph TD
 - EAN-13-Karten erstellen, verlängern, sperren, ersetzen; Druck als PVC-Karte oder Etikett (mit Barcode).
 - Automatik: Karten, die länger als 6 Monate inaktiv sind, wandern in einen Papierkorb (nur manuell endgültig zu leeren).
 
+**Ausgabestation** (ein Laptop für alle Ausgabestellen)
+- Laptop einmal per Code koppeln (`/ausgabe`, ohne Standortbindung); Ausgabe starten = Standort wählen (vorbelegt aus Öffnungszeiten/Dienstplan), Name antippen, persönliche PIN (Einmal-PIN vom Büro, beim ersten Anmelden ersetzt; 5 Fehlversuche = 15 min Sperre). Buchungen laufen über ein technisches Konto, die Person steht an der Sitzung und im Audit-Log.
+- Ausgabe-Sitzung je Person und Standort: „Person wechseln“, „Ausgabe beenden“ mit Kassenzählung (Soll aus den Buchungen, Differenz), Übergabe; vergessene Sitzungen werden beim nächsten Start automatisch geschlossen und markiert. Optional stempelt Start/Ende Kommen/Gehen. Büro-Konten starten Sitzungen unter dem eigenen Login. Verwaltung: Stammdaten → Ausgabestation (Geräte, PIN-Berechtigungen, Sitzungen 30 Tage). Druck ohne Dialog per Chrome `--kiosk-printing` (Anleitung).
+
 **Tresen-Kiosk** (rollen­gesperrt für Zivildiener)
 - Scan → Ampel (grün/rot) → Ausgabe bestätigen; Geld-/Schuldenverwaltung, Foto, Gruppen & laufende Nummern.
 - Offline-Warteschlange mit Sync (PWA); Suche über Name/Adresse/Telefon (nur aktive Kartenhalter).

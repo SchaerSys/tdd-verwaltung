@@ -15,6 +15,8 @@ import { hasPermission } from "@/lib/rbac";
 import { updateStaff, toggleStaffActive } from "../actions";
 import { akteSpeichern, dokumentHochladen, dokumentLoeschen, ziviStammdaten } from "../akte-actions";
 import { zivildienstEnde } from "@/lib/zivildienst";
+import { EinmalPin } from "../../admin/ausgabestation/EinmalPin";
+import { pinEntfernenAction } from "../../admin/ausgabestation/actions";
 import { aktePruefung, aufbewahrungBis, probezeitMax, BESCHAEFTIGUNG_LABEL, AUSTRITT_GRUND_LABEL, DOK_ART_LABEL } from "@/lib/personalakte";
 import { heuteIso } from "@/lib/touren";
 import { fmtDate, fmtDateTime } from "@/lib/format";
@@ -118,6 +120,19 @@ export default async function StaffEditPage({ params }: { params: Promise<{ id: 
         </div>
         <div className="p-4 border-t border-[color:var(--border)] flex gap-2 items-center"><button type="submit" className="btn primary">Verteilung speichern</button><Link href={`/zeit/monat?staff=${p.id}`} className="btn ghost">Monatsauswertung →</Link></div>
       </form>
+
+      {/* Ausgabestation: PIN = Berechtigung, die Ausgabe am Laptop zu fuehren */}
+      {admin ? (
+        <div className="panel mt-4">
+          <div className="panel-h"><h3>Ausgabe-PIN (Ausgabelaptop)</h3>
+            {p.pinHash ? (p.pinGesperrtBis && p.pinGesperrtBis > new Date() ? <span className="pill bad">gesperrt bis {fmtDateTime(p.pinGesperrtBis)}</span> : p.pinMussAendern ? <span className="pill warn">Einmal-PIN, noch nicht ersetzt</span> : <span className="pill good"><span className="dot" />eigene PIN gesetzt</span>) : <span className="pill muted">keine PIN – darf die Ausgabe nicht führen</span>}
+          </div>
+          <div className="p-4 flex gap-3 items-center flex-wrap">
+            <EinmalPin staffId={p.id} email={p.email} hatPin={!!p.pinHash} />
+            {p.pinHash ? <form action={pinEntfernenAction}><input type="hidden" name="staffId" value={p.id} /><button className="btn ghost sm" type="submit">Berechtigung entziehen</button></form> : null}
+          </div>
+        </div>
+      ) : null}
 
       {/* P6 Zivildienst: Dienstzeit laut Zuweisungsbescheid (ZDG) */}
       {p.staffType === "ZIVILDIENER" ? (

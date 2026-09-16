@@ -23,8 +23,8 @@ export async function geraetAusCookie(): Promise<Geraet | null> {
   if (!roh || roh.length < 32) return null;
   const g = (await db().select({ id: geraete.id, name: geraete.name, fahrzeugId: geraete.fahrzeugId, kennzeichen: fahrzeuge.kennzeichen, bezeichnung: fahrzeuge.bezeichnung, kuehlung: fahrzeuge.kuehlung, zuletzt: geraete.zuletztGesehen })
     .from(geraete).innerJoin(fahrzeuge, eq(geraete.fahrzeugId, fahrzeuge.id))
-    .where(and(eq(geraete.tokenHash, sha(roh)), eq(geraete.isActive, true))).limit(1))[0];
-  if (!g) return null;
+    .where(and(eq(geraete.tokenHash, sha(roh)), eq(geraete.isActive, true), eq(geraete.art, "FAHRZEUG"))).limit(1))[0];
+  if (!g || g.fahrzeugId == null) return null;
   if (!g.zuletzt || Date.now() - g.zuletzt.getTime() > 60_000) {
     await db().update(geraete).set({ zuletztGesehen: new Date() }).where(eq(geraete.id, g.id)).catch(() => undefined);
   }
@@ -47,8 +47,8 @@ export async function kopplungscodeErzeugen(fahrzeugId: number, name: string, us
 
 /** Tablet: Code einloesen, Geraete-Token als Cookie setzen. */
 export async function koppeln(code: string, userAgent: string | null): Promise<Geraet | null> {
-  const c = (await db().select().from(geraetCodes).where(and(eq(geraetCodes.code, code.trim()), isNull(geraetCodes.usedAt), gt(geraetCodes.expiresAt, new Date()))).limit(1))[0];
-  if (!c) return null;
+  const c = (await db().select().from(geraetCodes).where(and(eq(geraetCodes.code, code.trim()), isNull(geraetCodes.usedAt), gt(geraetCodes.expiresAt, new Date()), eq(geraetCodes.art, "FAHRZEUG"))).limit(1))[0];
+  if (!c || c.fahrzeugId == null) return null;
   const token = randomBytes(32).toString("hex");
   const ins = await db().insert(geraete).values({ fahrzeugId: c.fahrzeugId, name: c.name, tokenHash: sha(token), userAgent: userAgent?.slice(0, 200) ?? null, gekoppeltBy: c.createdBy, zuletztGesehen: new Date() }).returning({ id: geraete.id });
   await db().update(geraetCodes).set({ usedAt: new Date() }).where(eq(geraetCodes.code, c.code));

@@ -7,10 +7,14 @@ import { SESSION_MAX_AGE } from "./constants";
 
 const MAX_AGE = SESSION_MAX_AGE;
 
+/** Ausgabe-Sitzung an der Station: Sitzung, handelnde Person, gewaehlter Standort, Anzeigename. */
+export interface AusgabeSession { s: string; st?: string | null; loc: number; name: string }
+
 export interface SessionData {
   uid: string;
   role: string;
   orgId?: number | null;
+  az?: AusgabeSession | null;
   exp: number; // Unix-Sekunden
 }
 

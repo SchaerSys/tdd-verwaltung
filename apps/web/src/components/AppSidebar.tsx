@@ -20,8 +20,8 @@ export interface NavGroup {
 const ICONS: Record<string, string> = {
   "/dashboard": "🏠", "/mein": "🙋", "/rueckfragen": "💬", "/personen": "👤", "/personen/papierkorb": "🗑", "/personen/dubletten": "⧉",
   "/bewilligt": "✅", "/karten": "💳", "/karten/papierkorb": "🗑", "/auswertungen": "📊",
-  "/kiosk": "📷", "/ausgaben": "📦", "/admin": "🛠", "/admin/benutzer": "👥", "/admin/import": "⬆️",
-  "/admin/migration": "🔄", "/admin/pilot": "🚀", "/personal": "🧑‍💼", "/zeit": "⏱️", "/zeit/monat": "📆", "/zeit/pruefung": "⚖️", "/zeit/regeln": "📏", "/urlaub": "🧮", "/abwesenheiten": "🌴", "/dienstplan": "🗓️", "/personal/zivildienst": "🎖️", "/zeit/lohn": "💶", "/abwesenheiten/konto": "📒",
+  "/kiosk": "📷", "/ausgabe": "📷", "/ausgaben": "📦", "/admin": "🛠", "/admin/benutzer": "👥", "/admin/import": "⬆️",
+  "/admin/migration": "🔄", "/admin/pilot": "🚀", "/personal": "🧑‍💼", "/zeit": "⏱️", "/zeit/monat": "📆", "/zeit/pruefung": "⚖️", "/zeit/regeln": "📏", "/urlaub": "🧮", "/abwesenheiten": "🌴", "/dienstplan": "🗓️", "/personal/zivildienst": "🎖️", "/zeit/lohn": "💶", "/admin/ausgabestation": "💻", "/abwesenheiten/konto": "📒",
   "/touren": "🚚", "/touren/vorlagen": "📅", "/touren/abholstellen": "🏪", "/touren/fahrzeuge": "🚐", "/touren/fahrer": "🧑‍✈️", "/touren/angebote": "📥", "/touren/standorte": "🗺️",
 };
 

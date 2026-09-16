@@ -38,7 +38,7 @@ export default async function BenutzerPage() {
     .leftJoin(locations, eq(users.locationId, locations.id))
     .innerJoin(organizations, eq(users.organizationId, organizations.id))
     // Nur die eigenen Konten: Gemeinden/Institutionen verwaltet ausschliesslich der Betreiber (Wartungsplattform).
-    .where(and(eq(organizations.type, "TDD"), ne(users.role, "SACHBEARBEITER")))
+    .where(and(eq(organizations.type, "TDD"), ne(users.role, "SACHBEARBEITER"), ne(users.email, "ausgabestation@tdd.intern"))) // technisches Stationskonto nicht listen
     .orderBy(asc(users.displayName));
 
   return (

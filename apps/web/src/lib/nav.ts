@@ -28,7 +28,7 @@ export const NAV: NavDef[] = [
   { href: "/bewilligt", label: "Anträge (Portal)", perm: "person:write", group: "Klient:innen" },
   { href: "/rueckfragen", label: "Rückfragen", perm: "person:write", group: "Klient:innen", parent: "/bewilligt" },
 
-  { href: "/kiosk", label: "Ausgabe-Scan", perm: "distribution:record", group: "Ausgabe" },
+  { href: "/ausgabe", label: "Ausgabe starten", perm: "distribution:record", group: "Ausgabe" },
   { href: "/ausgaben", label: "Ausgaben heute", perm: "distribution:record", group: "Ausgabe" },
   { href: "/auswertungen", label: "Auswertungen", perm: "report:view", group: "Ausgabe" },
 
@@ -53,6 +53,7 @@ export const NAV: NavDef[] = [
   { href: "/touren/standorte", label: "Standorte (Karte)", perm: "tour:manage", group: "Logistik", parent: "/touren" },
 
   { href: "/admin", label: "Stammdaten", perm: "admin:manage", group: "Verwaltung" },
+  { href: "/admin/ausgabestation", label: "Ausgabestation", perm: "admin:manage", group: "Verwaltung", parent: "/admin" },
   { href: "/admin/benutzer", label: "Benutzer", perm: "admin:manage", group: "Verwaltung" },
   { href: "/admin/import", label: "Datenübernahme", perm: "admin:manage", group: "Verwaltung" },
   { href: "/admin/migration", label: "Altsystem", perm: "admin:manage", group: "Verwaltung", parent: "/admin/import" },

@@ -31,7 +31,7 @@ function offlineLookup(code: string): Eligibility {
   return { ...base, status: "OK" };
 }
 
-export function KioskClient({ locationName, initialCards, logout }: { locationName: string; initialCards: CachedCard[]; logout?: () => Promise<void> }) {
+export function KioskClient({ locationName, initialCards, logout, abschlussHref, wer }: { locationName: string; initialCards: CachedCard[]; logout?: () => Promise<void>; abschlussHref?: string; wer?: string }) {
   const [online, setOnline] = useState(true);
   const [pending, setPending] = useState(0);
   const [scanVal, setScanVal] = useState("");
@@ -189,8 +189,9 @@ export function KioskClient({ locationName, initialCards, logout }: { locationNa
         <div className="k-online">
           {online ? <span className="pill good"><span className="dot" />Online</span> : <span className="pill bad"><span className="dot" />Offline</span>}
           {pending > 0 ? <span className="pill warn">{pending} in Warteschlange</span> : null}
-          <span className="rolepill">Kasse</span>
-          {logout ? <form action={logout}><button type="submit" className="k-logout">Abmelden</button></form> : null}
+          <span className="rolepill">{wer ?? "Kasse"}</span>
+          {abschlussHref ? <a href={abschlussHref} className="k-logout" style={{ textDecoration: "none" }}>Ausgabe beenden</a> : null}
+          {logout ? <form action={logout}><button type="submit" className="k-logout">{abschlussHref ? "Person wechseln" : "Abmelden"}</button></form> : null}
         </div>
       </div>
 

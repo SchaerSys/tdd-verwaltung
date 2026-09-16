@@ -212,6 +212,7 @@ export const distributions = pgTable(
     clientRef: uuid("client_ref").unique(),
     amountDue: numeric("amount_due", { precision: 6, scale: 2 }),
     amountPaid: numeric("amount_paid", { precision: 6, scale: 2 }),
+    sitzungId: uuid("sitzung_id"), // Ausgabe-Sitzung (049)
   },
   (t) => ({
     locTimeIdx: index("idx_distributions_location_time").on(t.locationId, t.distributedAt),
@@ -254,6 +255,7 @@ export const auditLogs = pgTable(
     before: jsonb("before"),
     after: jsonb("after"),
     ip: text("ip"),
+    staffId: uuid("staff_id"), // handelnde Person hinter einem technischen Konto (049)
     at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => ({
@@ -438,6 +440,11 @@ export const staff = pgTable("staff", {
   ziviEnde: date("zivi_ende"),
   ziviBescheid: text("zivi_bescheid"),
   ziviFehltageVor: smallint("zivi_fehltage_vor").notNull().default(0),
+  // Ausgabestation (049): persoenliche PIN = Berechtigung fuer die Ausgabe am Laptop
+  pinHash: text("pin_hash"),
+  pinMussAendern: boolean("pin_muss_aendern").notNull().default(false),
+  pinFehlversuche: integer("pin_fehlversuche").notNull().default(0),
+  pinGesperrtBis: timestamp("pin_gesperrt_bis", { withTimezone: true }),
   kannFahren: boolean("kann_fahren").notNull().default(false),
   fuehrerschein: text("fuehrerschein"),
   fahrerTage: smallint("fahrer_tage").array().notNull().default([]),
@@ -636,7 +643,8 @@ export const angeboteEingang = pgTable("angebote_eingang", {
 /** Fahrzeug-Tablets (Migration 038): Geraete-Token statt Fahrer-Login. */
 export const geraete = pgTable("geraete", {
   id: uuid("id").primaryKey().defaultRandom(),
-  fahrzeugId: integer("fahrzeug_id").notNull().references(() => fahrzeuge.id, { onDelete: "cascade" }),
+  fahrzeugId: integer("fahrzeug_id").references(() => fahrzeuge.id, { onDelete: "cascade" }), // null bei Ausgabestation (049)
+  art: text("art").notNull().default("FAHRZEUG"), // FAHRZEUG | AUSGABE
   name: text("name").notNull(),
   tokenHash: text("token_hash").notNull().unique(),
   userAgent: text("user_agent"),
@@ -648,13 +656,33 @@ export const geraete = pgTable("geraete", {
 
 export const geraetCodes = pgTable("geraet_codes", {
   code: text("code").primaryKey(),
-  fahrzeugId: integer("fahrzeug_id").notNull().references(() => fahrzeuge.id, { onDelete: "cascade" }),
+  fahrzeugId: integer("fahrzeug_id").references(() => fahrzeuge.id, { onDelete: "cascade" }),
+  art: text("art").notNull().default("FAHRZEUG"),
   name: text("name").notNull(),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   usedAt: timestamp("used_at", { withTimezone: true }),
   createdBy: uuid("created_by").references(() => users.id),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+// Ausgabestation: Sitzung je Person und Standort (049)
+export const ausgabeSitzungen = pgTable("ausgabe_sitzungen", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  geraetId: uuid("geraet_id").references(() => geraete.id, { onDelete: "set null" }),
+  locationId: integer("location_id").notNull().references(() => locations.id),
+  staffId: uuid("staff_id").references(() => staff.id, { onDelete: "set null" }),
+  userId: uuid("user_id").references(() => users.id),
+  beginn: timestamp("beginn", { withTimezone: true }).notNull().defaultNow(),
+  ende: timestamp("ende", { withTimezone: true }),
+  ausgabenAnzahl: integer("ausgaben_anzahl"),
+  einnahmenSoll: numeric("einnahmen_soll", { precision: 8, scale: 2 }),
+  kasseGezaehlt: numeric("kasse_gezaehlt", { precision: 8, scale: 2 }),
+  differenz: numeric("differenz", { precision: 8, scale: 2 }),
+  uebergabeAn: text("uebergabe_an"),
+  notiz: text("notiz"),
+  ordentlich: boolean("ordentlich").notNull().default(true),
+  kommenGestempelt: boolean("kommen_gestempelt").notNull().default(false),
+}, (t) => ({ locIdx: index("idx_ausgabe_sitzungen_loc").on(t.locationId, t.beginn) }));
 
 // ── P3 Arbeitszeit nach AZG (Migration 043) ────────────────────────────────
 export const zeitRegeln = pgTable("zeit_regeln", {
@@ -674,6 +702,7 @@ export const zeitRegeln = pgTable("zeit_regeln", {
   bvKasse: text("bv_kasse"),
   svTraeger: text("sv_traeger").notNull().default("Österreichische Gesundheitskasse (ÖGK)"),
   kvEinsicht: text("kv_einsicht"),
+  ausgabeStempelt: boolean("ausgabe_stempelt").notNull().default(true), // Ausgabe starten/beenden stempelt Kommen/Gehen (049)
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

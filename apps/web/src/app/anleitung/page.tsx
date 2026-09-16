@@ -45,6 +45,13 @@ export default function AnleitungPage() {
         <Step n="3" title="Neue Karte ausstellen">Kommt ein Klient mit positivem Bescheid: Person suchen → <b>Karte ausstellen</b> → drucken.</Step>
         <Step n="4" title="Offline">Bei Netzausfall bleibt der Ausgabe-Betrieb möglich; Buchungen werden gepuffert und automatisch synchronisiert.</Step>
       </div></div>
+      <div className="panel mt-4" id="ausgabelaptop"><div className="panel-h"><h3>Ausgabelaptop einrichten (ein Laptop für alle Ausgabestellen)</h3></div><div className="p-4">
+        <Step n="1" title="Koppeln">In der Verwaltung unter Stammdaten → Ausgabestation „Laptop koppeln“ → Code. Am Laptop <b>tdd.schaer-systems.at/ausgabe</b> öffnen, Code eingeben. Einmalig; der Laptop ist danach die Ausgabestation, an keinen Standort gebunden.</Step>
+        <Step n="2" title="Als App mit Drucken ohne Dialog">Chrome/Edge: Menü → „App installieren“. Dann eine Desktop-Verknüpfung anlegen, Ziel z. B. <span className="mono">"C:\Program Files\Google\Chrome\Application\chrome.exe" --kiosk-printing --app=https://tdd.schaer-systems.at/ausgabe</span>. Den Kartendrucker als Standarddrucker setzen → der Kartendruck läuft ohne Druckdialog. Verknüpfung in den Autostart legen.</Step>
+        <Step n="3" title="PIN">Jede Person, die die Ausgabe führt, bekommt vom Büro eine Einmal-PIN (Personal-Datensatz → Ausgabe-PIN). Beim ersten Anmelden am Laptop legt sie ihre eigene PIN fest. Fünf Fehlversuche = 15 Minuten Sperre.</Step>
+        <Step n="4" title="Ausgabe starten">Standort antippen (vorbelegt ist die heute geöffnete Ausgabestelle bzw. der Dienstplan), Name antippen, PIN → Kiosk. „Person wechseln“ übergibt an die nächste Person, „Ausgabe beenden“ schließt mit Kassenzählung und Übergabe ab.</Step>
+        <Step n="5" title="Zeiterfassung">„Ausgabe starten“ stempelt Kommen, „beenden“ Gehen (abschaltbar unter Zeiterfassung → Regeln).</Step>
+      </div></div>
     </main>
   );
 }

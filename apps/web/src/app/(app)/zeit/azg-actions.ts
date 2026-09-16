@@ -24,6 +24,7 @@ export async function regelnSpeichern(fd: FormData): Promise<void> {
     bvKasse: String(fd.get("bvKasse") ?? "").trim() || null,
     svTraeger: String(fd.get("svTraeger") ?? "").trim() || "Österreichische Gesundheitskasse (ÖGK)",
     kvEinsicht: String(fd.get("kvEinsicht") ?? "").trim() || null,
+    ausgabeStempelt: fd.get("ausgabeStempelt") === "on",
     updatedAt: new Date(),
   };
   await db().insert(zeitRegeln).values({ id: 1, ...set }).onConflictDoUpdate({ target: zeitRegeln.id, set });

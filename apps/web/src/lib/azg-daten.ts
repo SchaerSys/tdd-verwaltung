@@ -5,15 +5,15 @@ import { feiertagsKarte } from "./feiertage";
 import { monatAuswertung, REGELN_STANDARD, type MonatAuswertung, type Verteilung, type ZeitRegeln } from "./azg";
 import { viennaLocalToUtc, type Ev, type EventKind } from "./zeit";
 
-export interface Arbeitgeber { arbeitgeberName: string; arbeitgeberAnschrift: string | null; bvKasse: string | null; svTraeger: string; kvEinsicht: string | null }
-const ARBEITGEBER_STANDARD: Arbeitgeber = { arbeitgeberName: "Tischlein deck dich Vorarlberg", arbeitgeberAnschrift: null, bvKasse: null, svTraeger: "Österreichische Gesundheitskasse (ÖGK)", kvEinsicht: null };
+export interface Arbeitgeber { arbeitgeberName: string; arbeitgeberAnschrift: string | null; bvKasse: string | null; svTraeger: string; kvEinsicht: string | null; ausgabeStempelt: boolean }
+const ARBEITGEBER_STANDARD: Arbeitgeber = { arbeitgeberName: "Tischlein deck dich Vorarlberg", arbeitgeberAnschrift: null, bvKasse: null, svTraeger: "Österreichische Gesundheitskasse (ÖGK)", kvEinsicht: null, ausgabeStempelt: true };
 
 export async function ladeRegeln(): Promise<ZeitRegeln & { kollektivvertrag: string | null } & Arbeitgeber> {
   const r = (await db().select().from(zeitRegeln).where(eq(zeitRegeln.id, 1)).limit(1))[0];
   if (!r) return { ...REGELN_STANDARD, kollektivvertrag: null, ...ARBEITGEBER_STANDARD };
   return { maxTagMin: r.maxTagMin, maxWocheMin: r.maxWocheMin, pauseAbMin: r.pauseAbMin, pauseMin: r.pauseMin, ruhezeitMin: r.ruhezeitMin,
     normalarbeitszeitWocheMin: r.normalarbeitszeitWocheMin, mehrarbeitZuschlag: r.mehrarbeitZuschlag, ueberstundenZuschlag: r.ueberstundenZuschlag, kollektivvertrag: r.kollektivvertrag,
-    arbeitgeberName: r.arbeitgeberName, arbeitgeberAnschrift: r.arbeitgeberAnschrift, bvKasse: r.bvKasse, svTraeger: r.svTraeger, kvEinsicht: r.kvEinsicht };
+    arbeitgeberName: r.arbeitgeberName, arbeitgeberAnschrift: r.arbeitgeberAnschrift, bvKasse: r.bvKasse, svTraeger: r.svTraeger, kvEinsicht: r.kvEinsicht, ausgabeStempelt: r.ausgabeStempelt };
 }
 
 export interface PersonAuswertung {

@@ -4,7 +4,7 @@ import { verify } from "@node-rs/argon2";
 import { users, organizations, staff } from "@tdd/db";
 import { db } from "./db";
 import { audit } from "./audit";
-import { verifySession, signSession, signToken, verifyToken, SESSION_COOKIE, SESSION_MAX_AGE, PRE_AUTH_COOKIE, PRE_AUTH_MAX_AGE, type PreAuthData } from "./session";
+import { verifySession, signSession, signToken, verifyToken, SESSION_COOKIE, SESSION_MAX_AGE, PRE_AUTH_COOKIE, PRE_AUTH_MAX_AGE, type PreAuthData, type AusgabeSession } from "./session";
 import { verifyTotp, hashRecoveryCode } from "./totp";
 import type { Role } from "./rbac";
 
@@ -19,6 +19,9 @@ export interface CurrentUser {
   organizationName: string | null;
   totpEnabled: boolean;
   mustChangePassword: boolean;
+  /** Ausgabe-Sitzung (Station oder Buero): Standort und handelnde Person kommen aus der Sitzung. */
+  sitzungId: string | null;
+  staffId: string | null;
 }
 
 async function loadUser(where: ReturnType<typeof eq>): Promise<CurrentUser | null> {
@@ -38,7 +41,7 @@ async function loadUser(where: ReturnType<typeof eq>): Promise<CurrentUser | nul
     id: u.id, email: u.email, displayName: u.displayName, role: u.role as Role,
     locationId: u.locationId ?? null, organizationId: u.organizationId ?? null,
     organizationType: u.orgType ?? null, organizationName: u.orgName ?? null,
-    totpEnabled: u.totpEnabled, mustChangePassword: u.mustChangePassword,
+    totpEnabled: u.totpEnabled, mustChangePassword: u.mustChangePassword, sitzungId: null, staffId: null,
   };
 }
 
@@ -47,7 +50,30 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   const store = await cookies();
   const session = verifySession(store.get(SESSION_COOKIE)?.value);
   if (!session) return null;
-  return loadUser(eq(users.id, session.uid));
+  const u = await loadUser(eq(users.id, session.uid));
+  if (!u) return null;
+  // Ausgabe-Sitzung: Standort und Name aus der Sitzung, nicht vom Konto
+  if (session.az) return { ...u, locationId: session.az.loc, displayName: session.az.name, sitzungId: session.az.s, staffId: session.az.st ?? null };
+  return u;
+}
+
+/** Ausgabe-Sitzung aus dem Cookie (fuer Audit und Station). */
+export async function ausgabeSession(): Promise<AusgabeSession | null> {
+  try {
+    const store = await cookies();
+    return verifySession(store.get(SESSION_COOKIE)?.value)?.az ?? null;
+  } catch { return null; }
+}
+
+/**
+ * Session mit Ausgabe-Sitzung setzen (Station: technisches Konto; Buero: eigenes Konto) bzw. die
+ * Sitzung wieder aus der Session nehmen (az = null).
+ */
+export async function sessionMitAusgabe(uid: string, role: string, orgId: number | null, az: AusgabeSession | null): Promise<void> {
+  const store = await cookies();
+  store.set(SESSION_COOKIE, signSession({ uid, role, orgId, az }), {
+    httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/", maxAge: SESSION_MAX_AGE,
+  });
 }
 
 const MAX_ATTEMPTS = 5;

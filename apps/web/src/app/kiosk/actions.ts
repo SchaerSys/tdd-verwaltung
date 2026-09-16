@@ -239,7 +239,7 @@ export async function recordDistribution(cardId: string, clientRef: string, opts
   }
 
   await db().insert(distributions).values({
-    cardId, personId: c.personId, locationId, distributedBy: user.id, clientRef,
+    cardId, personId: c.personId, locationId, distributedBy: user.id, sitzungId: user.sitzungId, clientRef,
     amountDue: amountDue != null ? String(amountDue) : null,
     amountPaid: amountPaid != null ? String(amountPaid) : null,
   }).onConflictDoNothing({ target: distributions.clientRef });
@@ -261,7 +261,7 @@ export async function payDebt(cardId: string, clientRef: string): Promise<{ ok: 
   if (det.debt <= 0) return { ok: true, settled: 0 };
   // Reine Schuldenzahlung: fällig 0, bezahlt = offene Schuld → Saldo ausgeglichen.
   await db().insert(distributions).values({
-    cardId, personId: c.personId, locationId, distributedBy: user.id, clientRef,
+    cardId, personId: c.personId, locationId, distributedBy: user.id, sitzungId: user.sitzungId, clientRef,
     amountDue: "0", amountPaid: String(det.debt), note: "Schulden beglichen",
   }).onConflictDoNothing({ target: distributions.clientRef });
   await audit({ actorUserId: user.id, action: "distribution.debt_paid", entityType: "distribution", entityId: cardId, after: { settled: det.debt } });

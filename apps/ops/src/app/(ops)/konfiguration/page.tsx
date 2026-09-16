@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 /** Konfiguration ohne Personenbezug: Standorte, Loeschfristen, Auswahllisten, Organisationen. */
 export default async function KonfigurationSeite({ searchParams }: { searchParams: Promise<{ orgs?: string }> }) {
   const sp = await searchParams;
-  const d = db();
+  const d = await db();
   const [standorte, fristen, listen, werte, orgs] = await Promise.all([
     d.select().from(locations).orderBy(asc(locations.type), asc(locations.name)),
     d.select().from(retentionRules).orderBy(asc(retentionRules.entityType)),

@@ -15,7 +15,7 @@ const fmt = (d: Date | null) => (d ? d.toLocaleString("de-AT", { timeZone: "Euro
  * freigegebenen Spalten (028): kein Passwort-Hash, kein 2FA-Geheimnis.
  */
 export default async function BenutzerSeite() {
-  const d = db();
+  const d = await db();
   const [liste, standorte, orgs] = await Promise.all([
     d.select({
       id: users.id, email: users.email, name: users.displayName, role: users.role, isActive: users.isActive, emailVerified: users.emailVerified,

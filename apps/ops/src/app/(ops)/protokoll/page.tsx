@@ -14,7 +14,7 @@ const fmt = (d: Date | string) => new Date(d).toLocaleString("de-AT", { timeZone
  * (Aktion + Rolle des Akteurs, kein Datensatz-Bezug) und das Backup-Log.
  */
 export default async function ProtokollSeite() {
-  const d = db();
+  const d = await db();
   const [taeglichRoh, loginsRoh, letzteRoh, backupLog] = await Promise.all([
     d.execute(sql`SELECT tag::text AS tag, action, entity_type, n FROM v_audit_daily WHERE tag >= current_date - 14 ORDER BY tag DESC, n DESC`),
     d.execute(sql`SELECT tag::text AS tag, ok, fehl, gesperrt, zweiter_faktor_fehl FROM v_login_daily WHERE tag >= current_date - 30 ORDER BY tag DESC`),

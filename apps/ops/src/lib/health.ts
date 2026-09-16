@@ -13,7 +13,7 @@ export interface DbStatus {
 
 /** Datenbank-Metadaten: Groesse, Version, Laufzeit, Tabellen – keine Inhalte. */
 export async function dbStatus(): Promise<DbStatus> {
-  const d = db();
+  const d = await db();
   const kopf = rows<{ version: string; gestartet: Date; groesse: string; verbindungen: string; max: string }>(await d.execute(sql`
     SELECT version() AS version, pg_postmaster_start_time() AS gestartet,
            pg_database_size(current_database()) AS groesse,
@@ -71,7 +71,7 @@ export interface Kennzahlen {
 
 /** Nur Aggregat-Views (002/008) – die Rolle kann gar nichts anderes lesen. */
 export async function kennzahlen(): Promise<Kennzahlen> {
-  const d = db();
+  const d = await db();
   const system = rows<Kennzahlen["system"]>(await d.execute(sql`SELECT * FROM v_system_counts`))[0]!;
   const standorte = rows<Kennzahlen["standorte"][number]>(await d.execute(sql`
     SELECT s.location_id, s.location_name AS name, s.location_type AS type, s.active_persons AS persons, s.active_cards,

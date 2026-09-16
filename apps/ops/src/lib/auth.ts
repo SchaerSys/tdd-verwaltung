@@ -14,7 +14,7 @@ const MAX_ATTEMPTS = 5;
 const LOCK_MINUTES = 15;
 
 async function load(id: string): Promise<OpsUser | null> {
-  const rows = await db().select({ id: opsUsers.id, email: opsUsers.email, displayName: opsUsers.displayName, totpEnabled: opsUsers.totpEnabled, isActive: opsUsers.isActive })
+  const rows = await (await db()).select({ id: opsUsers.id, email: opsUsers.email, displayName: opsUsers.displayName, totpEnabled: opsUsers.totpEnabled, isActive: opsUsers.isActive })
     .from(opsUsers).where(eq(opsUsers.id, id)).limit(1);
   const u = rows[0];
   return u && u.isActive ? { id: u.id, email: u.email, displayName: u.displayName, totpEnabled: u.totpEnabled } : null;
@@ -32,7 +32,7 @@ function cookieOpts(maxAge: number) {
 
 /** Wie in der Fach-App: Sperre nach 5 Fehlversuchen, generische Rueckmeldung, 2FA per Vor-Cookie. */
 export async function login(email: string, password: string): Promise<{ ok: boolean; needsSecondFactor: boolean }> {
-  const rows = await db().select().from(opsUsers).where(eq(opsUsers.email, email.toLowerCase().trim())).limit(1);
+  const rows = await (await db()).select().from(opsUsers).where(eq(opsUsers.email, email.toLowerCase().trim())).limit(1);
   const u = rows[0];
   if (!u || !u.isActive) return { ok: false, needsSecondFactor: false };
   if (u.lockedUntil && u.lockedUntil > new Date()) return { ok: false, needsSecondFactor: false };
@@ -41,11 +41,11 @@ export async function login(email: string, password: string): Promise<{ ok: bool
   if (!ok) {
     const attempts = u.failedAttempts + 1;
     const locked = attempts >= MAX_ATTEMPTS;
-    await db().update(opsUsers).set({ failedAttempts: locked ? 0 : attempts, lockedUntil: locked ? new Date(Date.now() + LOCK_MINUTES * 60_000) : null }).where(eq(opsUsers.id, u.id));
+    await (await db()).update(opsUsers).set({ failedAttempts: locked ? 0 : attempts, lockedUntil: locked ? new Date(Date.now() + LOCK_MINUTES * 60_000) : null }).where(eq(opsUsers.id, u.id));
     await audit({ akteur: u.email, action: locked ? "login.locked" : "login.failed", entityType: "ops_user", entityId: u.id });
     return { ok: false, needsSecondFactor: false };
   }
-  await db().update(opsUsers).set({ failedAttempts: 0, lockedUntil: null }).where(eq(opsUsers.id, u.id));
+  await (await db()).update(opsUsers).set({ failedAttempts: 0, lockedUntil: null }).where(eq(opsUsers.id, u.id));
 
   const store = await cookies();
   if (u.totpEnabled) {
@@ -61,14 +61,14 @@ async function startSession(uid: string): Promise<void> {
   const store = await cookies();
   store.set(SESSION_COOKIE, signSession(uid), cookieOpts(SESSION_MAX_AGE));
   store.delete(PRE_AUTH_COOKIE);
-  await db().update(opsUsers).set({ lastLogin: new Date() }).where(eq(opsUsers.id, uid));
+  await (await db()).update(opsUsers).set({ lastLogin: new Date() }).where(eq(opsUsers.id, uid));
 }
 
 export async function completeSecondFactor(code: string): Promise<boolean> {
   const store = await cookies();
   const pre = verifyToken<PreAuthData>(store.get(PRE_AUTH_COOKIE)?.value);
   if (!pre) return false;
-  const rows = await db().select().from(opsUsers).where(eq(opsUsers.id, pre.uid)).limit(1);
+  const rows = await (await db()).select().from(opsUsers).where(eq(opsUsers.id, pre.uid)).limit(1);
   const u = rows[0];
   if (!u || !u.isActive || !u.totpEnabled || !u.totpSecret) return false;
 
@@ -79,14 +79,14 @@ export async function completeSecondFactor(code: string): Promise<boolean> {
       await audit({ akteur: u.email, action: "login.2fa.replay", entityType: "ops_user", entityId: u.id });
       return false;
     }
-    await db().update(opsUsers).set({ totpLastWindow: fenster }).where(eq(opsUsers.id, u.id));
+    await (await db()).update(opsUsers).set({ totpLastWindow: fenster }).where(eq(opsUsers.id, u.id));
   } else {
     const hash = hashRecoveryCode(eingabe);
     if (!u.totpRecovery.includes(hash)) {
       await audit({ akteur: u.email, action: "login.2fa.failed", entityType: "ops_user", entityId: u.id });
       return false;
     }
-    await db().update(opsUsers).set({ totpRecovery: u.totpRecovery.filter((h) => h !== hash) }).where(eq(opsUsers.id, u.id));
+    await (await db()).update(opsUsers).set({ totpRecovery: u.totpRecovery.filter((h) => h !== hash) }).where(eq(opsUsers.id, u.id));
     await audit({ akteur: u.email, action: "login.2fa.recovery", entityType: "ops_user", entityId: u.id });
   }
   await startSession(u.id);

@@ -13,7 +13,7 @@ export async function audit(entry: { akteur: string; action: string; entityType:
     const h = await headers();
     ip = (h.get("x-forwarded-for") ?? "").split(",")[0]?.trim() || null;
   } catch { /* ausserhalb eines Requests (Skript) */ }
-  await db().insert(auditLogs).values({
+  await (await db()).insert(auditLogs).values({
     actorUserId: null, action: `ops.${entry.action}`, entityType: entry.entityType, entityId: entry.entityId ?? null,
     after: { ops: entry.akteur, ...(entry.after ?? {}) }, ip,
   });

@@ -152,7 +152,8 @@ BEGIN
     END IF;
     -- Betreiber (Wartung): ueber alle Mandanten, Spaltenrechte aus 032/033 begrenzen weiterhin
     EXECUTE format('DROP POLICY IF EXISTS tenant_ops ON %I', t);
-    EXECUTE format('CREATE POLICY tenant_ops ON %I AS PERMISSIVE FOR ALL TO tdd_ops USING (true) WITH CHECK (true)', t);
+    -- ohne Kontext (GUC leer) sieht der Betreiber alle Mandanten, mit gewaehltem Mandanten nur diesen
+    EXECUTE format('CREATE POLICY tenant_ops ON %I AS PERMISSIVE FOR ALL TO tdd_ops USING (current_tenant_id() IS NULL OR tenant_id IS NULL OR tenant_id = current_tenant_id()) WITH CHECK (current_tenant_id() IS NULL OR tenant_id IS NULL OR tenant_id = current_tenant_id())', t);
   END LOOP;
 END $$;
 

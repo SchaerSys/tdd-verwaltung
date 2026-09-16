@@ -16,10 +16,11 @@ export default async function MandantSeite({ params }: { params: Promise<{ id: s
   if (!orgId) notFound();
   const m = (await ladeMandanten()).find((x) => x.id === orgId);
   if (!m) notFound();
+  const d = await db();
   const [benutzer, ereignisse, standorte, orgs] = await Promise.all([
     ladeBenutzer({ orgId }), ladeEreignisse({ orgId }, 150),
-    db().select({ id: locations.id, name: locations.name }).from(locations).where(eq(locations.isActive, true)).orderBy(asc(locations.name)),
-    db().select({ id: organizations.id, name: organizations.name, type: organizations.type }).from(organizations).where(eq(organizations.id, orgId)),
+    d.select({ id: locations.id, name: locations.name }).from(locations).where(eq(locations.isActive, true)).orderBy(asc(locations.name)),
+    d.select({ id: organizations.id, name: organizations.name, type: organizations.type }).from(organizations).where(eq(organizations.id, orgId)),
   ]);
   const namen = new Map(benutzer.map((b) => [b.id, b.display_name]));
   const fehler = ereignisse.filter((e) => e.kind === "FEHLER");

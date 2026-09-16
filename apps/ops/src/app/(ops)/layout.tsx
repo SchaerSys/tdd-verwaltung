@@ -2,6 +2,9 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentOps, logout } from "@/lib/auth";
 import { wartungsmodus } from "@/lib/host";
+import { MandantWahl } from "@/components/MandantWahl";
+import { mandantenListe } from "@/lib/unternehmen";
+import { gewaehlterMandant } from "@/lib/tenant";
 
 const NAV = [
   { href: "/", label: "Status" },
@@ -9,6 +12,7 @@ const NAV = [
   { href: "/kennzahlen", label: "Kennzahlen" },
   { href: "/benutzer", label: "Benutzer" },
   { href: "/konfiguration", label: "Konfiguration" },
+  { href: "/unternehmen", label: "Mandanten (Unternehmen)" },
   { href: "/protokoll", label: "Protokoll" },
   { href: "/wartung", label: "Wartung" },
 ];
@@ -23,6 +27,7 @@ export default async function OpsLayout({ children }: { children: React.ReactNod
   const user = await getCurrentOps();
   if (!user) redirect("/login");
   const wartung = await wartungsmodus();
+  const [mandanten, gewaehlt] = await Promise.all([mandantenListe(), gewaehlterMandant()]);
 
   return (
     <div className="min-h-screen">
@@ -38,6 +43,7 @@ export default async function OpsLayout({ children }: { children: React.ReactNod
           {NAV.map((n) => <Link key={n.href} href={n.href} className="text-[color:var(--muted)] hover:text-[color:var(--text)]">{n.label}</Link>)}
         </nav>
         <div className="flex-1" />
+        <MandantWahl mandanten={mandanten} gewaehlt={gewaehlt} />
         {wartung ? <Link href="/wartung" className="pill bad"><span className="dot" />Wartungsmodus aktiv</Link> : null}
         {!user.totpEnabled ? <Link href="/konto" className="pill warn">2FA einrichten</Link> : null}
         <Link href="/konto" className="text-sm">{user.displayName}</Link>

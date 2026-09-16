@@ -69,6 +69,20 @@ describe("Mandanten-Isolation (RLS ueber tenant_id)", () => {
         });
       }
 
+      // Betreiber legt einen Mandanten samt Grundausstattung an (054) – ohne eigenes Schreibrecht auf die Tabellen
+      const ops2 = opsSql(1);
+      try {
+        const [neu] = await ops2`SELECT ops_create_tenant('Dritter Verein', 'dritter') AS id`;
+        const dritter = String(neu!.id);
+        expect((await owner`SELECT count(*)::int AS n FROM organizations WHERE tenant_id = ${dritter} AND type = 'TDD'`)[0]!.n).toBe(1);
+        expect((await owner`SELECT count(*)::int AS n FROM zeit_regeln WHERE tenant_id = ${dritter}`)[0]!.n).toBe(1);
+        expect((await owner`SELECT count(*)::int AS n FROM lookup_lists WHERE tenant_id = ${dritter}`)[0]!.n)
+          .toBe((await owner`SELECT count(*)::int AS n FROM lookup_lists WHERE tenant_id = ${TENANT}`)[0]!.n);
+        await expect(ops2`SELECT ops_create_tenant('Nochmal', 'dritter')`).rejects.toThrow(/duplicate|unique/i);
+        await expect(ops2`INSERT INTO organizations (name, type, tenant_id) VALUES ('Direkt', 'TDD', ${dritter})`).rejects.toThrow(/permission denied/i);
+        await owner`DELETE FROM tenants WHERE id = ${dritter}`;
+      } finally { await ops2.end(); }
+
       // Aufraeumen
       await a`DELETE FROM staff WHERE id = ${sA!.id}`; await a`DELETE FROM persons WHERE id = ${pA!.id}`;
       await owner`DELETE FROM tenants WHERE id = ${zweiter}`; // CASCADE entfernt Beta-Daten

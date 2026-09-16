@@ -2,8 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { eq, sql } from "drizzle-orm";
-import { users } from "@tdd/db";
+import { users, TENANT_VORARLBERG } from "@tdd/db";
 import { db } from "@/lib/db";
+import { gewaehlterMandant } from "@/lib/tenant";
 import { audit } from "@/lib/audit";
 import { requireOps } from "@/lib/auth";
 import { sendMail } from "@/lib/mail";
@@ -29,12 +30,13 @@ export async function einladen(_prev: BenutzerState, fd: FormData): Promise<Benu
   if (!(ROLLEN as readonly string[]).includes(rolle)) return { error: "Ungültige Rolle." };
   if (rolle === "SACHBEARBEITER" && !org) return { error: "Sachbearbeiter:innen brauchen eine Organisation (Gemeinde/Institution)." };
 
-  const vorhanden = await db().select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
+  const tenant = (await gewaehlterMandant()) ?? TENANT_VORARLBERG; // Konto gehoert zum gewaehlten Mandanten (053)
+  const vorhanden = await (await db()).select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
   if (vorhanden[0]) return { error: "Diese E-Mail-Adresse hat schon ein Konto." };
 
   let token: string;
   try {
-    const r = rows<{ t: string }>(await db().execute(sql`SELECT ops_invite_user(${email}, ${name}, ${rolle}, ${loc}, ${org}) AS t`));
+    const r = rows<{ t: string }>(await (await db()).execute(sql`SELECT ops_invite_user(${email}, ${name}, ${rolle}, ${loc}, ${org}, ${tenant}::uuid) AS t`));
     token = r[0]!.t;
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Einladung fehlgeschlagen." };
@@ -54,11 +56,11 @@ export async function einladen(_prev: BenutzerState, fd: FormData): Promise<Benu
 export async function passwortLink(_prev: BenutzerState, fd: FormData): Promise<BenutzerState> {
   const ops = await requireOps();
   const id = String(fd.get("userId") ?? "");
-  const u = (await db().select({ id: users.id, email: users.email, name: users.displayName }).from(users).where(eq(users.id, id)).limit(1))[0];
+  const u = (await (await db()).select({ id: users.id, email: users.email, name: users.displayName }).from(users).where(eq(users.id, id)).limit(1))[0];
   if (!u) return { error: "Benutzer nicht gefunden." };
   let token: string;
   try {
-    token = rows<{ t: string }>(await db().execute(sql`SELECT ops_password_reset_token(${id}::uuid) AS t`))[0]!.t;
+    token = rows<{ t: string }>(await (await db()).execute(sql`SELECT ops_password_reset_token(${id}::uuid) AS t`))[0]!.t;
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Fehler." };
   }
@@ -75,9 +77,9 @@ export async function passwortLink(_prev: BenutzerState, fd: FormData): Promise<
 export async function registrierungFreigeben(fd: FormData): Promise<void> {
   const ops = await requireOps();
   const id = String(fd.get("userId") ?? "");
-  const u = (await db().select({ email: users.email, name: users.displayName, active: users.isActive }).from(users).where(eq(users.id, id)).limit(1))[0];
+  const u = (await (await db()).select({ email: users.email, name: users.displayName, active: users.isActive }).from(users).where(eq(users.id, id)).limit(1))[0];
   if (!u || u.active) return;
-  await db().update(users).set({ isActive: true }).where(eq(users.id, id));
+  await (await db()).update(users).set({ isActive: true }).where(eq(users.id, id));
   await sendMail({ to: u.email, subject: "CareOS – Zugang freigegeben", text: `Guten Tag ${u.name},\n\nIhr Zugang zum Antragsportal wurde freigegeben. Sie können sich jetzt anmelden:\n${appUrl()}/login\n\nFreundliche Grüße\nTischlein deck dich Vorarlberg` });
   await audit({ akteur: ops.email, action: "user.approve", entityType: "user", entityId: id });
   revalidatePath("/benutzer");
@@ -86,9 +88,9 @@ export async function registrierungFreigeben(fd: FormData): Promise<void> {
 export async function registrierungAblehnen(fd: FormData): Promise<void> {
   const ops = await requireOps();
   const id = String(fd.get("userId") ?? "");
-  const u = (await db().select({ active: users.isActive, verified: users.emailVerified }).from(users).where(eq(users.id, id)).limit(1))[0];
+  const u = (await (await db()).select({ active: users.isActive, verified: users.emailVerified }).from(users).where(eq(users.id, id)).limit(1))[0];
   if (!u || u.active) return;
-  await db().execute(sql`SELECT ops_reject_registration(${id}::uuid)`);
+  await (await db()).execute(sql`SELECT ops_reject_registration(${id}::uuid)`);
   await audit({ akteur: ops.email, action: "user.reject", entityType: "user", entityId: id });
   revalidatePath("/benutzer");
 }
@@ -98,7 +100,7 @@ export async function rolleSetzen(fd: FormData): Promise<void> {
   const id = String(fd.get("userId") ?? "");
   const rolle = String(fd.get("role") ?? "");
   if (!(ROLLEN as readonly string[]).includes(rolle)) return;
-  await db().update(users).set({ role: rolle }).where(eq(users.id, id));
+  await (await db()).update(users).set({ role: rolle }).where(eq(users.id, id));
   await audit({ akteur: ops.email, action: "user.role", entityType: "user", entityId: id, after: { rolle } });
   revalidatePath("/benutzer");
 }
@@ -107,7 +109,7 @@ export async function aktivSchalten(fd: FormData): Promise<void> {
   const ops = await requireOps();
   const id = String(fd.get("userId") ?? "");
   const an = String(fd.get("aktiv") ?? "") === "1";
-  await db().update(users).set({ isActive: an }).where(eq(users.id, id));
+  await (await db()).update(users).set({ isActive: an }).where(eq(users.id, id));
   await audit({ akteur: ops.email, action: an ? "user.activate" : "user.deactivate", entityType: "user", entityId: id });
   revalidatePath("/benutzer");
 }
@@ -116,7 +118,7 @@ export async function aktivSchalten(fd: FormData): Promise<void> {
 export async function entsperren(fd: FormData): Promise<void> {
   const ops = await requireOps();
   const id = String(fd.get("userId") ?? "");
-  await db().update(users).set({ failedAttempts: 0, lockedUntil: null }).where(eq(users.id, id));
+  await (await db()).update(users).set({ failedAttempts: 0, lockedUntil: null }).where(eq(users.id, id));
   await audit({ akteur: ops.email, action: "user.unlock", entityType: "user", entityId: id });
   revalidatePath("/benutzer");
 }
@@ -124,7 +126,7 @@ export async function entsperren(fd: FormData): Promise<void> {
 export async function zfaZuruecksetzen(fd: FormData): Promise<void> {
   const ops = await requireOps();
   const id = String(fd.get("userId") ?? "");
-  await db().execute(sql`SELECT ops_reset_totp(${id}::uuid)`);
+  await (await db()).execute(sql`SELECT ops_reset_totp(${id}::uuid)`);
   await audit({ akteur: ops.email, action: "user.totp_reset", entityType: "user", entityId: id });
   revalidatePath("/benutzer");
 }

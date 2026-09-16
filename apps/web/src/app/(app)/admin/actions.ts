@@ -67,8 +67,8 @@ function initialpasswort(): string {
 
 async function initialpasswortSenden(email: string, displayName: string, pw: string, username: string): Promise<boolean> {
   const r = await sendMail({
-    to: email, subject: "TDD-Verwaltung – Ihr Zugang",
-    text: `Guten Tag ${displayName},\n\nfür Sie wurde ein Zugang zur TDD-Verwaltung angelegt.\n\nAnmeldung: ${appUrl()}/login\nBenutzername: ${username} (oder Ihre E-Mail-Adresse ${email})\nInitialpasswort: ${pw}\n\nBeim ersten Anmelden werden Sie aufgefordert, ein eigenes Passwort festzulegen.\n\nFreundliche Grüße\nTischlein deck dich Vorarlberg`,
+    to: email, subject: "CareOS – Ihr Zugang",
+    text: `Guten Tag ${displayName},\n\nfür Sie wurde ein Zugang zur CareOS angelegt.\n\nAnmeldung: ${appUrl()}/login\nBenutzername: ${username} (oder Ihre E-Mail-Adresse ${email})\nInitialpasswort: ${pw}\n\nBeim ersten Anmelden werden Sie aufgefordert, ein eigenes Passwort festzulegen.\n\nFreundliche Grüße\nTischlein deck dich Vorarlberg`,
   });
   return r.sent;
 }

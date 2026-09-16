@@ -41,8 +41,8 @@ export async function einladen(_prev: BenutzerState, fd: FormData): Promise<Benu
   }
   const link = `${appUrl()}/passwort-neu?token=${token}`;
   const mail = await sendMail({
-    to: email, subject: "TDD-Verwaltung – Ihr Zugang",
-    text: `Guten Tag ${name},\n\nfür Sie wurde ein Zugang zur TDD-Verwaltung angelegt (Rolle ${rolle}).\nBitte legen Sie innerhalb von 72 Stunden Ihr Passwort fest:\n${link}\n\nDanach melden Sie sich unter ${appUrl()}/login an.\n\nFreundliche Grüße\nTischlein deck dich Vorarlberg`,
+    to: email, subject: "CareOS – Ihr Zugang",
+    text: `Guten Tag ${name},\n\nfür Sie wurde ein Zugang zur CareOS angelegt (Rolle ${rolle}).\nBitte legen Sie innerhalb von 72 Stunden Ihr Passwort fest:\n${link}\n\nDanach melden Sie sich unter ${appUrl()}/login an.\n\nFreundliche Grüße\nTischlein deck dich Vorarlberg`,
   });
   await audit({ akteur: ops.email, action: "user.invite", entityType: "user", entityId: email, after: { rolle, loc, org, mail: mail.sent } });
   revalidatePath("/benutzer");
@@ -64,7 +64,7 @@ export async function passwortLink(_prev: BenutzerState, fd: FormData): Promise<
   }
   const link = `${appUrl()}/passwort-neu?token=${token}`;
   const mail = await sendMail({
-    to: u.email, subject: "TDD-Verwaltung – Passwort neu setzen",
+    to: u.email, subject: "CareOS – Passwort neu setzen",
     text: `Guten Tag ${u.name},\n\nüber diesen Link können Sie innerhalb von 24 Stunden ein neues Passwort setzen:\n${link}\n\nFalls Sie das nicht angefordert haben, wenden Sie sich an das TDD-Büro.\n\nFreundliche Grüße\nTischlein deck dich Vorarlberg`,
   });
   await audit({ akteur: ops.email, action: "user.password_link", entityType: "user", entityId: u.id, after: { mail: mail.sent } });
@@ -78,7 +78,7 @@ export async function registrierungFreigeben(fd: FormData): Promise<void> {
   const u = (await db().select({ email: users.email, name: users.displayName, active: users.isActive }).from(users).where(eq(users.id, id)).limit(1))[0];
   if (!u || u.active) return;
   await db().update(users).set({ isActive: true }).where(eq(users.id, id));
-  await sendMail({ to: u.email, subject: "TDD-Verwaltung – Zugang freigegeben", text: `Guten Tag ${u.name},\n\nIhr Zugang zum Antragsportal wurde freigegeben. Sie können sich jetzt anmelden:\n${appUrl()}/login\n\nFreundliche Grüße\nTischlein deck dich Vorarlberg` });
+  await sendMail({ to: u.email, subject: "CareOS – Zugang freigegeben", text: `Guten Tag ${u.name},\n\nIhr Zugang zum Antragsportal wurde freigegeben. Sie können sich jetzt anmelden:\n${appUrl()}/login\n\nFreundliche Grüße\nTischlein deck dich Vorarlberg` });
   await audit({ akteur: ops.email, action: "user.approve", entityType: "user", entityId: id });
   revalidatePath("/benutzer");
 }

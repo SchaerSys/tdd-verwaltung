@@ -22,7 +22,7 @@ export async function GET(req: Request) {
     return new Response(lohnCsv(zeilen), { headers: { "content-type": "text/csv; charset=utf-8", "content-disposition": `attachment; filename="${name}.csv"`, "cache-control": "private, no-store" } });
   }
   const wb = new ExcelJS.Workbook();
-  wb.creator = "TDD-Verwaltung"; wb.created = new Date();
+  wb.creator = "CareOS"; wb.created = new Date();
   const ws = wb.addWorksheet(`Lohn ${jahr}-${m[2]}`);
   ws.columns = LOHN_SPALTEN.map((c) => ({ header: c.label, key: c.key, width: Math.max(10, Math.min(28, c.label.length + 4)) }));
   for (const z of zeilen) ws.addRow({ ...z, abgeschlossen: z.abgeschlossen ? "ja" : "nein" });

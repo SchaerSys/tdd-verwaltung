@@ -123,7 +123,7 @@ function Blatt({ name, typ, wochenstunden, titel, u, konto, abgeschlossen, letzt
         <div>Mitarbeiter:in</div>
         <div>Verein</div>
       </div>
-      <div className="fuss"><span>Tischlein deck dich Vorarlberg · TDD-Verwaltung</span><span>Erstellt {new Date().toLocaleDateString("de-AT")}</span></div>
+      <div className="fuss"><span>Tischlein deck dich Vorarlberg · CareOS</span><span>Erstellt {new Date().toLocaleDateString("de-AT")}</span></div>
     </section>
   );
 }

@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-export const metadata = { title: "Benutzeranleitung · TDD-Verwaltung" };
+export const metadata = { title: "Benutzeranleitung · CareOS" };
 
 function Step({ n, title, children }: { n: string; title: string; children: React.ReactNode }) {
   return (

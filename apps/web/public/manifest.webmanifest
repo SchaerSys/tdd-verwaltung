@@ -1,9 +1,9 @@
 {
-  "name": "TDD Tresen-Kiosk",
-  "short_name": "TDD Kiosk",
+  "name": "CareOS Tresen-Kiosk",
+  "short_name": "CareOS Kiosk",
   "start_url": "/kiosk",
   "scope": "/kiosk",
   "display": "standalone",
   "background_color": "#0f1216",
-  "theme_color": "#981313"
+  "theme_color": "#0e7c86"
 }

@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "TDD-Wartung",
-  description: "Wartungsplattform der TDD-Verwaltung (Betreiber)",
+  title: "CareOS Wartung",
+  description: "Wartungsplattform der CareOS (Betreiber)",
   icons: { icon: "/icon.svg" },
   robots: { index: false, follow: false },
 };

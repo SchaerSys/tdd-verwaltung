@@ -2,16 +2,16 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "TDD-Verwaltung",
+  title: "CareOS",
   description: "Verwaltungssystem Tischlein deck dich",
-  applicationName: "TDD-Verwaltung",
+  applicationName: "CareOS",
   manifest: "/app.webmanifest",
   icons: { icon: "/icon.svg", apple: "/icon.svg" },
-  appleWebApp: { capable: true, title: "TDD-Verwaltung", statusBarStyle: "default" },
+  appleWebApp: { capable: true, title: "CareOS", statusBarStyle: "default" },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#981313",
+  themeColor: "#0e7c86",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -53,7 +53,7 @@ export async function requestPasswordReset(_prev: FormState, formData: FormData)
   if (rows[0]) {
     const token = await createAuthToken(rows[0].id, "RESET", 60);
     const link = `${appUrl()}/passwort-neu?token=${token}`;
-    await sendMail({ to: email, subject: "TDD-Verwaltung – Passwort zurücksetzen",
+    await sendMail({ to: email, subject: "CareOS – Passwort zurücksetzen",
       text: `Sie haben ein neues Passwort angefordert.\n\nZum Zurücksetzen öffnen Sie diesen Link (gültig 60 Minuten):\n${link}\n\nWenn Sie das nicht waren, ignorieren Sie diese E-Mail.` });
     await audit({ actorUserId: rows[0].id, action: "password.reset.request", entityType: "user", entityId: rows[0].id });
   }
@@ -92,7 +92,7 @@ export async function registerSachbearbeiter(_prev: FormState, formData: FormDat
 
   const token = await createAuthToken(userId, "VERIFY", 60 * 24);
   const link = `${appUrl()}/konto-bestaetigen?token=${token}`;
-  await sendMail({ to: email, subject: "TDD-Verwaltung – Konto bestätigen",
+  await sendMail({ to: email, subject: "CareOS – Konto bestätigen",
     text: `Willkommen,\n\nbitte bestätigen Sie Ihr Konto über diesen Link (gültig 24 Stunden):\n${link}\n\nErst nach Bestätigung ist die Anmeldung möglich.` });
   await audit({ actorUserId: userId, action: "user.register", entityType: "user", entityId: userId });
 

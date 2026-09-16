@@ -5,7 +5,7 @@ import { hasPermission } from "@/lib/rbac";
 import { Lebenszeichen } from "@/components/Lebenszeichen";
 
 export const metadata: Metadata = {
-  title: "Stempel-Terminal · TDD",
+  title: "Stempel-Terminal · CareOS",
 };
 
 export default async function StempelLayout({ children }: { children: React.ReactNode }) {

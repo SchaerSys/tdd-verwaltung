@@ -77,9 +77,9 @@ export function AppShell({
       {/* Marken-Header (rotes Kopfband über die ganze App) */}
       <header className="topbar">
         <button type="button" className="btn ghost icon" onClick={toggle} aria-label="Navigation ein-/ausblenden" title="Navigation ein-/ausblenden">☰</button>
-        <Link href="/dashboard" className="hdr-brand" title="TDD-Verwaltung">
-          <span className="hdr-logo">Td</span>
-          <span className="hdr-name"><b>TDD-Verwaltung</b><small>Tischlein deck dich</small></span>
+        <Link href="/dashboard" className="hdr-brand" title="CareOS">
+          <span className="hdr-logo">C</span>
+          <span className="hdr-name"><b>CareOS</b><small>Tischlein deck dich</small></span>
         </Link>
         {!onDashboard ? <Link href="/dashboard" className="btn ghost" title="Zurück zum Dashboard">← Dashboard</Link> : null}
 

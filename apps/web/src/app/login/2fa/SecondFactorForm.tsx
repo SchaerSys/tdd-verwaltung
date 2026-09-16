@@ -8,7 +8,7 @@ export function SecondFactorForm() {
   return (
     <div className="w-full max-w-sm bg-surface border border-border rounded-card p-6 shadow-sm flex flex-col gap-4">
       <div>
-        <div className="text-lg font-semibold">TDD-Verwaltung</div>
+        <div className="text-lg font-semibold">CareOS</div>
         <div className="text-sm text-muted">Zweiter Schritt der Anmeldung</div>
       </div>
       <p className="text-sm">

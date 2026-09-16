@@ -30,7 +30,7 @@ export default async function OpsLayout({ children }: { children: React.ReactNod
         <Link href="/" className="flex items-center gap-3 no-underline">
           <div className="w-8 h-8 rounded-lg bg-[color:var(--text)] text-white grid place-items-center font-bold text-sm">W</div>
           <div>
-            <div className="font-bold text-sm text-[color:var(--text)]">TDD-Wartung</div>
+            <div className="font-bold text-sm text-[color:var(--text)]">CareOS Wartung</div>
             <div className="text-xs text-muted">Betreiber · nur Metadaten</div>
           </div>
         </Link>
@@ -46,7 +46,7 @@ export default async function OpsLayout({ children }: { children: React.ReactNod
       <main className="p-6 max-w-6xl mx-auto">
         {children}
         <footer className="flex gap-4 justify-center py-4 text-[.72rem] text-muted border-t border-[color:var(--border)] mt-8">
-          <span>TDD-Wartung · Schär Systems</span><span>·</span><span>v{process.env.NEXT_PUBLIC_APP_VERSION ?? "dev"}</span>
+          <span>CareOS Wartung · Schär Systems</span><span>·</span><span>v{process.env.NEXT_PUBLIC_APP_VERSION ?? "dev"}</span>
         </footer>
       </main>
     </div>

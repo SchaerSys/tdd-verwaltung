@@ -1,4 +1,4 @@
-# TDD-Verwaltung
+# CareOS
 
 Zentrales Verwaltungssystem für den gemeinnützigen Verein **Tischlein deck dich Vorarlberg**
 (Lebensmittelhilfe). Es löst das Kernproblem der bisherigen Insel-Lösungen: **eine zentrale

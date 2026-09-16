@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-export const metadata = { title: "Datenschutz · TDD-Verwaltung" };
+export const metadata = { title: "Datenschutz · CareOS" };
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (

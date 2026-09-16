@@ -4,7 +4,7 @@ import { getCurrentUser, logout } from "@/lib/auth";
 import { hasPermission } from "@/lib/rbac";
 import { Lebenszeichen } from "@/components/Lebenszeichen";
 
-export const metadata: Metadata = { title: "Meine Tour · TDD" };
+export const metadata: Metadata = { title: "Meine Tour · CareOS" };
 export const viewport: Viewport = { width: "device-width", initialScale: 1, maximumScale: 1 };
 
 async function logoutAction() {

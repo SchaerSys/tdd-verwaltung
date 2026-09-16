@@ -10,8 +10,8 @@
   --bg: #f6f7f9; --surface: #ffffff; --surface-2: #f0f2f5; --border: #e2e6eb;
   --text: #171a1f; --muted: #5b6472; --muted-2: #8a94a3;
   /* Marke Tischlein deck dich: tiefes Rot */
-  --accent: #981313; --accent-weak: #f7e8e8; --accent-text: #ffffff;
-  --brand: #981313; --brand-dark: #7d0f0f; --brand-on: #ffffff;
+  --accent: #0e7c86; --accent-weak: #e2f3f4; --accent-text: #ffffff;
+  --brand: #0e7c86; --brand-dark: #0a5f66; --brand-on: #ffffff;
   --good: #148f5b; --good-bg: #e7f6ee; --bad: #d33a2c; --bad-bg: #fdecea;
   --warn: #b7791f; --warn-bg: #fbf1dd;
   --shadow: 0 1px 2px rgba(16,24,40,.05), 0 4px 14px rgba(16,24,40,.06);
@@ -23,7 +23,7 @@
   :root {
     --bg:#0f1216; --surface:#171b21; --surface-2:#1e232b; --border:#2a313b;
     --text:#e6e9ee; --muted:#97a1b0; --muted-2:#6f7987;
-    --accent:#e58a83; --accent-weak:#2c1615; --accent-text:#1a0d0c;
+    --accent:#5fc8c0; --accent-weak:#10302f; --accent-text:#062322;
     --good:#3ecf8e; --good-bg:#10231b; --bad:#ff6b5e; --bad-bg:#2a1512;
     --warn:#e6b450; --warn-bg:#2a2110;
     --shadow:0 1px 2px rgba(0,0,0,.4); --shadow-lg:0 12px 34px rgba(0,0,0,.5);
@@ -32,7 +32,7 @@
 :root[data-theme="light"] {
   --bg:#f6f7f9; --surface:#ffffff; --surface-2:#f0f2f5; --border:#e2e6eb;
   --text:#171a1f; --muted:#5b6472; --muted-2:#8a94a3;
-  --accent:#981313; --accent-weak:#f7e8e8; --accent-text:#ffffff;
+  --accent:#0e7c86; --accent-weak:#e2f3f4; --accent-text:#ffffff;
   --good:#148f5b; --good-bg:#e7f6ee; --bad:#d33a2c; --bad-bg:#fdecea;
   --warn:#b7791f; --warn-bg:#fbf1dd;
   --shadow:0 1px 2px rgba(16,24,40,.05),0 4px 14px rgba(16,24,40,.06);
@@ -41,7 +41,7 @@
 :root[data-theme="dark"] {
   --bg:#0f1216; --surface:#171b21; --surface-2:#1e232b; --border:#2a313b;
   --text:#e6e9ee; --muted:#97a1b0; --muted-2:#6f7987;
-  --accent:#e58a83; --accent-weak:#2c1615; --accent-text:#1a0d0c;
+  --accent:#5fc8c0; --accent-weak:#10302f; --accent-text:#062322;
   --good:#3ecf8e; --good-bg:#10231b; --bad:#ff6b5e; --bad-bg:#2a1512;
   --warn:#e6b450; --warn-bg:#2a2110;
   --shadow:0 1px 2px rgba(0,0,0,.4); --shadow-lg:0 12px 34px rgba(0,0,0,.5);

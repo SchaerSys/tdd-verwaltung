@@ -53,7 +53,7 @@ export async function startTotpSetup(): Promise<TotpSetup | { error: string }> {
   const { generateSecret, otpauthUrl } = await import("@tdd/core/totp");
   const QR = (await import("qrcode")).default;
   const secret = generateSecret();
-  const otpauth = otpauthUrl(secret, user.email, "TDD-Wartung");
+  const otpauth = otpauthUrl(secret, user.email, "CareOS Wartung");
   // PNG als Data-URL fuer ein <img>: kein innerHTML, keine Angriffsflaeche.
   const qrDataUrl = await QR.toDataURL(otpauth, { margin: 1, width: 220 });
   await db().update(users).set({ totpSecret: secret, totpEnabled: false }).where(eq(users.id, user.id));

@@ -40,7 +40,7 @@ export async function GET(req: Request) {
   }
 
   const wb = new ExcelJS.Workbook();
-  wb.creator = "TDD-Verwaltung"; wb.created = new Date();
+  wb.creator = "CareOS"; wb.created = new Date();
   const ws = wb.addWorksheet(`Zeiterfassung ${month}`);
   ws.columns = [
     { header: "Mitarbeiter:in", key: "name", width: 26 },

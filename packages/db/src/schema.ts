@@ -415,6 +415,21 @@ export const staff = pgTable("staff", {
   urlaubUebertragTage: numeric("urlaub_uebertrag_tage", { precision: 5, scale: 1 }).notNull().default("0"),
   urlaubUebertragAb: date("urlaub_uebertrag_ab"),
   dienstjahreAnrechnung: numeric("dienstjahre_anrechnung", { precision: 4, scale: 1 }).notNull().default("0"),
+  // P2 Personalakte (045): Dienstzettel-Daten nach § 2 AVRAG, OeGK-Anmeldung, Notfallkontakt
+  geburtsdatum: date("geburtsdatum"),
+  svNummer: text("sv_nummer"),
+  staatsbuergerschaft: text("staatsbuergerschaft"),
+  beschaeftigung: text("beschaeftigung"), // VOLLZEIT | TEILZEIT | GERINGFUEGIG | ZIVILDIENST | EHRENAMT
+  taetigkeit: text("taetigkeit"),
+  kvEinstufung: text("kv_einstufung"),
+  gehaltBrutto: numeric("gehalt_brutto", { precision: 9, scale: 2 }),
+  probezeitBis: date("probezeit_bis"),
+  befristetBis: date("befristet_bis"),
+  kuendigungsfrist: text("kuendigungsfrist"),
+  dienstzettelAm: date("dienstzettel_am"),
+  notfallName: text("notfall_name"),
+  notfallTel: text("notfall_tel"),
+  austrittGrund: text("austritt_grund"),
   kannFahren: boolean("kann_fahren").notNull().default(false),
   fuehrerschein: text("fuehrerschein"),
   fahrerTage: smallint("fahrer_tage").array().notNull().default([]),
@@ -423,6 +438,18 @@ export const staff = pgTable("staff", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => ({ activeIdx: index("idx_staff_active").on(t.isActive), lastIdx: index("idx_staff_lastname").on(t.lastName) }));
+
+// P2 · Personalakte: Dokumente je Person (nur Admin, 7 Jahre nach Austritt) (045)
+export const staffDokumente = pgTable("staff_dokumente", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  staffId: uuid("staff_id").notNull().references(() => staff.id, { onDelete: "cascade" }),
+  art: text("art").notNull(), // DIENSTZETTEL | DIENSTVERTRAG | ZEUGNIS | AUSWEIS | FUEHRERSCHEIN | UNTERWEISUNG | AERZTLICH | SONSTIG
+  bezeichnung: text("bezeichnung").notNull(),
+  fileRef: text("file_ref").notNull(),
+  gueltigBis: date("gueltig_bis"),
+  uploadedBy: uuid("uploaded_by").references(() => users.id),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({ staffIdx: index("idx_staff_dokumente_staff").on(t.staffId) }));
 
 // ── A2 · Zeiterfassung (Stempel-Ereignisse) ────────────────────────────────
 export const timeEvents = pgTable("time_events", {
@@ -609,6 +636,12 @@ export const zeitRegeln = pgTable("zeit_regeln", {
   mehrarbeitZuschlag: integer("mehrarbeit_zuschlag").notNull().default(25),
   ueberstundenZuschlag: integer("ueberstunden_zuschlag").notNull().default(50),
   kollektivvertrag: text("kollektivvertrag"),
+  // Arbeitgeber-Angaben fuer den Dienstzettel (045)
+  arbeitgeberName: text("arbeitgeber_name").notNull().default("Tischlein deck dich Vorarlberg"),
+  arbeitgeberAnschrift: text("arbeitgeber_anschrift"),
+  bvKasse: text("bv_kasse"),
+  svTraeger: text("sv_traeger").notNull().default("Österreichische Gesundheitskasse (ÖGK)"),
+  kvEinsicht: text("kv_einsicht"),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

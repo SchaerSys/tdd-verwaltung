@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { NfcZuweisen } from "../NfcZuweisen";
 import { redirect, notFound } from "next/navigation";
-import { asc, eq } from "drizzle-orm";
-import { staff, locations, users } from "@tdd/db";
+import { asc, desc, eq } from "drizzle-orm";
+import { staff, locations, users, staffDokumente } from "@tdd/db";
 import { WOCHENTAGE_KURZ } from "@/lib/touren";
 import { verteilungSpeichern } from "../../zeit/azg-actions";
 import { urlaubStammdaten } from "../../abwesenheiten/actions";
@@ -11,6 +11,10 @@ import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { hasPermission } from "@/lib/rbac";
 import { updateStaff, toggleStaffActive } from "../actions";
+import { akteSpeichern, dokumentHochladen, dokumentLoeschen } from "../akte-actions";
+import { aktePruefung, aufbewahrungBis, probezeitMax, BESCHAEFTIGUNG_LABEL, AUSTRITT_GRUND_LABEL, DOK_ART_LABEL } from "@/lib/personalakte";
+import { heuteIso } from "@/lib/touren";
+import { fmtDate, fmtDateTime } from "@/lib/format";
 import { STAFF_TYPES, STAFF_TYPE_LABEL } from "../types";
 
 export default async function StaffEditPage({ params }: { params: Promise<{ id: string }> }) {
@@ -18,13 +22,18 @@ export default async function StaffEditPage({ params }: { params: Promise<{ id: 
   if (!user || !hasPermission(user.role, "staff:manage")) redirect("/dashboard");
   const { id } = await params;
 
-  const [rows, locs, fahrerLogins] = await Promise.all([
+  const [rows, locs, fahrerLogins, dokumente] = await Promise.all([
     db().select().from(staff).where(eq(staff.id, id)).limit(1),
     db().select({ id: locations.id, name: locations.name }).from(locations).where(eq(locations.isActive, true)).orderBy(asc(locations.name)),
     db().select({ id: users.id, name: users.displayName, email: users.email }).from(users).where(eq(users.role, "FAHRER")).orderBy(asc(users.displayName)),
+    db().select().from(staffDokumente).where(eq(staffDokumente.staffId, id)).orderBy(desc(staffDokumente.createdAt)),
   ]);
   const p = rows[0];
   if (!p) notFound();
+  const admin = hasPermission(user.role, "admin:manage");
+  const heute = heuteIso();
+  const hinweise = aktePruefung(p, dokumente, heute);
+  const stufeFarbe = { FEHLT: "bad", WARN: "warn", INFO: "muted" } as const;
 
   return (
     <div>
@@ -41,6 +50,7 @@ export default async function StaffEditPage({ params }: { params: Promise<{ id: 
           </form>
           <Link href="/personal" className="btn ghost">← Personal</Link>
           <a href={`/druck/zeit?staff=${p.id}`} className="btn ghost">🖨 Monatsübersicht</a>
+          {admin ? <a href={`/druck/dienstzettel?staff=${p.id}`} className="btn ghost">🖨 Dienstzettel</a> : null}
         </div>
       </div>
 
@@ -115,6 +125,58 @@ export default async function StaffEditPage({ params }: { params: Promise<{ id: 
         </div>
         <div className="p-4 border-t border-[color:var(--border)] flex gap-2 items-center"><button type="submit" className="btn primary">Urlaubsdaten speichern</button><Link href={`/abwesenheiten/konto?staff=${p.id}`} className="btn ghost">Urlaubskonto →</Link>{!p.employmentStart ? <span className="text-xs" style={{ color: "var(--warn)" }}>Eintrittsdatum fehlt – ohne Eintritt kein Urlaubsjahr.</span> : null}</div>
       </form>
+
+      {/* P2 Personalakte: Dienstzettel-Daten (§ 2 AVRAG), OeGK-Anmeldung, Notfallkontakt – nur Admin */}
+      {admin ? (
+        <>
+          <form action={akteSpeichern} className="panel mt-4">
+            <input type="hidden" name="staffId" value={p.id} />
+            <div className="panel-h"><h3>Personalakte – Dienstverhältnis (AVRAG)</h3>
+              {hinweise.length ? <span className={`pill ${hinweise.some((h) => h.stufe === "FEHLT") ? "bad" : hinweise.some((h) => h.stufe === "WARN") ? "warn" : "muted"}`}>{hinweise.filter((h) => h.stufe === "FEHLT").length} fehlend · {hinweise.filter((h) => h.stufe === "WARN").length} Hinweise</span> : <span className="pill good"><span className="dot" />vollständig</span>}
+            </div>
+            {hinweise.length ? <ul className="px-4 pt-3 flex flex-col gap-1 text-[.78rem]">{hinweise.map((h) => <li key={h.code} className="flex gap-2 items-start"><span className={`pill ${stufeFarbe[h.stufe]}`} style={{ flexShrink: 0 }}>{h.stufe === "FEHLT" ? "fehlt" : h.stufe === "WARN" ? "Frist" : "Hinweis"}</span><span>{h.text}</span></li>)}</ul> : null}
+            <div className="p-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="field"><label className="lbl">Geburtsdatum</label><input name="geburtsdatum" type="date" className="inp mono" defaultValue={p.geburtsdatum ?? ""} /></div>
+              <div className="field"><label className="lbl">SV-Nummer</label><input name="svNummer" className="inp mono" inputMode="numeric" defaultValue={p.svNummer ?? ""} placeholder="10-stellig" /></div>
+              <div className="field"><label className="lbl">Staatsbürgerschaft</label><input name="staatsbuergerschaft" className="inp" defaultValue={p.staatsbuergerschaft ?? ""} placeholder="z. B. Österreich" /></div>
+              <div className="field"><label className="lbl">Beschäftigungsart</label><select name="beschaeftigung" className="inp" defaultValue={p.beschaeftigung ?? ""}><option value="">— wählen —</option>{Object.entries(BESCHAEFTIGUNG_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></div>
+              <div className="field sm:col-span-2"><label className="lbl">Tätigkeit / Verwendung</label><input name="taetigkeit" className="inp" defaultValue={p.taetigkeit ?? ""} placeholder="z. B. Mitarbeiter:in Ausgabe und Fahrdienst" /></div>
+              <div className="field"><label className="lbl">Einstufung</label><input name="kvEinstufung" className="inp" defaultValue={p.kvEinstufung ?? ""} placeholder="kein KV / Verwendungsgruppe" /></div>
+              <div className="field"><label className="lbl">Grundgehalt brutto (€/Monat)</label><input name="gehaltBrutto" className="inp mono" inputMode="decimal" defaultValue={p.gehaltBrutto ? String(p.gehaltBrutto) : ""} /></div>
+              <div className="field"><label className="lbl">Probezeit bis</label><input name="probezeitBis" type="date" className="inp mono" defaultValue={p.probezeitBis ?? ""} />{p.employmentStart ? <div className="text-[.7rem] text-muted">max. {fmtDate(probezeitMax(p.employmentStart))}</div> : null}</div>
+              <div className="field"><label className="lbl">Befristet bis</label><input name="befristetBis" type="date" className="inp mono" defaultValue={p.befristetBis ?? ""} /><div className="text-[.7rem] text-muted">leer = unbefristet</div></div>
+              <div className="field"><label className="lbl">Kündigungsfrist</label><input name="kuendigungsfrist" className="inp" defaultValue={p.kuendigungsfrist ?? ""} placeholder="gesetzlich (§ 20 AngG)" /></div>
+              <div className="field"><label className="lbl">Dienstzettel ausgehändigt am</label><input name="dienstzettelAm" type="date" className="inp mono" defaultValue={p.dienstzettelAm ?? ""} /></div>
+              <div className="field"><label className="lbl">Notfallkontakt</label><input name="notfallName" className="inp" defaultValue={p.notfallName ?? ""} placeholder="Name" /></div>
+              <div className="field"><label className="lbl">Notfall-Telefon</label><input name="notfallTel" className="inp mono" defaultValue={p.notfallTel ?? ""} /></div>
+              <div className="field"><label className="lbl">Beendigungsart</label><select name="austrittGrund" className="inp" defaultValue={p.austrittGrund ?? ""}><option value="">—</option>{Object.entries(AUSTRITT_GRUND_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></div>
+              {p.employmentEnd ? <div className="field"><label className="lbl">Aufbewahrung bis</label><div className="mt-2 text-[.8125rem] mono">{fmtDate(aufbewahrungBis(p.employmentEnd))}</div><div className="text-[.7rem] text-muted">7 Jahre nach Austritt (§ 132 BAO), danach automatische Löschung</div></div> : null}
+            </div>
+            <div className="p-4 border-t border-[color:var(--border)] flex gap-2 items-center"><button type="submit" className="btn primary">Personalakte speichern</button><a href={`/druck/dienstzettel?staff=${p.id}`} className="btn ghost">Dienstzettel drucken →</a></div>
+          </form>
+
+          <div className="panel mt-4">
+            <div className="panel-h"><h3>Dokumente</h3><span className="pill muted">{dokumente.length}</span><span className="text-xs text-muted">nur Admin · PDF, Bild oder DOCX bis 20 MB</span></div>
+            <div className="twrap"><table className="data"><thead><tr><th>Art</th><th>Bezeichnung</th><th>gültig bis</th><th>abgelegt</th><th></th></tr></thead>
+              <tbody>{dokumente.map((d) => <tr key={d.id}>
+                <td><span className="pill muted">{DOK_ART_LABEL[d.art] ?? d.art}</span></td>
+                <td><a href={`/dokument/personal/${d.id}`} target="_blank" rel="noopener">{d.bezeichnung}</a></td>
+                <td className="mono">{d.gueltigBis ? <span style={{ color: d.gueltigBis < heute ? "var(--bad)" : undefined }}>{fmtDate(d.gueltigBis)}</span> : "—"}</td>
+                <td className="text-xs text-muted">{fmtDateTime(d.createdAt)}</td>
+                <td><form action={dokumentLoeschen}><input type="hidden" name="id" value={d.id} /><button className="btn ghost sm" type="submit">Löschen</button></form></td>
+              </tr>)}
+              {dokumente.length === 0 ? <tr><td colSpan={5}><div className="empty">Noch keine Dokumente – Dienstzettel unterschrieben, Zeugnisse, Führerschein, Unterweisungen.</div></td></tr> : null}</tbody></table></div>
+            <form action={dokumentHochladen} className="p-4 border-t border-[color:var(--border)] grid gap-3 sm:grid-cols-5 items-end">
+              <input type="hidden" name="staffId" value={p.id} />
+              <div className="field"><label className="lbl">Art</label><select name="art" className="inp" defaultValue="DIENSTZETTEL">{Object.entries(DOK_ART_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></div>
+              <div className="field"><label className="lbl">Bezeichnung</label><input name="bezeichnung" className="inp" placeholder="leer = Dateiname" /></div>
+              <div className="field"><label className="lbl">gültig bis (optional)</label><input name="gueltigBis" type="date" className="inp mono" /></div>
+              <div className="field"><label className="lbl">Datei</label><input name="file" type="file" className="inp" accept=".pdf,.png,.jpg,.jpeg,.webp,.docx" required /></div>
+              <div><button className="btn" type="submit">Hochladen</button></div>
+            </form>
+          </div>
+        </>
+      ) : null}
     </div>
   );
 }

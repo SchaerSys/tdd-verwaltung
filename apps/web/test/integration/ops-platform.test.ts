@@ -36,6 +36,10 @@ test("Wartungsrolle: Einladen per Funktion, Log nur aggregiert, ops_users nur fu
     await ops`SELECT ops_reset_totp(${u[0]!.id}::uuid)`;
     await expect(ops`UPDATE users SET password_hash = 'x' WHERE id = ${u[0]!.id}`).rejects.toThrow(/permission denied/i);
 
+    // Personalakte (045): Gehalt/SV-Nummer/Dokumente sind fuer die Wartung tabu
+    await expect(ops`SELECT sv_nummer, gehalt_brutto FROM staff LIMIT 1`).rejects.toThrow(/permission denied/i);
+    await expect(ops`SELECT * FROM staff_dokumente LIMIT 1`).rejects.toThrow(/permission denied/i);
+
     // Protokoll: Views ja, Rohtabelle nein; eigene Eintraege schreiben ja.
     await ops`INSERT INTO audit_logs (action, entity_type, after) VALUES ('ops.test', 'system', '{"ops":"test"}')`;
     await expect(ops`SELECT * FROM audit_logs LIMIT 1`).rejects.toThrow(/permission denied/i);

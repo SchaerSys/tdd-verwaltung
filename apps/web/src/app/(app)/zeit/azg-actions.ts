@@ -18,7 +18,13 @@ export async function regelnSpeichern(fd: FormData): Promise<void> {
     maxTagMin: num(fd, "maxTagStd", 1, 12, 10) * 60, maxWocheMin: num(fd, "maxWocheStd", 1, 60, 50) * 60,
     pauseAbMin: num(fd, "pauseAbStd", 1, 12, 6) * 60, pauseMin: num(fd, "pauseMin", 0, 120, 30), ruhezeitMin: num(fd, "ruhezeitStd", 1, 24, 11) * 60,
     normalarbeitszeitWocheMin: num(fd, "normalStd", 1, 60, 40) * 60, mehrarbeitZuschlag: num(fd, "mehrarbeitZuschlag", 0, 100, 25), ueberstundenZuschlag: num(fd, "ueberstundenZuschlag", 0, 200, 50),
-    kollektivvertrag: String(fd.get("kollektivvertrag") ?? "").trim() || null, updatedAt: new Date(),
+    kollektivvertrag: String(fd.get("kollektivvertrag") ?? "").trim() || null,
+    arbeitgeberName: String(fd.get("arbeitgeberName") ?? "").trim() || "Tischlein deck dich Vorarlberg",
+    arbeitgeberAnschrift: String(fd.get("arbeitgeberAnschrift") ?? "").trim() || null,
+    bvKasse: String(fd.get("bvKasse") ?? "").trim() || null,
+    svTraeger: String(fd.get("svTraeger") ?? "").trim() || "Österreichische Gesundheitskasse (ÖGK)",
+    kvEinsicht: String(fd.get("kvEinsicht") ?? "").trim() || null,
+    updatedAt: new Date(),
   };
   await db().insert(zeitRegeln).values({ id: 1, ...set }).onConflictDoUpdate({ target: zeitRegeln.id, set });
   await audit({ actorUserId: u.id, action: "zeit.regeln", entityType: "zeit_regeln", entityId: "1", after: set });

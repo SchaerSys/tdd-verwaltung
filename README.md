@@ -109,6 +109,11 @@ graph TD
 **A3 · Abwesenheiten nach UrlG/EFZG** (Zentralsystem)
 - Arten Urlaub, Krankenstand, Zeitausgleich, Pflegefreistellung, Sonderurlaub, unbezahlt; Antrag → Genehmigung; Monatskalender „wer fehlt wann“; Krankenbestätigung ab Tag 3. Urlaubskonto je Person: Anspruch aus Wochen × Arbeitstagen der Verteilung (aliquot im ersten halben Jahr, 6 Wochen ab 25 Dienstjahren), Übertrag mit FIFO-Verbrauch und 2-Jahres-Verjährung, Resturlaub-Startwert aus alter Führung; Krankenstand mit EFZG-Stufen (6/8/10/12 Wochen); Pflegefreistellung eine Arbeitswoche. Reine Logik in `lib/abwesenheit.ts` mit Tests; Abwesenheiten fließen als Gutschrift in die Arbeitszeit und als Konflikt in die Disposition.
 
+**A2 · Personalakte nach AVRAG** (Zentralsystem, nur Admin)
+- Dienstverhältnis je Person: Beschäftigungsart, Tätigkeit, Einstufung, Grundgehalt, Probezeit (max. 1 Monat, § 19 Abs 2 AngG), Befristung, Kündigungsfrist, Aushändigung des Dienstzettels; ÖGK-Daten (Geburtsdatum, SV-Nummer mit Prüfziffer, Staatsbürgerschaft), Notfallkontakt, Beendigungsart. Vollständigkeits- und Fristenprüfung (`lib/personalakte.ts`, mit Tests) als Hinweise am Datensatz und in der Personalliste.
+- Dienstzettel-Druck (`/druck/dienstzettel`) mit allen Mindestangaben des § 2 Abs 2 AVRAG (Fassung 2024), Arbeitgeber-Angaben zentral unter `/zeit/regeln`; Datenschutzinformation für Mitarbeitende nach Art. 13 DSGVO (`/druck/datenschutz-personal`).
+- Dokumente je Person (Dienstzettel, Vertrag, Zeugnis, Führerschein, Unterweisung …) mit Ablaufdatum, Ablage unter `STORAGE_DIR/personal`, Download nur für Admin (`/dokument/personal/<id>`); Datenbankrolle `tdd_ops` hat keinen Zugriff. Aufbewahrung 7 Jahre ab Ende des Austrittsjahres (§ 132 BAO), danach löscht der Retention-Job Dokumente und sensible Felder.
+
 **A4 · Touren & Disposition** (Zentralsystem)
 - Stammdaten: Abholstellen (Betriebe mit Abholtagen, Fenster, Kühlbedarf, Hinweisen), Fahrzeuge (Kühlung, elektrisch, Pickerl, Werkstatt), Fahrer:innen am Personal (Führerschein, Fahrertage, Login-Verknüpfung).
 - Wochenplan (Tourvorlagen je Wochentag mit Stopp-Abfolge) → Tagesdisposition (`/touren`): Touren erzeugen, Fahrer/Fahrzeug zuweisen, Konflikte live (abwesend, Werkstatt, Kühlware ohne Kühlung, Doppelbelegung, Pickerl), Abwesenheiten, Laufzettel-Druck.

@@ -38,6 +38,12 @@ export default async function RegelnSeite() {
               <div className="field"><label className="lbl">Zuschlag Mehrarbeit Teilzeit (%)</label><input name="mehrarbeitZuschlag" className="inp mono" defaultValue={r.mehrarbeitZuschlag} /><div className="text-[.7rem] text-muted">§ 19d AZG: 25 %</div></div>
               <div className="field"><label className="lbl">Zuschlag Überstunden (%)</label><input name="ueberstundenZuschlag" className="inp mono" defaultValue={r.ueberstundenZuschlag} /><div className="text-[.7rem] text-muted">§ 10 AZG: 50 %</div></div>
               <div className="field sm:col-span-2"><label className="lbl">Kollektivvertrag (falls anwendbar)</label><input name="kollektivvertrag" className="inp" defaultValue={r.kollektivvertrag ?? ""} placeholder="z. B. SWÖ-KV – oder leer, wenn keiner gilt" /></div>
+              <div className="sm:col-span-2 border-t border-[color:var(--border)] pt-3 text-[.8125rem] font-semibold">Arbeitgeber-Angaben für den Dienstzettel (§ 2 AVRAG)</div>
+              <div className="field"><label className="lbl">Arbeitgeber</label><input name="arbeitgeberName" className="inp" defaultValue={r.arbeitgeberName} /></div>
+              <div className="field"><label className="lbl">Anschrift (Sitz)</label><input name="arbeitgeberAnschrift" className="inp" defaultValue={r.arbeitgeberAnschrift ?? ""} placeholder="Straße, PLZ Ort" /></div>
+              <div className="field"><label className="lbl">Betriebliche Vorsorgekasse</label><input name="bvKasse" className="inp" defaultValue={r.bvKasse ?? ""} placeholder="Name und Anschrift der BV-Kasse" /></div>
+              <div className="field"><label className="lbl">Sozialversicherungsträger</label><input name="svTraeger" className="inp" defaultValue={r.svTraeger} /></div>
+              <div className="field sm:col-span-2"><label className="lbl">Einsichtnahme in KV/Betriebsvereinbarung</label><input name="kvEinsicht" className="inp" defaultValue={r.kvEinsicht ?? ""} placeholder="z. B. Büro Vandans – entfällt ohne KV" /></div>
               {admin ? <div><button className="btn primary" type="submit">Speichern</button></div> : null}
             </fieldset>
           </form>

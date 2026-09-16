@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { asc, eq } from "drizzle-orm";
-import { staff, locations } from "@tdd/db";
+import { staff, locations, staffDokumente } from "@tdd/db";
+import { aktePruefung } from "@/lib/personalakte";
+import { heuteIso } from "@/lib/touren";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { hasPermission } from "@/lib/rbac";
@@ -13,10 +15,17 @@ export default async function PersonalPage() {
   const user = await getCurrentUser();
   if (!user || !hasPermission(user.role, "staff:manage")) redirect("/dashboard");
 
-  const [rows, locs] = await Promise.all([
+  const [rows, locs, doks] = await Promise.all([
     db().select().from(staff).orderBy(asc(staff.lastName), asc(staff.firstName)),
     db().select({ id: locations.id, name: locations.name }).from(locations).where(eq(locations.isActive, true)).orderBy(asc(locations.name)),
+    db().select({ staffId: staffDokumente.staffId, art: staffDokumente.art, gueltigBis: staffDokumente.gueltigBis, bezeichnung: staffDokumente.bezeichnung }).from(staffDokumente),
   ]);
+  const heute = heuteIso();
+  // Personalakte-Stand je aktiver Person: fehlende Pflichtangaben (AVRAG) und laufende Fristen
+  const akte = new Map(rows.filter((r) => r.isActive).map((r) => {
+    const h = aktePruefung(r, doks.filter((d) => d.staffId === r.id), heute);
+    return [r.id, { fehlt: h.filter((x) => x.stufe === "FEHLT").length, warn: h.filter((x) => x.stufe === "WARN").length }];
+  }));
   const active = rows.filter((r) => r.isActive);
   const inactive = rows.filter((r) => !r.isActive);
 
@@ -27,6 +36,7 @@ export default async function PersonalPage() {
           <h1>Personal <span className="pill muted">A2</span></h1>
           <div className="sub">Mitarbeitende, Zivildiener, Ehrenamtliche &amp; Fahrer:innen · {active.length} aktiv{inactive.length ? ` · ${inactive.length} inaktiv` : ""}</div>
         </div>
+        <div className="flex gap-2"><a href="/druck/datenschutz-personal" className="btn ghost">🖨 Datenschutzinformation</a><Link href="/zeit/regeln" className="btn ghost">Arbeitgeber-Angaben</Link></div>
       </div>
 
       {/* Neu anlegen (manuelle Erfassung) */}
@@ -60,7 +70,7 @@ export default async function PersonalPage() {
         <div className="panel-h"><h3>Personal</h3><span className="pill muted">{rows.length}</span></div>
         <div className="twrap">
           <table className="data">
-            <thead><tr><th>Name</th><th>Art</th><th>Standort</th><th>Eintritt</th><th>Std/Wo.</th><th>Status</th><th></th></tr></thead>
+            <thead><tr><th>Name</th><th>Art</th><th>Standort</th><th>Eintritt</th><th>Std/Wo.</th><th>Akte</th><th>Status</th><th></th></tr></thead>
             <tbody>
               {rows.map((r) => (
                 <tr key={r.id} style={r.isActive ? undefined : { opacity: .55 }}>
@@ -69,11 +79,12 @@ export default async function PersonalPage() {
                   <td>{locs.find((l) => l.id === r.locationId)?.name ?? "—"}</td>
                   <td className="mono">{fmtDate(r.employmentStart)}</td>
                   <td className="mono">{r.weeklyHours ?? "—"}</td>
+                  <td>{(() => { const a = akte.get(r.id); if (!a) return "—"; if (a.fehlt) return <span className="pill bad">{a.fehlt} fehlend</span>; if (a.warn) return <span className="pill warn">{a.warn} Frist</span>; return <span className="pill good"><span className="dot" />ok</span>; })()}</td>
                   <td>{r.isActive ? <span className="pill good"><span className="dot" />Aktiv</span> : <span className="pill bad">Inaktiv</span>}</td>
                   <td><Link href={`/personal/${r.id}`} className="btn ghost sm">Öffnen →</Link></td>
                 </tr>
               ))}
-              {rows.length === 0 ? <tr><td colSpan={7}><div className="empty">Noch kein Personal erfasst. Über „＋ Neue Person anlegen" beginnen (manuelle Erfassung).</div></td></tr> : null}
+              {rows.length === 0 ? <tr><td colSpan={8}><div className="empty">Noch kein Personal erfasst. Über „＋ Neue Person anlegen" beginnen (manuelle Erfassung).</div></td></tr> : null}
             </tbody>
           </table>
         </div>

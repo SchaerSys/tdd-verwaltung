@@ -66,7 +66,11 @@ export default async function StaffEditPage({ params }: { params: Promise<{ id: 
           </div>
           <div className="field sm:col-span-2 lg:col-span-3"><label className="lbl">Notiz</label><input name="note" className="inp" defaultValue={p.note ?? ""} /></div>
           <div className="sm:col-span-2 lg:col-span-3 border-t border-[color:var(--border)] pt-3 text-[.8125rem] font-semibold">Fahrdienst (A4 Touren)</div>
-          <div className="field"><label className="lbl">Fährt Touren</label><label className="flex items-center gap-2 text-[.8125rem] mt-2"><input type="checkbox" name="kannFahren" defaultChecked={p.kannFahren} /> kann als Fahrer:in eingeteilt werden</label></div>
+          <div className="field"><label className="lbl">Fährt Touren</label>
+            {p.staffType === "FAHRER"
+              ? <div className="mt-2 text-[.8125rem]"><span className="pill good"><span className="dot" />ja – Fahrer:in</span> <span className="text-muted">fest, weil als Fahrer:in geführt</span><input type="hidden" name="kannFahren" value="on" /></div>
+              : <label className="flex items-center gap-2 text-[.8125rem] mt-2"><input type="checkbox" name="kannFahren" defaultChecked={p.kannFahren} /> kann zusätzlich als Fahrer:in eingeteilt werden</label>}
+          </div>
           <div className="field"><label className="lbl">Führerschein</label><input name="fuehrerschein" className="inp" defaultValue={p.fuehrerschein ?? ""} placeholder="z. B. B, C1" /></div>
           <div className="field"><label className="lbl">Fahrertage (leer = alle)</label>
             <div className="flex gap-2 flex-wrap mt-2 text-[.8125rem]">{[1, 2, 3, 4, 5, 6, 7].map((t) => <label key={t} className="flex items-center gap-1"><input type="checkbox" name="fahrerTage" value={t} defaultChecked={p.fahrerTage.includes(t)} />{WOCHENTAGE_KURZ[t]}</label>)}</div></div>

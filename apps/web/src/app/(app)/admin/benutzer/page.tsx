@@ -7,6 +7,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { hasPermission } from "@/lib/rbac";
 import { approveUser, rejectUser, setUserRole, toggleUserActive, resetUserTotp } from "../actions";
 import { NeuerBenutzer } from "./NeuerBenutzer";
+import { BenutzerBearbeiten } from "./BenutzerBearbeiten";
 
 const ROLE_LABEL: Record<string, string> = {
   ADMIN: "Admin", ERFASSUNG: "Erfassung", AUSGABE: "Kasse", AUSWERTUNG: "Auswertung", FAHRER: "Fahrer",
@@ -28,7 +29,7 @@ export default async function BenutzerPage() {
   const usrs = await d
     .select({
       id: users.id, email: users.email, displayName: users.displayName,
-      role: users.role, isActive: users.isActive, totpEnabled: users.totpEnabled, locName: locations.name,
+      role: users.role, isActive: users.isActive, totpEnabled: users.totpEnabled, locName: locations.name, locationId: users.locationId,
     })
     .from(users)
     .leftJoin(locations, eq(users.locationId, locations.id))
@@ -81,7 +82,7 @@ export default async function BenutzerPage() {
 
         <div className="twrap">
           <table className="data">
-            <thead><tr><th>Name</th><th>E-Mail</th><th>Rolle ändern</th><th>Standort</th><th>Status</th></tr></thead>
+            <thead><tr><th>Name</th><th>E-Mail</th><th>Rolle ändern</th><th>Standort</th><th>Status</th><th></th></tr></thead>
             <tbody>
               {usrs.map((u) => (
                 <tr key={u.id}>
@@ -123,6 +124,7 @@ export default async function BenutzerPage() {
                       ) : null}
                     </div>
                   </td>
+                  <td><BenutzerBearbeiten u={{ id: u.id, displayName: u.displayName, email: u.email, role: u.role, locationId: u.locationId ?? null, isActive: u.isActive }} rollen={INTERNAL_ROLES} orte={locs.map((l) => ({ id: l.id, name: l.name }))} selbst={u.id === user.id} /></td>
                 </tr>
               ))}
             </tbody>

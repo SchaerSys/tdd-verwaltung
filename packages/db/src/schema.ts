@@ -432,6 +432,7 @@ export const staff = pgTable("staff", {
   notfallName: text("notfall_name"),
   notfallTel: text("notfall_tel"),
   austrittGrund: text("austritt_grund"),
+  dienstStandard: jsonb("dienst_standard"), // Standard-Dienst je ISO-Wochentag (047)
   kannFahren: boolean("kann_fahren").notNull().default(false),
   fuehrerschein: text("fuehrerschein"),
   fahrerTage: smallint("fahrer_tage").array().notNull().default([]),
@@ -452,6 +453,30 @@ export const staffDokumente = pgTable("staff_dokumente", {
   uploadedBy: uuid("uploaded_by").references(() => users.id),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => ({ staffIdx: index("idx_staff_dokumente_staff").on(t.staffId) }));
+
+// P5 · Dienstplan (047)
+export const dienste = pgTable("dienste", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  datum: date("datum").notNull(),
+  staffId: uuid("staff_id").notNull().references(() => staff.id, { onDelete: "cascade" }),
+  locationId: integer("location_id").references(() => locations.id),
+  von: time("von").notNull(),
+  bis: time("bis").notNull(),
+  pauseMin: integer("pause_min").notNull().default(0),
+  taetigkeit: text("taetigkeit").notNull().default("AUSGABE"), // AUSGABE | FAHRDIENST | LAGER | BUERO | SONSTIG
+  notiz: text("notiz"),
+  createdBy: uuid("created_by").references(() => users.id),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({ datumIdx: index("idx_dienste_datum").on(t.datum), staffIdx: index("idx_dienste_staff_datum").on(t.staffId, t.datum) }));
+
+export const dienstplanWochen = pgTable("dienstplan_wochen", {
+  wocheStart: date("woche_start").primaryKey(),
+  status: text("status").notNull().default("ENTWURF"), // ENTWURF | VEROEFFENTLICHT
+  veroeffentlichtAt: timestamp("veroeffentlicht_at", { withTimezone: true }),
+  veroeffentlichtBy: uuid("veroeffentlicht_by").references(() => users.id),
+  notiz: text("notiz"),
+});
 
 // ── A2 · Zeiterfassung (Stempel-Ereignisse) ────────────────────────────────
 export const timeEvents = pgTable("time_events", {

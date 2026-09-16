@@ -7,6 +7,8 @@ import { getCurrentUser } from "@/lib/auth";
 import { hasPermission } from "@/lib/rbac";
 import { ladeMonat } from "@/lib/azg-daten";
 import { ladeKonten } from "@/lib/abwesenheit-daten";
+import { ladeMeineDienste } from "@/lib/dienstplan-daten";
+import { dienstMinuten, plusTage, TAETIGKEIT_LABEL } from "@/lib/dienstplan";
 import { ABW_ART_LABEL } from "@/lib/abwesenheit";
 import { fmtMin, fmtSaldo } from "@/lib/zeit";
 import { fmtDate } from "@/lib/format";
@@ -44,7 +46,7 @@ export default async function MeinBereich({ searchParams }: { searchParams: Prom
   const vor = new Date(Date.UTC(jahr, monat - 2, 1)); const nach = new Date(Date.UTC(jahr, monat, 1));
   const param = (d: Date) => `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
 
-  const [zeit, konten] = await Promise.all([ladeMonat(jahr, monat, p.id), ladeKonten(heute, p.id)]);
+  const [zeit, konten, dienste] = await Promise.all([ladeMonat(jahr, monat, p.id), ladeKonten(heute, p.id), ladeMeineDienste(p.id, heute, plusTage(heute, 20))]);
   const z = zeit[0]; const k = konten[0];
   const offen = (k?.eintraege ?? []).filter((e) => e.status === "BEANTRAGT");
   const kommend = (k?.eintraege ?? []).filter((e) => e.status === "GENEHMIGT" && e.bis >= heute).sort((a, b) => a.von.localeCompare(b.von));
@@ -61,6 +63,21 @@ export default async function MeinBereich({ searchParams }: { searchParams: Prom
         <div className="panel p-4"><div className="text-xs text-muted">{MONATE[monat - 1]}: Ist / Soll</div>{z ? <><b className="text-lg mono">{fmtMin(z.auswertung.istMin)} / {fmtMin(z.auswertung.sollMin)}</b><div className="text-xs text-muted">Monat {fmtSaldo(z.auswertung.saldoMin)}{z.auswertung.gutschriftMin ? ` · Gutschrift ${fmtMin(z.auswertung.gutschriftMin)}` : ""}</div></> : <span className="text-muted">—</span>}</div>
         <div className="panel p-4"><div className="text-xs text-muted">Urlaub übrig</div>{k?.urlaub ? <><b className="text-lg mono" style={{ color: k.urlaub.rest < 0 ? "var(--bad)" : undefined }}>{k.urlaub.rest} Tage</b><div className="text-xs text-muted">Anspruch {k.urlaub.anspruch} + Übertrag {k.urlaub.uebertrag} − verbraucht {k.urlaub.verbraucht} − geplant {k.urlaub.geplant}{k.urlaub.verfaelltDemnaechst ? ` · ${k.urlaub.verfaelltDemnaechst.tage} verfallen am ${fmtDate(k.urlaub.verfaelltDemnaechst.am)}` : ""}</div></> : <span className="text-muted text-xs">{k?.fehlt ?? "—"}</span>}</div>
         <div className="panel p-4"><div className="text-xs text-muted">Krankenstand im Arbeitsjahr</div>{k?.krank ? <><b className="text-lg mono">{k.krank.tage} Tage</b><div className="text-xs text-muted">Entgeltfortzahlung voll noch {k.krank.restVollTage} Tage{k.krank.laufender ? " · derzeit krank" : ""}</div></> : <span className="text-muted">—</span>}</div>
+      </div>
+
+      <div className="panel mb-4">
+        <div className="panel-h"><h3>Meine Dienste</h3><span className="text-xs text-muted">nächste drei Wochen · nur veröffentlichte Wochen</span></div>
+        {dienste.length ? (
+          <div className="p-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4 text-[.8125rem]">
+            {dienste.map((d) => (
+              <div key={d.id} className="flex flex-col" style={d.datum === heute ? { background: "var(--warn-bg)", borderRadius: 6, padding: "4px 6px" } : { padding: "4px 6px" }}>
+                <span><b>{WOCHENTAGE_KURZ[new Date(d.datum + "T00:00:00Z").getUTCDay() || 7]} {fmtDate(d.datum)}</b>{d.datum === heute ? " · heute" : ""}</span>
+                <span className="mono">{d.von.slice(0, 5)}–{d.bis.slice(0, 5)}{d.pauseMin ? ` (${d.pauseMin} min Pause)` : ""} · {fmtMin(dienstMinuten(d))}</span>
+                <span className="text-xs text-muted">{TAETIGKEIT_LABEL[d.taetigkeit]}{d.ort ? ` · ${d.ort}` : ""}{d.notiz ? ` · ${d.notiz}` : ""}</span>
+              </div>
+            ))}
+          </div>
+        ) : <div className="p-4 text-[.8125rem] text-muted">Für die nächsten Wochen ist noch kein Dienstplan veröffentlicht.</div>}
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3 items-start mb-4">

@@ -37,6 +37,7 @@ export const NAV: NavDef[] = [
   { href: "/zeit/monat", label: "Monatsauswertung", perm: "staff:manage", group: "Personal", parent: "/zeit" },
   { href: "/zeit/pruefung", label: "AZG-Prüfung", perm: "staff:manage", group: "Personal", parent: "/zeit" },
   { href: "/zeit/regeln", label: "Regeln & Feiertage", perm: "staff:manage", group: "Personal", parent: "/zeit" },
+  { href: "/dienstplan", label: "Dienstplan", perm: "staff:manage", group: "Personal" },
   { href: "/abwesenheiten", label: "Abwesenheiten", perm: "staff:manage", group: "Personal" },
   { href: "/abwesenheiten/konto", label: "Urlaubskonten", perm: "staff:manage", group: "Personal", parent: "/abwesenheiten" },
   { href: "/urlaub", label: "Urlaubsrechner", perm: "staff:manage", group: "Personal", parent: "/abwesenheiten" },

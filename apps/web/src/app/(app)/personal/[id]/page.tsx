@@ -6,6 +6,8 @@ import { staff, locations, users, staffDokumente, organizations } from "@tdd/db"
 import { WOCHENTAGE_KURZ } from "@/lib/touren";
 import { verteilungSpeichern } from "../../zeit/azg-actions";
 import { urlaubStammdaten } from "../../abwesenheiten/actions";
+import { standardSpeichern } from "../../dienstplan/actions";
+import { standardAusVerteilung, TAETIGKEIT_LABEL, type DienstStandard } from "@/lib/dienstplan";
 import { sollJeWochentag, type Verteilung } from "@/lib/azg";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
@@ -115,6 +117,30 @@ export default async function StaffEditPage({ params }: { params: Promise<{ id: 
         </div>
         <div className="p-4 border-t border-[color:var(--border)] flex gap-2 items-center"><button type="submit" className="btn primary">Verteilung speichern</button><Link href={`/zeit/monat?staff=${p.id}`} className="btn ghost">Monatsauswertung →</Link></div>
       </form>
+
+      {/* P5 Dienstplan: Standard-Dienst je Wochentag – Vorlage fuer "Woche aus Standard fuellen" */}
+      {(() => {
+        const soll = sollJeWochentag((p.sollVerteilung as Verteilung | null) ?? null, p.weeklyHours ? Number(p.weeklyHours) : null);
+        const gespeichert = (p.dienstStandard as DienstStandard | null) ?? null;
+        const std = gespeichert ?? standardAusVerteilung(soll);
+        return (
+          <form action={standardSpeichern} className="panel mt-4">
+            <input type="hidden" name="staffId" value={p.id} />
+            <div className="panel-h"><h3>Dienstplan – Standard-Dienst je Wochentag</h3><span className="text-xs text-muted">{gespeichert ? "gespeichert" : "Vorschlag aus der Wochenverteilung (Beginn 08:00) – noch nicht gespeichert"}</span></div>
+            <div className="twrap"><table className="data"><thead><tr><th>Tag</th><th>Von</th><th>Bis</th><th>Pause (min)</th><th>Standort</th><th>Tätigkeit</th></tr></thead>
+              <tbody>{[1, 2, 3, 4, 5, 6, 7].map((t) => { const s = std[String(t)]; return (
+                <tr key={t}>
+                  <td><b>{WOCHENTAGE_KURZ[t]}</b>{soll[t] ? <span className="text-xs text-muted"> Soll {Math.round((soll[t] / 60) * 100) / 100} h</span> : null}</td>
+                  <td><input name={`von${t}`} type="time" className="inp mono" defaultValue={s?.von ?? ""} /></td>
+                  <td><input name={`bis${t}`} type="time" className="inp mono" defaultValue={s?.bis ?? ""} /></td>
+                  <td><input name={`pause${t}`} className="inp mono" inputMode="numeric" defaultValue={s?.pause ?? ""} style={{ width: 70 }} /></td>
+                  <td><select name={`loc${t}`} className="inp" defaultValue={s?.location ?? p.locationId ?? ""}><option value="">—</option>{locs.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}</select></td>
+                  <td><select name={`taet${t}`} className="inp" defaultValue={s?.taetigkeit ?? (p.kannFahren ? "FAHRDIENST" : "AUSGABE")}>{Object.entries(TAETIGKEIT_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></td>
+                </tr>); })}</tbody></table></div>
+            <div className="p-4 border-t border-[color:var(--border)] flex gap-2 items-center"><button type="submit" className="btn primary">Standard speichern</button><Link href="/dienstplan" className="btn ghost">Dienstplan →</Link><span className="text-xs text-muted">Leere Zeilen = kein Dienst an dem Tag. „Aus Standard füllen“ im Dienstplan nutzt diese Vorlage.</span></div>
+          </form>
+        );
+      })()}
 
       {/* Urlaub nach UrlG: Urlaubsjahr, Wochen, Uebertrag aus alter Fuehrung, Vordienstzeiten */}
       <form action={urlaubStammdaten} className="panel mt-4">

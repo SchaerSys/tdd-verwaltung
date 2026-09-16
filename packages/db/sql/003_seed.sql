@@ -13,11 +13,11 @@ INSERT INTO locations (name, type, city, location_code) VALUES
   ('Ausgabestelle Götzis',     'AUSGABESTELLE', 'Götzis',    203),
   ('Ausgabestelle Dornbirn',   'AUSGABESTELLE', 'Dornbirn',  204),
   ('Ausgabestelle Hard',       'AUSGABESTELLE', 'Hard',      205)
-ON CONFLICT (name) DO NOTHING;
+ON CONFLICT DO NOTHING;
 
 -- ── Auswahllisten ─────────────────────────────────────────────────────────
 INSERT INTO lookup_lists (code) VALUES ('language'), ('origin')
-ON CONFLICT (code) DO NOTHING;
+ON CONFLICT DO NOTHING;
 
 INSERT INTO lookup_values (list_id, label, sort)
 SELECT l.id, v.label, v.sort
@@ -42,4 +42,4 @@ INSERT INTO retention_rules (entity_type, retention_period, legal_basis) VALUES
   ('person',        interval '3 years', 'Standard: 3 Jahre nach letzter Aktivität'),
   ('scan_document', interval '90 days', 'Rohscan-Löschung nach bestätigter Übernahme'),
   ('audit_log',     interval '3 years', 'Nachvollziehbarkeit / Rechenschaftspflicht')
-ON CONFLICT (entity_type) DO NOTHING;
+ON CONFLICT DO NOTHING;

@@ -87,12 +87,14 @@ GRANT EXECUTE ON FUNCTION ops_reset_totp(uuid) TO tdd_ops;
 
 -- ── 3) Protokoll ohne Personenbezug ───────────────────────────────────────
 -- audit_logs selbst bleibt fuer tdd_ops gesperrt (entity_id/after enthalten z. B. E-Mail-Adressen).
-CREATE OR REPLACE VIEW v_audit_daily AS
+DROP VIEW IF EXISTS v_audit_daily;
+CREATE VIEW v_audit_daily AS
 SELECT date_trunc('day', at)::date AS tag, action, entity_type, count(*)::int AS n
 FROM audit_logs
 GROUP BY 1, 2, 3;
 
-CREATE OR REPLACE VIEW v_audit_recent AS
+DROP VIEW IF EXISTS v_audit_recent;
+CREATE VIEW v_audit_recent AS
 SELECT a.at, a.action, a.entity_type, u.display_name AS akteur, u.role AS akteur_rolle
 FROM audit_logs a
 LEFT JOIN users u ON u.id = a.actor_user_id
@@ -100,7 +102,8 @@ ORDER BY a.at DESC
 LIMIT 500;
 
 -- Anmeldungen/Fehlversuche je Tag – Angriffserkennung ohne Namen.
-CREATE OR REPLACE VIEW v_login_daily AS
+DROP VIEW IF EXISTS v_login_daily;
+CREATE VIEW v_login_daily AS
 SELECT date_trunc('day', at)::date AS tag,
        count(*) FILTER (WHERE action = 'login')::int            AS ok,
        count(*) FILTER (WHERE action = 'login.failed')::int     AS fehl,

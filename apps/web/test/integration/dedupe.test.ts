@@ -1,7 +1,6 @@
 import { beforeAll, expect, test } from "vitest";
-import postgres from "postgres";
 import { koelnerPhonetik, normalizeName } from "@tdd/core";
-import { applyMigrations, appUrl } from "./db";
+import { applyMigrations, appUrl, appSql } from "./db";
 
 beforeAll(async () => {
   await applyMigrations();
@@ -10,7 +9,7 @@ beforeAll(async () => {
 });
 
 test("Kandidatensuche: SET LOCAL in der Transaktion greift, Trigramm-Treffer kommen", async () => {
-  const sql = postgres(appUrl(), { max: 1 });
+  const sql = appSql(1);
   try {
     // Zwei Personen wie im migrierten Bestand: gleicher Name, kein Geburtsdatum, keine Adresse.
     for (const [vor, nach] of [["Maria", "Müller"], ["Maria", "Mueller"]] as const) {

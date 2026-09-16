@@ -66,7 +66,8 @@ for f in packages/db/sql/*.sql; do
   n=$(basename "$f")
   grep -qx "$n" migrations.done && continue
   echo "   Migration $n"
-  docker exec -i tdd-postgres psql -U tdd_owner -d tdd -v ON_ERROR_STOP=1 -q < "$f"
+  # Owner-Sitzung im Kontext des Bestandsmandanten: Seeds/Nachtraege erben tenant_id (053)
+  { echo "SET app.current_tenant_id = '${DEFAULT_TENANT_ID:-e3b29c11-0000-4000-a000-000000000000}';"; cat "$f"; }     | docker exec -i tdd-postgres psql -U tdd_owner -d tdd -v ON_ERROR_STOP=1 -q
   echo "$n" >> migrations.done
 done
 

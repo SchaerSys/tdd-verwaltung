@@ -9,7 +9,8 @@ ALTER TABLE cards ADD COLUMN IF NOT EXISTS trash_reason text;
 CREATE INDEX IF NOT EXISTS idx_cards_deleted ON cards (deleted_at);
 
 -- Statistik-View: aktive Karten dürfen keine Papierkorb-Karten mitzählen.
-CREATE OR REPLACE VIEW v_stats_by_location AS
+DROP VIEW IF EXISTS v_stats_by_location;
+CREATE VIEW v_stats_by_location AS
 SELECT
   l.id   AS location_id,
   l.name AS location_name,

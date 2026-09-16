@@ -1,13 +1,12 @@
 import { beforeAll, expect, test } from "vitest";
-import postgres from "postgres";
-import { applyMigrations, appUrl, opsUrl } from "./db";
+import { applyMigrations, appSql, opsSql } from "./db";
 
 beforeAll(applyMigrations);
 
 /** 034: Touren-Schema, Rolle FAHRER, Vorlage einmal je Tag, Wartung ohne Zugriff auf Touren. */
 test("A4: Vorlage nur einmal je Tag, Stopp-Regel, FAHRER-Rolle, ops sieht Fahrzeuge aber keine Touren", async () => {
-  const app = postgres(appUrl(), { max: 1 });
-  const ops = postgres(opsUrl(), { max: 1 });
+  const app = appSql(1);
+  const ops = opsSql(1);
   try {
     const st = await app<{ id: number }[]>`INSERT INTO abholstellen (name, art, ort, kuehlbedarf) VALUES ('Test-Markt', 'SUPERMARKT', 'Hard', true) RETURNING id`;
     const fz = await app<{ id: number }[]>`INSERT INTO fahrzeuge (kennzeichen, bezeichnung, kuehlung) VALUES (${"T-" + Date.now()}, 'Testwagen', false) RETURNING id`;

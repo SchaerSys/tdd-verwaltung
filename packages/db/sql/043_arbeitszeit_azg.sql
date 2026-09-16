@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS zeit_regeln (
   kollektivvertrag              text,
   updated_at                    timestamptz NOT NULL DEFAULT now()
 );
-INSERT INTO zeit_regeln (id) VALUES (1) ON CONFLICT (id) DO NOTHING;
+INSERT INTO zeit_regeln (id) VALUES (1) ON CONFLICT DO NOTHING;
 
 CREATE TABLE IF NOT EXISTS betriebsfreie_tage (
   datum date PRIMARY KEY,

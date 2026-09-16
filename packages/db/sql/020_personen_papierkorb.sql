@@ -10,4 +10,4 @@ CREATE INDEX IF NOT EXISTS idx_persons_deleted ON persons (deleted_at);
 -- Aufbewahrungsregel für Personen (falls in einer frischen DB noch nicht geseedet).
 INSERT INTO retention_rules (entity_type, retention_period, legal_basis) VALUES
   ('person', interval '3 years', 'Standard: 3 Jahre nach letzter Aktivität')
-ON CONFLICT (entity_type) DO NOTHING;
+ON CONFLICT DO NOTHING;

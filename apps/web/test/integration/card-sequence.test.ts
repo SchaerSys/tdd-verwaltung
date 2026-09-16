@@ -1,12 +1,11 @@
 import { beforeAll, expect, test } from "vitest";
-import postgres from "postgres";
-import { applyMigrations, appUrl } from "./db";
+import { applyMigrations, appSql } from "./db";
 
 beforeAll(applyMigrations);
 
 test("Kartennummern-Sequenz: parallele Vergabe ist lueckenlos und kollisionsfrei", async () => {
   // Mehrere Verbindungen, damit die Aufrufe wirklich gleichzeitig laufen.
-  const sql = postgres(appUrl(), { max: 8 });
+  const sql = appSql(8);
   try {
     const code = 998;
     const laeufe = Array.from({ length: 40 }, () =>

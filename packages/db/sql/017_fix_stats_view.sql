@@ -4,7 +4,8 @@
 --  Relation → Kreuzprodukt (bei 1300 Personen×1300 Karten = 1,7 Mio Zeilen/Ort,
 --  ~4,6 s). Neu: getrennte Subqueries → Millisekunden.
 -- ════════════════════════════════════════════════════════════════════════
-CREATE OR REPLACE VIEW v_stats_by_location AS
+DROP VIEW IF EXISTS v_stats_by_location;
+CREATE VIEW v_stats_by_location AS
 SELECT
   l.id   AS location_id,
   l.name AS location_name,

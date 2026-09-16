@@ -1,12 +1,11 @@
 import { beforeAll, expect, test } from "vitest";
-import postgres from "postgres";
-import { applyMigrations, appUrl } from "./db";
+import { applyMigrations, appSql } from "./db";
 
 beforeAll(applyMigrations);
 
 /** 031: Nachrichten sind je Organisation getrennt, TDD (ohne Org-Kontext) sieht alle; Owner-View liefert den Fall. */
 test("Rueckfragen: RLS je Organisation, TDD sieht alles, View nur Faelle mit Verlauf", async () => {
-  const sql = postgres(appUrl(), { max: 1 });
+  const sql = appSql(1);
   try {
     const orgs = await sql<{ id: number }[]>`SELECT id FROM organizations WHERE type = 'GEMEINDE' ORDER BY id LIMIT 2`;
     const [a, b] = orgs;

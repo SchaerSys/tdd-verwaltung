@@ -1,4 +1,5 @@
 import { sql } from "drizzle-orm";
+import { currentTenantId } from "@tdd/db";
 import { db } from "./db";
 
 type Tx = Parameters<Parameters<ReturnType<typeof db>["transaction"]>[0]>[0];
@@ -10,6 +11,8 @@ type Tx = Parameters<Parameters<ReturnType<typeof db>["transaction"]>[0]>[0];
  */
 export async function withOrg<T>(orgId: number, fn: (tx: Tx) => Promise<T>): Promise<T> {
   return db().transaction(async (tx) => {
+    // Mandant transaktionslokal (zusaetzlich zur Pool-GUC) und Organisation der Sachbearbeitung
+    await tx.execute(sql`SELECT set_config('app.current_tenant_id', ${currentTenantId()}, true)`);
     await tx.execute(sql`SELECT set_config('app.org_id', ${String(orgId)}, true)`);
     return fn(tx);
   });

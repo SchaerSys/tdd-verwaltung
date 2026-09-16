@@ -30,7 +30,8 @@ GRANT SELECT, INSERT, DELETE ON app_events TO tdd_app;   -- melden + Aufraeumjob
 GRANT SELECT ON app_events TO tdd_ops;
 
 -- Je Benutzer: Stammdaten (freigegebene Spalten) + letztes Lebenszeichen + Fehlerlage.
-CREATE OR REPLACE VIEW v_support_benutzer AS
+DROP VIEW IF EXISTS v_support_benutzer;
+CREATE VIEW v_support_benutzer AS
 SELECT u.id, u.email, u.display_name, u.role, u.is_active, u.totp_enabled, u.last_login, u.locked_until, u.failed_attempts,
        l.name AS standort, o.name AS organisation, o.type AS organisation_typ,
        lz.at AS zuletzt_gesehen, lz.route AS zuletzt_route,
@@ -46,7 +47,8 @@ LEFT JOIN LATERAL (
 ) lz ON true;
 
 -- Aktionen eines Benutzers aus dem Audit-Log, ohne Datensatz-Bezug (was, nicht an wem).
-CREATE OR REPLACE VIEW v_support_aktionen AS
+DROP VIEW IF EXISTS v_support_aktionen;
+CREATE VIEW v_support_aktionen AS
 SELECT actor_user_id AS user_id, at, action, entity_type
 FROM audit_logs
 WHERE actor_user_id IS NOT NULL;
@@ -56,7 +58,8 @@ GRANT SELECT ON v_support_benutzer, v_support_aktionen TO tdd_ops;
 -- Mandanten-Sicht: jede Gemeinde/Institution (und TDD selbst) als Einheit – Konten,
 -- Aktivitaet, Fehler, Antraege nur als Zahlen. Owner-View umgeht RLS auf antraege
 -- ausschliesslich fuer diese Aggregation.
-CREATE OR REPLACE VIEW v_support_mandanten AS
+DROP VIEW IF EXISTS v_support_mandanten;
+CREATE VIEW v_support_mandanten AS
 SELECT o.id, o.name, o.type, o.is_active,
        (SELECT count(*) FROM users u WHERE u.organization_id = o.id)::int AS konten,
        (SELECT count(*) FROM users u WHERE u.organization_id = o.id AND u.is_active)::int AS konten_aktiv,

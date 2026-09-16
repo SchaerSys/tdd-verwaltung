@@ -1,11 +1,10 @@
 import { beforeAll, expect, test } from "vitest";
-import postgres from "postgres";
-import { applyMigrations, appUrl } from "./db";
+import { applyMigrations, appSql } from "./db";
 
 beforeAll(applyMigrations);
 
 test("RLS trennt Mandanten strikt", async () => {
-  const sql = postgres(appUrl(), { max: 1 });
+  const sql = appSql(1);
   try {
     const orgs = await sql<{ id: number }[]>`SELECT id FROM organizations WHERE type = 'GEMEINDE' ORDER BY id LIMIT 2`;
     expect(orgs.length).toBe(2);

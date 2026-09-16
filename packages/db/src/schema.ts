@@ -23,12 +23,23 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 
+// ── Mandanten (Unternehmen) – globale Ebene ueber den Organisationen (053) ────
+export const tenants = pgTable("tenants", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
+  slug: text("slug").notNull().unique(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  isActive: boolean("is_active").notNull().default(true),
+});
+
+
 export const locations = pgTable("locations", {
+  tenantId: uuid("tenant_id").notNull().default(sql`current_tenant_id()`).references(() => tenants.id, { onDelete: "cascade" }), // Mandant (053), Default = Kontext
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
-  name: text("name").notNull().unique(),
+  name: text("name").notNull(), // eindeutig je Mandant (uq_locations_tenant_name)
   type: text("type").notNull(), // 'LADEN' | 'AUSGABESTELLE'
   city: text("city").notNull(),
-  locationCode: smallint("location_code").notNull().unique(),
+  locationCode: smallint("location_code").notNull(), // eindeutig je Mandant
   isActive: boolean("is_active").notNull().default(true),
   priceAdult: numeric("price_adult", { precision: 6, scale: 2 }).notNull().default("2.00"),
   priceChild: numeric("price_child", { precision: 6, scale: 2 }).notNull().default("1.00"),
@@ -41,7 +52,7 @@ export const locations = pgTable("locations", {
   lng: doublePrecision("lng"),
   geofenceM: integer("geofence_m").notNull().default(150), // Geofence-Radius (052)
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (t) => ({ tenantCode: uniqueIndex("uq_locations_tenant_location_code").on(t.tenantId, t.locationCode), tenantName: uniqueIndex("uq_locations_tenant_name").on(t.tenantId, t.name) }));
 
 export const userDashboardPrefs = pgTable("user_dashboard_prefs", {
   userId: uuid("user_id").primaryKey().references(() => users.id, { onDelete: "cascade" }),
@@ -52,11 +63,13 @@ export const userDashboardPrefs = pgTable("user_dashboard_prefs", {
 });
 
 export const lookupLists = pgTable("lookup_lists", {
+  tenantId: uuid("tenant_id").notNull().default(sql`current_tenant_id()`).references(() => tenants.id, { onDelete: "cascade" }), // Mandant (053), Default = Kontext
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
-  code: text("code").notNull().unique(),
-});
+  code: text("code").notNull(), // eindeutig je Mandant
+}, (t) => ({ tenantCode: uniqueIndex("uq_lookup_lists_tenant_code").on(t.tenantId, t.code) }));
 
 export const lookupValues = pgTable("lookup_values", {
+  tenantId: uuid("tenant_id").notNull().default(sql`current_tenant_id()`).references(() => tenants.id, { onDelete: "cascade" }), // Mandant (053), Default = Kontext
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   listId: integer("list_id").notNull().references(() => lookupLists.id, { onDelete: "cascade" }),
   label: text("label").notNull(),
@@ -65,6 +78,7 @@ export const lookupValues = pgTable("lookup_values", {
 });
 
 export const organizations = pgTable("organizations", {
+  tenantId: uuid("tenant_id").notNull().default(sql`current_tenant_id()`).references(() => tenants.id, { onDelete: "cascade" }), // Mandant (053), Default = Kontext
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   name: text("name").notNull().unique(),
   type: text("type").notNull(), // TDD | GEMEINDE | INSTITUTION
@@ -73,9 +87,10 @@ export const organizations = pgTable("organizations", {
 });
 
 export const users = pgTable("users", {
+  tenantId: uuid("tenant_id").notNull().default(sql`current_tenant_id()`).references(() => tenants.id, { onDelete: "cascade" }), // Mandant (053), Default = Kontext
   id: uuid("id").primaryKey().defaultRandom(),
   email: text("email").notNull().unique(),
-  username: text("username"), // vorname.nachname – Login alternativ zur E-Mail (041)
+  username: text("username"), // vorname.nachname – Login alternativ zur E-Mail (041); eindeutig je Mandant (053)
   passwordHash: text("password_hash").notNull(),
   displayName: text("display_name").notNull(),
   role: text("role").notNull(), // ADMIN | ERFASSUNG | AUSGABE | AUSWERTUNG | SACHBEARBEITER | FAHRER | MITARBEITER
@@ -94,7 +109,7 @@ export const users = pgTable("users", {
   deaktiviertAt: timestamp("deaktiviert_at", { withTimezone: true }),
   lastLogin: timestamp("last_login", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (t) => ({ tenantUsername: uniqueIndex("uq_users_tenant_username").on(t.tenantId, t.username).where(sql`${t.username} IS NOT NULL`) }));
 
 /** Konten der Wartungsplattform (Betreiber). Nur ueber tdd_ops erreichbar, Migration 032. */
 export const opsUsers = pgTable("ops_users", {
@@ -116,6 +131,7 @@ export const opsUsers = pgTable("ops_users", {
 export const persons = pgTable(
   "persons",
   {
+    tenantId: uuid("tenant_id").notNull().default(sql`current_tenant_id()`).references(() => tenants.id, { onDelete: "cascade" }), // Mandant (053), Default = Kontext
     id: uuid("id").primaryKey().defaultRandom(),
     firstName: text("first_name").notNull(),
     lastName: text("last_name").notNull(),
@@ -161,6 +177,7 @@ export const persons = pgTable(
 export const personLocationAssignments = pgTable(
   "person_location_assignments",
   {
+    tenantId: uuid("tenant_id").notNull().default(sql`current_tenant_id()`).references(() => tenants.id, { onDelete: "cascade" }), // Mandant (053), Default = Kontext
     id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
     personId: uuid("person_id").notNull().references(() => persons.id, { onDelete: "cascade" }),
     locationId: integer("location_id").notNull().references(() => locations.id),
@@ -177,8 +194,9 @@ export const personLocationAssignments = pgTable(
 export const cards = pgTable(
   "cards",
   {
+    tenantId: uuid("tenant_id").notNull().default(sql`current_tenant_id()`).references(() => tenants.id, { onDelete: "cascade" }), // Mandant (053), Default = Kontext
     id: uuid("id").primaryKey().defaultRandom(),
-    cardNumber: text("card_number").notNull().unique(),
+    cardNumber: text("card_number").notNull(), // eindeutig je Mandant
     personId: uuid("person_id").notNull().references(() => persons.id, { onDelete: "cascade" }),
     locationId: integer("location_id").notNull().references(() => locations.id),
     validFrom: date("valid_from").notNull(),
@@ -197,12 +215,14 @@ export const cards = pgTable(
   (t) => ({
     personIdx: index("idx_cards_person").on(t.personId),
     validToIdx: index("idx_cards_valid_to").on(t.validTo),
+    tenantNumber: uniqueIndex("uq_cards_tenant_card_number").on(t.tenantId, t.cardNumber),
   }),
 );
 
 export const distributions = pgTable(
   "distributions",
   {
+    tenantId: uuid("tenant_id").notNull().default(sql`current_tenant_id()`).references(() => tenants.id, { onDelete: "cascade" }), // Mandant (053), Default = Kontext
     id: uuid("id").primaryKey().defaultRandom(),
     cardId: uuid("card_id").notNull().references(() => cards.id),
     personId: uuid("person_id").notNull().references(() => persons.id),
@@ -221,6 +241,7 @@ export const distributions = pgTable(
 );
 
 export const duplicateDecisions = pgTable("duplicate_decisions", {
+  tenantId: uuid("tenant_id").notNull().default(sql`current_tenant_id()`).references(() => tenants.id, { onDelete: "cascade" }), // Mandant (053), Default = Kontext
   id: uuid("id").primaryKey().defaultRandom(),
   createdPersonId: uuid("created_person_id").references(() => persons.id),
   matchedPersonId: uuid("matched_person_id").references(() => persons.id),
@@ -234,6 +255,7 @@ export const duplicateDecisions = pgTable("duplicate_decisions", {
 });
 
 export const scanDocuments = pgTable("scan_documents", {
+  tenantId: uuid("tenant_id").notNull().default(sql`current_tenant_id()`).references(() => tenants.id, { onDelete: "cascade" }), // Mandant (053), Default = Kontext
   id: uuid("id").primaryKey().defaultRandom(),
   personId: uuid("person_id").references(() => persons.id, { onDelete: "set null" }),
   fileRef: text("file_ref").notNull(),
@@ -248,6 +270,7 @@ export const scanDocuments = pgTable("scan_documents", {
 export const auditLogs = pgTable(
   "audit_logs",
   {
+    tenantId: uuid("tenant_id").default(sql`current_tenant_id()`).references(() => tenants.id, { onDelete: "cascade" }), // Mandant (053), Default = Kontext
     id: bigint("id", { mode: "number" }).primaryKey().generatedAlwaysAsIdentity(),
     actorUserId: uuid("actor_user_id").references(() => users.id),
     action: text("action").notNull(),
@@ -266,14 +289,16 @@ export const auditLogs = pgTable(
 );
 
 export const retentionRules = pgTable("retention_rules", {
+  tenantId: uuid("tenant_id").notNull().default(sql`current_tenant_id()`).references(() => tenants.id, { onDelete: "cascade" }), // Mandant (053), Default = Kontext
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
-  entityType: text("entity_type").notNull().unique(),
+  entityType: text("entity_type").notNull(), // eindeutig je Mandant
   retentionPeriod: text("retention_period").notNull(), // interval als Text
   legalBasis: text("legal_basis"),
   isActive: boolean("is_active").notNull().default(true),
-});
+}, (t) => ({ tenantEntity: uniqueIndex("uq_retention_rules_tenant_entity_type").on(t.tenantId, t.entityType) }));
 
 export const integrationOutbox = pgTable("integration_outbox", {
+  tenantId: uuid("tenant_id").notNull().default(sql`current_tenant_id()`).references(() => tenants.id, { onDelete: "cascade" }), // Mandant (053), Default = Kontext
   id: bigint("id", { mode: "number" }).primaryKey().generatedAlwaysAsIdentity(),
   eventType: text("event_type").notNull(),
   payload: jsonb("payload").notNull(),
@@ -285,6 +310,7 @@ export const integrationOutbox = pgTable("integration_outbox", {
 export const antraege = pgTable(
   "antraege",
   {
+    tenantId: uuid("tenant_id").notNull().default(sql`current_tenant_id()`).references(() => tenants.id, { onDelete: "cascade" }), // Mandant (053), Default = Kontext
     id: uuid("id").primaryKey().defaultRandom(),
     organizationId: integer("organization_id").notNull().references(() => organizations.id),
     targetType: text("target_type").notNull().default("AUSGABESTELLE"), // LADEN | AUSGABESTELLE
@@ -346,6 +372,7 @@ export const authTokens = pgTable(
 export const antragDocuments = pgTable(
   "antrag_documents",
   {
+    tenantId: uuid("tenant_id").notNull().default(sql`current_tenant_id()`).references(() => tenants.id, { onDelete: "cascade" }), // Mandant (053), Default = Kontext
     id: uuid("id").primaryKey().defaultRandom(),
     antragId: uuid("antrag_id").notNull().references(() => antraege.id, { onDelete: "cascade" }),
     fileRef: text("file_ref").notNull(),
@@ -362,6 +389,7 @@ export const antragDocuments = pgTable(
 export const antragNachrichten = pgTable(
   "antrag_nachrichten",
   {
+    tenantId: uuid("tenant_id").notNull().default(sql`current_tenant_id()`).references(() => tenants.id, { onDelete: "cascade" }), // Mandant (053), Default = Kontext
     id: uuid("id").primaryKey().defaultRandom(),
     antragId: uuid("antrag_id").notNull().references(() => antraege.id, { onDelete: "cascade" }),
     organizationId: integer("organization_id").notNull().references(() => organizations.id),
@@ -379,6 +407,7 @@ export const antragNachrichten = pgTable(
 export const appEvents = pgTable(
   "app_events",
   {
+    tenantId: uuid("tenant_id").default(sql`current_tenant_id()`).references(() => tenants.id, { onDelete: "cascade" }), // Mandant (053), Default = Kontext
     id: bigint("id", { mode: "number" }).primaryKey().generatedAlwaysAsIdentity(),
     at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
     kind: text("kind").notNull(), // FEHLER | LEBENSZEICHEN
@@ -396,6 +425,7 @@ export const appEvents = pgTable(
 
 // ── A2 · Personal-Verzeichnis (Zentralsystem, getrennt von A1 persons) ─────
 export const staff = pgTable("staff", {
+  tenantId: uuid("tenant_id").notNull().default(sql`current_tenant_id()`).references(() => tenants.id, { onDelete: "cascade" }), // Mandant (053), Default = Kontext
   id: uuid("id").primaryKey().defaultRandom(),
   personalnr: integer("personalnr"), // 1–99 Angestellte, 100–199 Zivildiener, 200–9999 Ehrenamt/Fahrer (051)
   firstName: text("first_name").notNull(),
@@ -455,10 +485,11 @@ export const staff = pgTable("staff", {
   note: text("note"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-}, (t) => ({ activeIdx: index("idx_staff_active").on(t.isActive), lastIdx: index("idx_staff_lastname").on(t.lastName) }));
+}, (t) => ({ activeIdx: index("idx_staff_active").on(t.isActive), lastIdx: index("idx_staff_lastname").on(t.lastName), tenantPersonalnr: uniqueIndex("uq_staff_tenant_personalnr").on(t.tenantId, t.personalnr).where(sql`${t.personalnr} IS NOT NULL`) }));
 
 // P2 · Personalakte: Dokumente je Person (nur Admin, 7 Jahre nach Austritt) (045)
 export const staffDokumente = pgTable("staff_dokumente", {
+  tenantId: uuid("tenant_id").notNull().default(sql`current_tenant_id()`).references(() => tenants.id, { onDelete: "cascade" }), // Mandant (053), Default = Kontext
   id: uuid("id").primaryKey().defaultRandom(),
   staffId: uuid("staff_id").notNull().references(() => staff.id, { onDelete: "cascade" }),
   art: text("art").notNull(), // DIENSTZETTEL | DIENSTVERTRAG | ZEUGNIS | AUSWEIS | FUEHRERSCHEIN | UNTERWEISUNG | AERZTLICH | SONSTIG
@@ -471,6 +502,7 @@ export const staffDokumente = pgTable("staff_dokumente", {
 
 // P5 · Dienstplan (047)
 export const dienste = pgTable("dienste", {
+  tenantId: uuid("tenant_id").notNull().default(sql`current_tenant_id()`).references(() => tenants.id, { onDelete: "cascade" }), // Mandant (053), Default = Kontext
   id: uuid("id").primaryKey().defaultRandom(),
   datum: date("datum").notNull(),
   staffId: uuid("staff_id").notNull().references(() => staff.id, { onDelete: "cascade" }),
@@ -486,6 +518,7 @@ export const dienste = pgTable("dienste", {
 }, (t) => ({ datumIdx: index("idx_dienste_datum").on(t.datum), staffIdx: index("idx_dienste_staff_datum").on(t.staffId, t.datum) }));
 
 export const dienstplanWochen = pgTable("dienstplan_wochen", {
+  tenantId: uuid("tenant_id").notNull().default(sql`current_tenant_id()`).references(() => tenants.id, { onDelete: "cascade" }), // Mandant (053), Default = Kontext
   wocheStart: date("woche_start").primaryKey(),
   status: text("status").notNull().default("ENTWURF"), // ENTWURF | VEROEFFENTLICHT
   veroeffentlichtAt: timestamp("veroeffentlicht_at", { withTimezone: true }),
@@ -495,6 +528,7 @@ export const dienstplanWochen = pgTable("dienstplan_wochen", {
 
 // ── A2 · Zeiterfassung (Stempel-Ereignisse) ────────────────────────────────
 export const timeEvents = pgTable("time_events", {
+  tenantId: uuid("tenant_id").notNull().default(sql`current_tenant_id()`).references(() => tenants.id, { onDelete: "cascade" }), // Mandant (053), Default = Kontext
   id: uuid("id").primaryKey().defaultRandom(),
   staffId: uuid("staff_id").notNull().references(() => staff.id, { onDelete: "cascade" }),
   kind: text("kind").notNull(), // IN | OUT | BREAK_START | BREAK_END
@@ -508,6 +542,7 @@ export const timeEvents = pgTable("time_events", {
 
 // ── A4 · Touren & Disposition (Migration 034) ──────────────────────────────
 export const abwesenheiten = pgTable("abwesenheiten", {
+  tenantId: uuid("tenant_id").notNull().default(sql`current_tenant_id()`).references(() => tenants.id, { onDelete: "cascade" }), // Mandant (053), Default = Kontext
   id: uuid("id").primaryKey().defaultRandom(),
   staffId: uuid("staff_id").notNull().references(() => staff.id, { onDelete: "cascade" }),
   art: text("art").notNull(), // URLAUB | KRANK | ZEITAUSGLEICH | PFLEGE | SONDERURLAUB | UNBEZAHLT | SONSTIG
@@ -524,6 +559,7 @@ export const abwesenheiten = pgTable("abwesenheiten", {
 }, (t) => ({ staffIdx: index("idx_abwesenheiten_staff").on(t.staffId, t.von, t.bis) }));
 
 export const abholstellen = pgTable("abholstellen", {
+  tenantId: uuid("tenant_id").notNull().default(sql`current_tenant_id()`).references(() => tenants.id, { onDelete: "cascade" }), // Mandant (053), Default = Kontext
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   name: text("name").notNull(),
   art: text("art").notNull().default("SONSTIGES"),
@@ -548,6 +584,7 @@ export const abholstellen = pgTable("abholstellen", {
 });
 
 export const fahrzeuge = pgTable("fahrzeuge", {
+  tenantId: uuid("tenant_id").notNull().default(sql`current_tenant_id()`).references(() => tenants.id, { onDelete: "cascade" }), // Mandant (053), Default = Kontext
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   kennzeichen: text("kennzeichen").notNull().unique(),
   bezeichnung: text("bezeichnung").notNull(),
@@ -566,6 +603,7 @@ export const fahrzeuge = pgTable("fahrzeuge", {
 });
 
 export const tourVorlagen = pgTable("tour_vorlagen", {
+  tenantId: uuid("tenant_id").notNull().default(sql`current_tenant_id()`).references(() => tenants.id, { onDelete: "cascade" }), // Mandant (053), Default = Kontext
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   name: text("name").notNull(),
   wochentag: smallint("wochentag").notNull(), // 1=Mo … 7=So
@@ -581,6 +619,7 @@ export const tourVorlagen = pgTable("tour_vorlagen", {
 });
 
 export const tourVorlageStopps = pgTable("tour_vorlage_stopps", {
+  tenantId: uuid("tenant_id").notNull().default(sql`current_tenant_id()`).references(() => tenants.id, { onDelete: "cascade" }), // Mandant (053), Default = Kontext
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   vorlageId: integer("vorlage_id").notNull().references(() => tourVorlagen.id, { onDelete: "cascade" }),
   reihenfolge: integer("reihenfolge").notNull(),
@@ -591,6 +630,7 @@ export const tourVorlageStopps = pgTable("tour_vorlage_stopps", {
 });
 
 export const touren = pgTable("touren", {
+  tenantId: uuid("tenant_id").notNull().default(sql`current_tenant_id()`).references(() => tenants.id, { onDelete: "cascade" }), // Mandant (053), Default = Kontext
   id: uuid("id").primaryKey().defaultRandom(),
   datum: date("datum").notNull(),
   vorlageId: integer("vorlage_id").references(() => tourVorlagen.id, { onDelete: "set null" }),
@@ -621,6 +661,7 @@ export const touren = pgTable("touren", {
 }, (t) => ({ datumIdx: index("idx_touren_datum").on(t.datum), fahrerIdx: index("idx_touren_fahrer").on(t.fahrerId, t.datum) }));
 
 export const tourStopps = pgTable("tour_stopps", {
+  tenantId: uuid("tenant_id").notNull().default(sql`current_tenant_id()`).references(() => tenants.id, { onDelete: "cascade" }), // Mandant (053), Default = Kontext
   id: uuid("id").primaryKey().defaultRandom(),
   tourId: uuid("tour_id").notNull().references(() => touren.id, { onDelete: "cascade" }),
   reihenfolge: integer("reihenfolge").notNull(),
@@ -637,6 +678,7 @@ export const tourStopps = pgTable("tour_stopps", {
 
 // Geofencing: Ankunft/Abfahrt an Stellen waehrend der Tour (052)
 export const tourEreignisse = pgTable("tour_ereignisse", {
+  tenantId: uuid("tenant_id").notNull().default(sql`current_tenant_id()`).references(() => tenants.id, { onDelete: "cascade" }), // Mandant (053), Default = Kontext
   id: uuid("id").primaryKey().defaultRandom(),
   tourId: uuid("tour_id").notNull().references(() => touren.id, { onDelete: "cascade" }),
   stoppId: uuid("stopp_id").references(() => tourStopps.id, { onDelete: "set null" }),
@@ -651,6 +693,7 @@ export const tourEreignisse = pgTable("tour_ereignisse", {
 }, (t) => ({ tourIdx: index("idx_tour_ereignisse_tour").on(t.tourId, t.at) }));
 
 export const angeboteEingang = pgTable("angebote_eingang", {
+  tenantId: uuid("tenant_id").notNull().default(sql`current_tenant_id()`).references(() => tenants.id, { onDelete: "cascade" }), // Mandant (053), Default = Kontext
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   homepageId: integer("homepage_id").notNull().unique(),
   betrieb: text("betrieb").notNull(),
@@ -666,6 +709,7 @@ export const angeboteEingang = pgTable("angebote_eingang", {
 
 /** Fahrzeug-Tablets (Migration 038): Geraete-Token statt Fahrer-Login. */
 export const geraete = pgTable("geraete", {
+  tenantId: uuid("tenant_id").notNull().default(sql`current_tenant_id()`).references(() => tenants.id, { onDelete: "cascade" }), // Mandant (053), Default = Kontext
   id: uuid("id").primaryKey().defaultRandom(),
   fahrzeugId: integer("fahrzeug_id").references(() => fahrzeuge.id, { onDelete: "cascade" }), // null bei Ausgabestation (049)
   art: text("art").notNull().default("FAHRZEUG"), // FAHRZEUG | AUSGABE
@@ -691,6 +735,7 @@ export const geraetCodes = pgTable("geraet_codes", {
 
 // Ausgabestation: Sitzung je Person und Standort (049)
 export const ausgabeSitzungen = pgTable("ausgabe_sitzungen", {
+  tenantId: uuid("tenant_id").notNull().default(sql`current_tenant_id()`).references(() => tenants.id, { onDelete: "cascade" }), // Mandant (053), Default = Kontext
   id: uuid("id").primaryKey().defaultRandom(),
   geraetId: uuid("geraet_id").references(() => geraete.id, { onDelete: "set null" }),
   locationId: integer("location_id").notNull().references(() => locations.id),
@@ -710,7 +755,8 @@ export const ausgabeSitzungen = pgTable("ausgabe_sitzungen", {
 
 // ── P3 Arbeitszeit nach AZG (Migration 043) ────────────────────────────────
 export const zeitRegeln = pgTable("zeit_regeln", {
-  id: integer("id").primaryKey().default(1),
+  tenantId: uuid("tenant_id").primaryKey().default(sql`current_tenant_id()`).references(() => tenants.id, { onDelete: "cascade" }), // eine Zeile je Mandant (053)
+  id: integer("id").notNull().default(1), // Altspalte, ohne Bedeutung seit 053
   maxTagMin: integer("max_tag_min").notNull().default(600),
   maxWocheMin: integer("max_woche_min").notNull().default(3000),
   pauseAbMin: integer("pause_ab_min").notNull().default(360),
@@ -742,6 +788,7 @@ export const zeitRegeln = pgTable("zeit_regeln", {
 
 // Zivildienst: erledigte Meldungen an die Zivildienstserviceagentur (050)
 export const ziviMeldungen = pgTable("zivi_meldungen", {
+  tenantId: uuid("tenant_id").notNull().default(sql`current_tenant_id()`).references(() => tenants.id, { onDelete: "cascade" }), // Mandant (053), Default = Kontext
   id: uuid("id").primaryKey().defaultRandom(),
   staffId: uuid("staff_id").notNull().references(() => staff.id, { onDelete: "cascade" }),
   art: text("art").notNull(), // DIENSTANTRITT | KRANK | VERLAENGERUNG | DIENSTENDE | SONSTIG
@@ -752,12 +799,14 @@ export const ziviMeldungen = pgTable("zivi_meldungen", {
 });
 
 export const betriebsfreieTage = pgTable("betriebsfreie_tage", {
+  tenantId: uuid("tenant_id").notNull().default(sql`current_tenant_id()`).references(() => tenants.id, { onDelete: "cascade" }), // Mandant (053), Default = Kontext
   datum: date("datum").primaryKey(),
   name: text("name").notNull(),
   createdBy: uuid("created_by").references(() => users.id),
 });
 
 export const zeitAbschluesse = pgTable("zeit_abschluesse", {
+  tenantId: uuid("tenant_id").notNull().default(sql`current_tenant_id()`).references(() => tenants.id, { onDelete: "cascade" }), // Mandant (053), Default = Kontext
   staffId: uuid("staff_id").notNull().references(() => staff.id, { onDelete: "cascade" }),
   jahr: integer("jahr").notNull(),
   monat: integer("monat").notNull(),
@@ -771,3 +820,4 @@ export const zeitAbschluesse = pgTable("zeit_abschluesse", {
   abgeschlossenBy: uuid("abgeschlossen_by").references(() => users.id),
   abgeschlossenAt: timestamp("abgeschlossen_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => ({ pk: uniqueIndex("uq_zeit_abschluss").on(t.staffId, t.jahr, t.monat) }));
+

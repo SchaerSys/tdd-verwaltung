@@ -39,7 +39,8 @@ CREATE POLICY antrag_nachrichten_sicht ON antrag_nachrichten FOR ALL
 
 GRANT SELECT, INSERT, UPDATE ON antrag_nachrichten TO tdd_app;
 
-CREATE OR REPLACE VIEW v_rueckfragen_tdd AS
+DROP VIEW IF EXISTS v_rueckfragen_tdd;
+CREATE VIEW v_rueckfragen_tdd AS
 SELECT a.id AS antrag_id, a.organization_id, o.name AS org_name, o.type AS org_type,
        a.first_name, a.last_name, a.birth_date, a.status, a.transferred_person_id, a.created_at AS antrag_am,
        (SELECT count(*) FROM antrag_nachrichten n WHERE n.antrag_id = a.id AND n.seite = 'ORG' AND n.gelesen_at IS NULL)::int AS ungelesen,

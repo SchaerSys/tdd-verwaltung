@@ -2,7 +2,8 @@
 --  TDD-Verwaltung · 008_reporting.sql · Anträge-Reporting (RLS-konform)
 --  Owner-View umgeht RLS und liefert NUR Aggregatzahlen (keine PII) an TDD.
 -- ════════════════════════════════════════════════════════════════════════
-CREATE OR REPLACE VIEW v_antraege_by_origin_month AS
+DROP VIEW IF EXISTS v_antraege_by_origin_month;
+CREATE VIEW v_antraege_by_origin_month AS
 SELECT o.name AS org_name, o.type AS org_type,
        to_char(date_trunc('month', a.created_at), 'YYYY-MM') AS monat,
        count(*) AS n

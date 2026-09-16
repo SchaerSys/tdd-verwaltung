@@ -1,16 +1,15 @@
 import { beforeAll, expect, test } from "vitest";
-import postgres from "postgres";
-import { applyMigrations, appUrl } from "./db";
+import { applyMigrations, appSql } from "./db";
 
 beforeAll(applyMigrations);
 
 test("gleicher client_ref bucht die Ausgabe nur einmal", async () => {
-  const sql = postgres(appUrl(), { max: 1 });
+  const sql = appSql(1);
   try {
     const [loc] = await sql<{ id: number }[]>`
       INSERT INTO locations (name, type, city, location_code)
       VALUES ('Testort', 'AUSGABESTELLE', 'Testdorf', 999)
-      ON CONFLICT (name) DO UPDATE SET city = EXCLUDED.city RETURNING id`;
+      ON CONFLICT (tenant_id, name) DO UPDATE SET city = EXCLUDED.city RETURNING id`;
     const [person] = await sql<{ id: string }[]>`
       INSERT INTO persons (first_name, last_name) VALUES ('Test', 'Idempotenz') RETURNING id`;
     const [card] = await sql<{ id: string }[]>`

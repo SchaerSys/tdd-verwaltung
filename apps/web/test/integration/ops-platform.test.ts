@@ -1,13 +1,12 @@
 import { beforeAll, expect, test } from "vitest";
-import postgres from "postgres";
-import { applyMigrations, appUrl, opsUrl } from "./db";
+import { applyMigrations, appSql, opsSql } from "./db";
 
 beforeAll(applyMigrations);
 
 /** 032: Wartungsplattform – Einladung ohne Hash-Zugriff, Protokoll ohne Personenbezug, eigene Konten. */
 test("Wartungsrolle: Einladen per Funktion, Log nur aggregiert, ops_users nur fuer tdd_ops", async () => {
-  const ops = postgres(opsUrl(), { max: 1 });
-  const app = postgres(appUrl(), { max: 1 });
+  const ops = opsSql(1);
+  const app = appSql(1);
   try {
     const email = `ops-test-${Date.now()}@example.org`;
     const loc = await ops<{ id: number }[]>`SELECT id FROM locations ORDER BY id LIMIT 1`;

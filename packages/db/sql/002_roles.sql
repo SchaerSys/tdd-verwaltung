@@ -44,7 +44,8 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON retention_rules TO tdd_ops;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO tdd_ops;
 
 -- ── PII-freie Aggregat-Views (nur Zahlen) ─────────────────────────────────
-CREATE OR REPLACE VIEW v_stats_by_location AS
+DROP VIEW IF EXISTS v_stats_by_location;
+CREATE VIEW v_stats_by_location AS
 SELECT
   l.id                              AS location_id,
   l.name                            AS location_name,
@@ -57,12 +58,14 @@ LEFT JOIN persons p ON p.id = a.person_id
 LEFT JOIN cards   c ON c.location_id = l.id
 GROUP BY l.id, l.name, l.type;
 
-CREATE OR REPLACE VIEW v_distributions_daily AS
+DROP VIEW IF EXISTS v_distributions_daily;
+CREATE VIEW v_distributions_daily AS
 SELECT location_id, date_trunc('day', distributed_at)::date AS day, count(*) AS n
 FROM distributions
 GROUP BY location_id, date_trunc('day', distributed_at)::date;
 
-CREATE OR REPLACE VIEW v_system_counts AS
+DROP VIEW IF EXISTS v_system_counts;
+CREATE VIEW v_system_counts AS
 SELECT
   (SELECT count(*) FROM persons WHERE deleted_at IS NULL)         AS persons_total,
   (SELECT count(*) FROM cards   WHERE status = 'AKTIV')           AS active_cards,

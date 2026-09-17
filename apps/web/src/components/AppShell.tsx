@@ -24,10 +24,13 @@ export function AppShell({
   logout,
   uebernahmen = [],
   traeger,
+  demo = false,
   children,
 }: {
   /** Name des Mandanten (Unternehmen) im Kopf. */
   traeger: string;
+  /** Demo-Mandant: Hinweis "fiktive Daten" im Kopf. */
+  demo?: boolean;
   groups: NavGroup[];
   user: { displayName: string; role: string };
   roleLabel: string;
@@ -95,6 +98,7 @@ export function AppShell({
         <Link href="/dashboard" className="hdr-brand" title="CareOS">
           <span className="hdr-logo">C</span>
           <span className="hdr-name"><b>CareOS</b><small>{traeger}</small></span>
+          {demo ? <span className="pill warn" title="Alle Personen, Adressen und Zahlen sind erfunden">DEMO · fiktive Daten</span> : null}
         </Link>
         {!onDashboard ? <Link href="/dashboard" className="btn ghost" title="Zurück zum Dashboard">← Dashboard</Link> : null}
 

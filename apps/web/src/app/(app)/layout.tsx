@@ -70,6 +70,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       logout={logoutAction}
       uebernahmen={uebernahmen}
       traeger={firma.kurzname}
+      demo={firma.slug === "demo"}
     >
       {children}
     </AppShell>

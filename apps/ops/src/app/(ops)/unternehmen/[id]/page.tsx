@@ -9,6 +9,7 @@ import { Stammdaten } from "./Stammdaten";
 import { SmtpForm, SmtpTest } from "./SmtpForm";
 import { VertragForm } from "./VertragForm";
 import { notizenSpeichern, smtpLoeschen } from "../actions";
+import { DemoReset } from "./DemoReset";
 
 export const dynamic = "force-dynamic";
 
@@ -50,7 +51,12 @@ export default async function UnternehmenDetail({ params, searchParams }: { para
         ))}
       </div>
 
-      {tab === "uebersicht" ? <Uebersicht m={m} punkte={punkte} id={id} /> : null}
+      {tab === "uebersicht" ? (
+        <>
+          {t.slug === "demo" && super_ ? <div className="panel mb-4"><div className="panel-h"><h3>Demo-Daten</h3></div><div style={{ padding: 12 }}><DemoReset id={id} /></div></div> : null}
+          <Uebersicht m={m} punkte={punkte} id={id} />
+        </>
+      ) : null}
       {tab === "stammdaten" ? (
         <div className="panel"><div className="panel-h"><h3>Stammdaten</h3><span className="text-xs text-muted" style={{ marginLeft: 8 }}>erscheinen in Drucken, Datenschutzinformation und E-Mails der Fach-App</span></div>
           <div style={{ padding: 12 }}>

@@ -22,19 +22,20 @@ export interface MandantStammdaten {
   module: Record<string, boolean>;
   plan: string;
   testBis: string | null;
+  slug: string;
 }
 
 export const mandant = cache(async (): Promise<MandantStammdaten> => {
   const id = currentTenantId();
   // Nur die fuer tdd_app freigegebenen Spalten (057: Betreiber-Notizen/Vertragsdetails sind nicht lesbar)
   const t = (await db().select({
-    id: tenants.id, name: tenants.name, kurzname: tenants.kurzname, host: tenants.host, anschrift: tenants.anschrift, vertretung: tenants.vertretung,
+    id: tenants.id, name: tenants.name, slug: tenants.slug, kurzname: tenants.kurzname, host: tenants.host, anschrift: tenants.anschrift, vertretung: tenants.vertretung,
     kontaktEmail: tenants.kontaktEmail, kontaktTelefon: tenants.kontaktTelefon, website: tenants.website, module: tenants.module, plan: tenants.plan, testBis: tenants.testBis,
   }).from(tenants).where(eq(tenants.id, id)).limit(1))[0];
-  if (!t) return { id, name: "CareOS", kurzname: "CareOS", host: null, anschrift: null, vertretung: null, kontaktEmail: null, kontaktTelefon: null, website: null, module: {}, plan: "BASIS", testBis: null };
+  if (!t) return { id, name: "CareOS", kurzname: "CareOS", host: null, anschrift: null, vertretung: null, kontaktEmail: null, kontaktTelefon: null, website: null, module: {}, plan: "BASIS", testBis: null, slug: "" };
   return {
     id: t.id, name: t.name, kurzname: t.kurzname?.trim() || t.name, host: t.host, anschrift: t.anschrift, vertretung: t.vertretung,
-    kontaktEmail: t.kontaktEmail, kontaktTelefon: t.kontaktTelefon, website: t.website, module: t.module ?? {}, plan: t.plan, testBis: t.testBis,
+    kontaktEmail: t.kontaktEmail, kontaktTelefon: t.kontaktTelefon, website: t.website, module: t.module ?? {}, plan: t.plan, testBis: t.testBis, slug: t.slug,
   };
 });
 

@@ -226,3 +226,24 @@ export async function adminEinladen(_prev: UnternehmenState, fd: FormData): Prom
     ? { info: `Willkommens-Mail an ${email} verschickt (${mail.ueber === "mandant" ? "Mandanten-SMTP" : "Plattform-SMTP"}).` }
     : { info: `Konto angelegt, Mail konnte nicht gesendet werden (${mail.info ?? "SMTP"}). Link zum Weitergeben:`, link };
 }
+
+/** Demo-Mandant zuruecksetzen: Fach-App baut den fiktiven Datenbestand neu (Job-Endpunkt, nur Kurzname "demo"). */
+export async function demoZuruecksetzen(_prev: UnternehmenState, fd: FormData): Promise<UnternehmenState> {
+  const ops = await requireSuper();
+  const id = String(fd.get("id") ?? "");
+  const t = (await dbFuer(null).select({ slug: tenants.slug }).from(tenants).where(eq(tenants.id, id)).limit(1))[0];
+  if (!t || t.slug !== "demo") return { error: "Nur für den Mandanten mit Kurzname „demo“." };
+  const token = process.env.JOB_TOKEN;
+  if (!token) return { error: "JOB_TOKEN fehlt in der Umgebung der Wartungsplattform." };
+  const url = `${process.env.WEB_INTERNAL_URL ?? "http://tdd-web:3000"}/api/jobs/demo-reset`;
+  try {
+    const r = await fetch(url, { method: "POST", headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(110_000) });
+    const j = (await r.json()) as { ok: boolean; error?: string; personen?: number; ausgaben?: number; personal?: number; touren?: number; antraege?: number; benutzer?: number };
+    if (!j.ok) return { error: j.error ?? `Fehler ${r.status}` };
+    await audit({ akteur: ops.email, action: "tenant.demo.reset", entityType: "tenant", entityId: id, after: { personen: j.personen, ausgaben: j.ausgaben } });
+    revalidatePath(`/unternehmen/${id}`); revalidatePath("/unternehmen");
+    return { info: `Demo neu aufgebaut: ${j.personen} Personen, ${j.ausgaben} Ausgaben, ${j.personal} Personal, ${j.touren} Touren, ${j.antraege} Anträge, ${j.benutzer} Benutzer.` };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Aufruf fehlgeschlagen" };
+  }
+}

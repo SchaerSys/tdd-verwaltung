@@ -207,9 +207,10 @@ export async function demoSeed(): Promise<DemoErgebnis> {
 
   // ── 8. Personal ───────────────────────────────────────────────────────
   const demoAdmin = (await d.select({ id: users.id, email: users.email, name: users.displayName }).from(users).where(and(eq(users.role, "ADMIN"), sql`${users.email} LIKE '%+demo@%'`)).limit(1))[0];
-  const vollzeit = { "1": 6.7, "2": 6.7, "3": 6.7, "4": 6.7, "5": 6.7 };
-  const teilzeit = { "1": 5, "2": 5, "3": 5, "4": 5 };
-  const zivi = { "1": 8, "2": 8, "3": 8, "4": 8, "5": 8 };
+  // Soll-Verteilung in MINUTEN je Wochentag (azg.ts sollJeWochentag)
+  const vollzeit = { "1": 402, "2": 402, "3": 402, "4": 402, "5": 402 }; // 33,5 h
+  const teilzeit = { "1": 300, "2": 300, "3": 300, "4": 300 };             // 20 h
+  const zivi = { "1": 480, "2": 480, "3": 480, "4": 480, "5": 480 };       // 40 h
   const dienstStd = (von: string, bis: string, loc: number | null) => ({ "1": { von, bis, pause: 30, location: loc }, "2": { von, bis, pause: 30, location: loc }, "3": { von, bis, pause: 30, location: loc }, "4": { von, bis, pause: 30, location: loc }, "5": { von, bis, pause: 30, location: loc } });
   const staffRows = await d.insert(staff).values([
     { personalnr: 1, firstName: demoAdmin ? demoAdmin.name.split(" ")[0]! : "Dario", lastName: demoAdmin ? (demoAdmin.name.split(" ").slice(1).join(" ") || "Schär") : "Schär", staffType: "ANGESTELLT", email: demoAdmin?.email ?? "leitung@demo.careos.invalid", userId: demoAdmin?.id ?? null,

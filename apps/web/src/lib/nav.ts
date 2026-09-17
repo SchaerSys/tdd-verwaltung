@@ -1,6 +1,6 @@
 import { hasPermission, type Permission, type Role } from "./rbac";
 
-export type NavGroupTitle = "Start" | "Klient:innen" | "Ausgabe" | "Personal" | "Logistik" | "Verwaltung";
+export type NavGroupTitle = "Start" | "Klient:innen" | "Ausgabe" | "Personal" | "Logistik" | "Auswertungen" | "Verwaltung";
 
 export interface NavDef {
   href: string;
@@ -46,7 +46,7 @@ export const NAV: NavDef[] = [
   { href: "/ausgabe", label: "Ausgabe starten", perm: "distribution:record", group: "Ausgabe", modul: "station" },
   { href: "/ausgaben", label: "Ausgaben heute", perm: "distribution:record", group: "Ausgabe" },
   { href: "/ausgaben/schulden", label: "Offene Schulden", perm: "distribution:record", group: "Ausgabe", parent: "/ausgaben" },
-  { href: "/auswertungen", label: "Auswertungen", perm: "report:view", group: "Ausgabe" },
+
 
   { href: "/personal", label: "Personal", perm: "staff:manage", group: "Personal", modul: "personal" },
   { href: "/personal/zivildienst", label: "Zivildienst", perm: "staff:manage", group: "Personal", parent: "/personal", modul: "zivildienst" },
@@ -68,6 +68,10 @@ export const NAV: NavDef[] = [
   { href: "/touren/angebote", label: "Angebote (Homepage)", perm: "tour:manage", group: "Logistik", parent: "/touren", modul: "touren" },
   { href: "/touren/standorte", label: "Standorte (Karte)", perm: "tour:manage", group: "Logistik", parent: "/touren", modul: "touren" },
 
+  { href: "/auswertungen", label: "Alle Auswertungen", perm: "report:view", group: "Auswertungen" },
+  { href: "/auswertungen/klienten", label: "Klient:innen & Karten", perm: "report:view", group: "Auswertungen", parent: "/auswertungen" },
+  { href: "/auswertungen/wareneingang", label: "Wareneingang", perm: "report:view", group: "Auswertungen", parent: "/auswertungen", modul: "touren" },
+
   { href: "/admin", label: "Stammdaten", perm: "admin:manage", group: "Verwaltung" },
   { href: "/admin/ausgabestation", label: "Ausgabestation", perm: "admin:manage", group: "Verwaltung", parent: "/admin", modul: "station" },
   { href: "/admin/benutzer", label: "Benutzer", perm: "admin:manage", group: "Verwaltung" },
@@ -85,7 +89,7 @@ export function navFor(role: Role, module?: Record<string, boolean> | null): Nav
 export interface NavEintrag { href: string; label: string; children?: { href: string; label: string }[] }
 
 export function navGroups(role: Role, module?: Record<string, boolean> | null): { title: NavGroupTitle; items: NavEintrag[] }[] {
-  const order: NavGroupTitle[] = ["Start", "Klient:innen", "Ausgabe", "Personal", "Logistik", "Verwaltung"];
+  const order: NavGroupTitle[] = ["Start", "Klient:innen", "Ausgabe", "Personal", "Logistik", "Auswertungen", "Verwaltung"];
   const visible = navFor(role, module);
   return order
     .map((title) => ({

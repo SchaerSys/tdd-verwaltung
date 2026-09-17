@@ -48,6 +48,7 @@ export default async function DispositionSeite({ searchParams }: { searchParams:
           <Link href={`/touren?datum=${datumPlus(datum, -1)}`} className="btn ghost">← Vortag</Link>
           <form method="get" className="flex gap-1"><input type="date" name="datum" defaultValue={datum} className="inp mono" /><button className="btn" type="submit">Anzeigen</button></form>
           <Link href={`/touren?datum=${datumPlus(datum, 1)}`} className="btn ghost">Folgetag →</Link>
+          <Link href="/auswertungen/wareneingang" className="btn ghost">📦 Wareneingang</Link>
           <Link href={`/druck/tour?datum=${datum}`} className="btn ghost" target="_blank">🖨 Laufzettel</Link>
         </div>
       </div>

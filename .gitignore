@@ -37,3 +37,7 @@ next-env.d.ts
 
 # installierte Skills (Tooling, nicht App-Code)
 .agents/
+
+# Claude Code (lokal)
+.claude/
+skills-lock.json

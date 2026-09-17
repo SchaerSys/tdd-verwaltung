@@ -15,7 +15,7 @@ describe("Mandanten-Aufloesung aus Rohdaten der Anfrage", () => {
   });
 
   it("Umgebung TENANT_HOSTS: nur gueltige Paare", () => {
-    expect(hostsAusUmgebung(`tirol.tafelwerk.at=${TIROL}; kaputt=abc ; Salzburg.Tafelwerk.at = ${SALZBURG}`)).toEqual({ "tirol.tafelwerk.at": TIROL, "salzburg.careos.at": SALZBURG });
+    expect(hostsAusUmgebung(`tirol.tafelwerk.at=${TIROL}; kaputt=abc ; Salzburg.Tafelwerk.at = ${SALZBURG}`)).toEqual({ "tirol.tafelwerk.at": TIROL, "salzburg.tafelwerk.at": SALZBURG });
   });
 
   it("Reihenfolge: Session vor Geraet vor Host vor Standard", () => {
@@ -27,7 +27,7 @@ describe("Mandanten-Aufloesung aus Rohdaten der Anfrage", () => {
     expect(tenantAusRohdaten({ host: "tirol.tafelwerk.at", cookie: `tdd_geraet=${SALZBURG}:token123` }, hosts)).toBe(SALZBURG);
     expect(tenantAusRohdaten({ host: "tirol.tafelwerk.at:3080", cookie: `tdd_station=${SALZBURG}:abc` }, hosts)).toBe(SALZBURG);
     // Host mit Port
-    expect(tenantAusRohdaten({ host: "TIROL.careos.at:443", cookie: undefined }, hosts)).toBe(TIROL);
+    expect(tenantAusRohdaten({ host: "TIROL.tafelwerk.at:443", cookie: undefined }, hosts)).toBe(TIROL);
     // nichts passt: Standard
     expect(tenantAusRohdaten({ host: "unbekannt.example", cookie: "x=1" }, hosts)).toBe(TENANT_VORARLBERG);
     // Mandanten-Cookie (/m/<kurzname>) schlaegt Host, aber nur fuer bekannte aktive Mandanten

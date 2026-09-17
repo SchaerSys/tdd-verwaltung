@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getCurrentOps, logout } from "@/lib/auth";
 import { wartungsmodus } from "@/lib/host";
 import { MandantWahl } from "@/components/MandantWahl";
+import { Aktualisierung } from "@/components/Aktualisierung";
 import { mandantenListe } from "@/lib/unternehmen";
 import { gewaehlterMandant } from "@/lib/tenant";
 
@@ -45,6 +46,7 @@ export default async function OpsLayout({ children }: { children: React.ReactNod
         </nav>
         <div className="flex-1" />
         <MandantWahl mandanten={mandanten} gewaehlt={gewaehlt} />
+        <Aktualisierung />
         {wartung ? <Link href="/wartung" className="pill bad"><span className="dot" />Wartungsmodus aktiv</Link> : null}
         {!user.totpEnabled ? <Link href="/konto" className="pill warn">2FA einrichten</Link> : null}
         <Link href="/konto" className="text-sm">{user.displayName} <span className="pill muted">{user.rolle === "SUPER" ? "Super-Admin" : "Support"}</span></Link>

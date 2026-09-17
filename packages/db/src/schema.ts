@@ -144,7 +144,7 @@ export const organizations = pgTable("organizations", {
 export const users = pgTable("users", {
   tenantId: uuid("tenant_id").notNull().default(sql`current_tenant_id()`).references(() => tenants.id, { onDelete: "cascade" }), // Mandant (053), Default = Kontext
   id: uuid("id").primaryKey().defaultRandom(),
-  email: text("email").notNull().unique(),
+  email: text("email").notNull(), // eindeutig je Mandant (uq_users_tenant_email, 060)
   username: text("username"), // vorname.nachname – Login alternativ zur E-Mail (041); eindeutig je Mandant (053)
   passwordHash: text("password_hash").notNull(),
   displayName: text("display_name").notNull(),

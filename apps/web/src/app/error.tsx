@@ -1,5 +1,6 @@
 "use client";
 import { useEffect } from "react";
+import { istVeralteterStand } from "@/lib/veraltet";
 
 /**
  * Fehlerseite fuer alle Bereiche. Der Fehler ist serverseitig schon gemeldet
@@ -8,6 +9,13 @@ import { useEffect } from "react";
  */
 export default function FehlerSeite({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => {
+    // Nach einem Deploy fehlen dem offenen Tab die alten Bausteine: einmal automatisch neu laden
+    if (istVeralteterStand(error) && !sessionStorage.getItem("app-reload")) {
+      sessionStorage.setItem("app-reload", "1");
+      location.reload();
+      return;
+    }
+    sessionStorage.removeItem("app-reload");
     try {
       void fetch("/api/ereignis", {
         method: "POST", headers: { "Content-Type": "application/json" }, keepalive: true,

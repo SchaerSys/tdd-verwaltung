@@ -87,6 +87,12 @@ describe("Mandanten-Isolation (RLS ueber tenant_id)", () => {
         expect((await a`SELECT tenant_fuer_login('Login-Test@example.org') AS t`)[0]!.t).toBe(zweiter);
         expect((await a`SELECT tenant_fuer_login('login.test') AS t`)[0]!.t).toBe(zweiter); // Benutzername, eindeutig ueber alle Mandanten
         expect((await a`SELECT tenant_fuer_login('gibt-es-nicht@example.org') AS t`)[0]!.t).toBeNull();
+        // 060: dieselbe Adresse in einem zweiten Mandanten erlaubt → Aufloesung ohne Kontext wird mehrdeutig (NULL)
+        await ops2`SELECT ops_invite_user('login-test@example.org', 'Login Test', 'ADMIN', NULL, NULL, ${TENANT}::uuid)`;
+        expect((await a`SELECT tenant_fuer_login('login-test@example.org') AS t`)[0]!.t).toBeNull();
+        await a`DELETE FROM auth_tokens WHERE user_id IN (SELECT id FROM users WHERE email = 'login-test@example.org')`;
+        await a`DELETE FROM users WHERE email = 'login-test@example.org'`;
+        expect((await a`SELECT tenant_fuer_login('login-test@example.org') AS t`)[0]!.t).toBe(zweiter);
         expect((await a`SELECT count(*)::int AS n FROM users WHERE email = 'login-test@example.org'`)[0]!.n).toBe(0); // A sieht das Konto selbst nicht
         await owner`UPDATE tenants SET is_active = false WHERE id = ${zweiter}`;
         expect((await a`SELECT tenant_fuer_login('login-test@example.org') AS t`)[0]!.t).toBeNull(); // deaktivierter Mandant

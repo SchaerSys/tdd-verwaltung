@@ -211,7 +211,7 @@ export async function adminEinladen(_prev: UnternehmenState, fd: FormData): Prom
     token = r[0]!.t;
   } catch (e) {
     const msg = e instanceof Error ? e.message : "";
-    return { error: /users_email_key|duplicate key/.test(msg) ? "Diese E-Mail-Adresse hat schon ein Konto (E-Mail ist systemweit eindeutig)." : msg || "Einladung fehlgeschlagen." };
+    return { error: /users_email_key|duplicate key/.test(msg) ? "Diese E-Mail-Adresse hat in diesem Mandanten schon ein Konto." : msg || "Einladung fehlgeschlagen." };
   }
   const basis = t.host ? `https://${t.host}` : appUrl();
   const einstieg = t.host ? `${basis}/login` : `${basis}/m/${t.slug}`;

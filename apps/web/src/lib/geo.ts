@@ -16,7 +16,7 @@ export async function geocode(adresse: string): Promise<(Punkt & { anzeige: stri
   if (!q) return null;
   try {
     const u = `${PHOTON}/api/?q=${encodeURIComponent(q)}&limit=1&lang=de&lat=${VORARLBERG.lat}&lon=${VORARLBERG.lng}`;
-    const r = await fetch(u, { headers: { "User-Agent": "CareOS/1.0 (Tischlein deck dich Vorarlberg)" }, signal: AbortSignal.timeout(8000), cache: "no-store" });
+    const r = await fetch(u, { headers: { "User-Agent": "Tafelwerk/1.0 (Tischlein deck dich Vorarlberg)" }, signal: AbortSignal.timeout(8000), cache: "no-store" });
     if (!r.ok) return null;
     const j = (await r.json()) as { features?: { geometry: { coordinates: [number, number] }; properties: { name?: string; street?: string; housenumber?: string; postcode?: string; city?: string } }[] };
     const f = j.features?.[0];

@@ -1,6 +1,6 @@
 {
-  "name": "CareOS Tresen-Kiosk",
-  "short_name": "CareOS Kiosk",
+  "name": "Tafelwerk Tresen-Kiosk",
+  "short_name": "Tafelwerk Kiosk",
   "start_url": "/kiosk",
   "scope": "/kiosk",
   "display": "standalone",

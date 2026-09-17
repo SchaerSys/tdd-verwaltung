@@ -14,7 +14,7 @@ describe("Demo-Seed", () => {
     process.env.SESSION_SECRET = "test-geheimnis-mindestens-16-zeichen";
     const ops = opsSql(1);
     const owner = postgres(adminUrl(), { max: 1, onnotice: () => {} });
-    const [neu] = await ops`SELECT ops_create_tenant('CareOS Demo', 'demo') AS id`;
+    const [neu] = await ops`SELECT ops_create_tenant('Tafelwerk Demo', 'demo') AS id`;
     const demo = String(neu!.id);
     await owner`UPDATE tenants SET plan = 'TEST' WHERE id = ${demo}`;
     await ops`SELECT ops_invite_user('admin+demo@example.org', 'Demo Admin', 'ADMIN', NULL, NULL, ${demo}::uuid)`;

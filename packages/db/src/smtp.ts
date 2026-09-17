@@ -66,7 +66,7 @@ export function smtpKonfigAusUmgebung(): SmtpKonfig | null {
   return {
     host, port, sicherheit: port === 465 ? "SSL" : "STARTTLS",
     benutzer: process.env.SMTP_USER ?? null, passwort: process.env.SMTP_PASS ?? null,
-    absenderEmail: process.env.SMTP_FROM ?? "noreply@careos.local", absenderName: "CareOS", antwortAn: null, stand: "env",
+    absenderEmail: process.env.SMTP_FROM ?? "noreply@tafelwerk.local", absenderName: "Tafelwerk", antwortAn: null, stand: "env",
   };
 }
 

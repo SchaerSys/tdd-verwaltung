@@ -59,7 +59,7 @@ export async function stammdatenSpeichern(_prev: UnternehmenState, fd: FormData)
   const t = (v: string) => { const s = String(fd.get(v) ?? "").trim(); return s ? s : null; };
   const name = t("name"); const host = t("host")?.toLowerCase() ?? null;
   if (!id || !name) return { error: "Name ist Pflicht." };
-  if (host && !HOST.test(host)) return { error: "Host: nur Hostname ohne Protokoll und Pfad, z. B. tirol.careos.at." };
+  if (host && !HOST.test(host)) return { error: "Host: nur Hostname ohne Protokoll und Pfad, z. B. tirol.tafelwerk.at." };
   const email = t("kontaktEmail");
   if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return { error: "Kontakt-E-Mail ist ungültig." };
   try {
@@ -185,7 +185,7 @@ export async function hostSpeichern(_prev: UnternehmenState, fd: FormData): Prom
   const id = String(fd.get("id") ?? "");
   const host = String(fd.get("host") ?? "").trim().toLowerCase() || null;
   if (!id) return { error: "Mandant fehlt." };
-  if (host && !/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/.test(host)) return { error: "Host ungültig (nur Hostname, z. B. tirol.careos.at)." };
+  if (host && !/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/.test(host)) return { error: "Host ungültig (nur Hostname, z. B. tirol.tafelwerk.at)." };
   try { await dbFuer(null).update(tenants).set({ host, updatedAt: new Date() }).where(eq(tenants.id, id)); }
   catch (e) { const msg = e instanceof Error ? e.message : ""; return { error: /uq_tenants_host/.test(msg) ? "Host ist schon einem anderen Mandanten zugeordnet." : msg }; }
   await audit({ akteur: ops.email, action: "tenant.update", entityType: "tenant", entityId: id, after: { host } });
@@ -217,8 +217,8 @@ export async function adminEinladen(_prev: UnternehmenState, fd: FormData): Prom
   const einstieg = t.host ? `${basis}/login` : `${basis}/m/${t.slug}`;
   const link = `${basis}/passwort-neu?token=${token}`;
   const mail = await sendMail({
-    tenantId: id, ausloeser: "willkommen", to: email, subject: `Willkommen bei CareOS – ${t.name}`,
-    text: `Guten Tag ${name},\n\nfür ${t.name} wurde CareOS eingerichtet und Sie sind als Administrator:in eingetragen.\n\n1. Passwort festlegen (Link gilt 72 Stunden):\n${link}\n\n2. Danach anmelden unter:\n${einstieg}\n\nErste Schritte: Standorte anlegen (Verwaltung → Stammdaten), Personal erfassen, weitere Benutzer einladen.\nBei Fragen hilft der Betreiber: ${ops.email}\n\nFreundliche Grüße\nCareOS · Schär Systems`,
+    tenantId: id, ausloeser: "willkommen", to: email, subject: `Willkommen bei Tafelwerk – ${t.name}`,
+    text: `Guten Tag ${name},\n\nfür ${t.name} wurde Tafelwerk eingerichtet und Sie sind als Administrator:in eingetragen.\n\n1. Passwort festlegen (Link gilt 72 Stunden):\n${link}\n\n2. Danach anmelden unter:\n${einstieg}\n\nErste Schritte: Standorte anlegen (Verwaltung → Stammdaten), Personal erfassen, weitere Benutzer einladen.\nBei Fragen hilft der Betreiber: ${ops.email}\n\nFreundliche Grüße\nTafelwerk · Schär Systems`,
   });
   await audit({ akteur: ops.email, action: "user.invite", entityType: "user", entityId: email, after: { rolle: "ADMIN", tenant: id, mail: mail.sent, ueber: mail.ueber ?? null } });
   revalidatePath(`/unternehmen/${id}`);

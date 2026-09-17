@@ -76,5 +76,5 @@ describe("Wiederherstellungscodes", () => {
 
 test("otpauth-Adresse enthaelt Aussteller, Konto und Geheimnis", () => {
   const url = otpauthUrl("ABC234", "dario@example.at");
-  expect(url).toMatch(/^otpauth:\/\/totp\/CareOS%3Adario%40example\.at\?secret=ABC234&issuer=CareOS/);
+  expect(url).toMatch(/^otpauth:\/\/totp\/Tafelwerk%3Adario%40example\.at\?secret=ABC234&issuer=Tafelwerk/);
 });

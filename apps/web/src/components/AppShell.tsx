@@ -49,7 +49,7 @@ export function AppShell({
   const router = useRouter();
   const onDashboard = pathname === "/dashboard";
 
-  // Fenstertitel = Modulname (Taskleiste/Tabs unterscheidbar), Dashboard bleibt "CareOS"
+  // Fenstertitel = Modulname (Taskleiste/Tabs unterscheidbar), Dashboard bleibt "Tafelwerk"
   useEffect(() => {
     // Next setzt den <title> aus den Metadaten auch nach dem Navigieren neu – deshalb nachhalten
     const gewuenscht = fensterTitel(pathname);
@@ -95,9 +95,9 @@ export function AppShell({
       {/* Marken-Header (rotes Kopfband über die ganze App) */}
       <header className="topbar">
         <button type="button" className="btn ghost icon" onClick={toggle} aria-label="Navigation ein-/ausblenden" title="Navigation ein-/ausblenden">☰</button>
-        <Link href="/dashboard" className="hdr-brand" title="CareOS">
-          <span className="hdr-logo">C</span>
-          <span className="hdr-name"><b>CareOS</b><small>{traeger}</small></span>
+        <Link href="/dashboard" className="hdr-brand" title="Tafelwerk">
+          <span className="hdr-logo">T</span>
+          <span className="hdr-name"><b>Tafelwerk</b><small>{traeger}</small></span>
           {demo ? <span className="pill warn" title="Alle Personen, Adressen und Zahlen sind erfunden">DEMO · fiktive Daten</span> : null}
         </Link>
         {!onDashboard ? <Link href="/dashboard" className="btn ghost" title="Zurück zum Dashboard">← Dashboard</Link> : null}

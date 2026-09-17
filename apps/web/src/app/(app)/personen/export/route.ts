@@ -57,7 +57,7 @@ export async function GET(req: Request) {
   for (const c of cardRows) if (!cardByPerson.has(c.personId)) cardByPerson.set(c.personId, c.number);
 
   const wb = new ExcelJS.Workbook();
-  wb.creator = "CareOS";
+  wb.creator = "Tafelwerk";
   wb.created = new Date();
   const ws = wb.addWorksheet("Personen");
   ws.columns = [

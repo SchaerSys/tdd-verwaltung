@@ -47,8 +47,8 @@ export async function einladen(_prev: BenutzerState, fd: FormData): Promise<Benu
   const link = `${basis}/passwort-neu?token=${token}`;
   const mail = await sendMail({
     tenantId: tenant, ausloeser: "einladung",
-    to: email, subject: `CareOS – Ihr Zugang (${tInfo?.name ?? "CareOS"})`,
-    text: `Guten Tag ${name},\n\nfür Sie wurde ein Zugang zu CareOS bei ${tInfo?.name ?? "Ihrer Organisation"} angelegt (Rolle ${rolle}).\nBitte legen Sie innerhalb von 72 Stunden Ihr Passwort fest:\n${link}\n\nDanach melden Sie sich hier an:\n${einstieg}\n\nFreundliche Grüße\n${tInfo?.name ?? "CareOS"}`,
+    to: email, subject: `Tafelwerk – Ihr Zugang (${tInfo?.name ?? "Tafelwerk"})`,
+    text: `Guten Tag ${name},\n\nfür Sie wurde ein Zugang zu Tafelwerk bei ${tInfo?.name ?? "Ihrer Organisation"} angelegt (Rolle ${rolle}).\nBitte legen Sie innerhalb von 72 Stunden Ihr Passwort fest:\n${link}\n\nDanach melden Sie sich hier an:\n${einstieg}\n\nFreundliche Grüße\n${tInfo?.name ?? "Tafelwerk"}`,
   });
   await audit({ akteur: ops.email, action: "user.invite", entityType: "user", entityId: email, after: { rolle, loc, org, mail: mail.sent } });
   revalidatePath("/benutzer");
@@ -71,7 +71,7 @@ export async function passwortLink(_prev: BenutzerState, fd: FormData): Promise<
   const link = `${appUrl()}/passwort-neu?token=${token}`;
   const mail = await sendMail({
     tenantId: (await gewaehlterMandant()) ?? TENANT_VORARLBERG, ausloeser: "passwort",
-    to: u.email, subject: "CareOS – Passwort neu setzen",
+    to: u.email, subject: "Tafelwerk – Passwort neu setzen",
     text: `Guten Tag ${u.name},\n\nüber diesen Link können Sie innerhalb von 24 Stunden ein neues Passwort setzen:\n${link}\n\nFalls Sie das nicht angefordert haben, wenden Sie sich an das TDD-Büro.\n\nFreundliche Grüße\nTischlein deck dich Vorarlberg`,
   });
   await audit({ akteur: ops.email, action: "user.password_link", entityType: "user", entityId: u.id, after: { mail: mail.sent } });
@@ -85,7 +85,7 @@ export async function registrierungFreigeben(fd: FormData): Promise<void> {
   const u = (await (await db()).select({ email: users.email, name: users.displayName, active: users.isActive }).from(users).where(eq(users.id, id)).limit(1))[0];
   if (!u || u.active) return;
   await (await db()).update(users).set({ isActive: true }).where(eq(users.id, id));
-  await sendMail({ tenantId: (await gewaehlterMandant()) ?? TENANT_VORARLBERG, ausloeser: "freigabe", to: u.email, subject: "CareOS – Zugang freigegeben", text: `Guten Tag ${u.name},\n\nIhr Zugang zum Antragsportal wurde freigegeben. Sie können sich jetzt anmelden:\n${appUrl()}/login\n\nFreundliche Grüße\nTischlein deck dich Vorarlberg` });
+  await sendMail({ tenantId: (await gewaehlterMandant()) ?? TENANT_VORARLBERG, ausloeser: "freigabe", to: u.email, subject: "Tafelwerk – Zugang freigegeben", text: `Guten Tag ${u.name},\n\nIhr Zugang zum Antragsportal wurde freigegeben. Sie können sich jetzt anmelden:\n${appUrl()}/login\n\nFreundliche Grüße\nTischlein deck dich Vorarlberg` });
   await audit({ akteur: ops.email, action: "user.approve", entityType: "user", entityId: id });
   revalidatePath("/benutzer");
 }

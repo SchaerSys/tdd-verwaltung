@@ -27,7 +27,7 @@ export async function GET(req: Request) {
 
   const blocks = await loadTresenReport(von, bis);
   const wb = new ExcelJS.Workbook();
-  wb.creator = "CareOS";
+  wb.creator = "Tafelwerk";
   wb.created = new Date();
 
   // Übersichtsblatt: je Ausgabestelle eine Summenzeile

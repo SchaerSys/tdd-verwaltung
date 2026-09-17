@@ -109,16 +109,16 @@ export function navLabel(href: string): string {
 
 /**
  * Fenstertitel zu einem Pfad: Name des Moduls (laengster passender Nav-Eintrag), damit in der
- * Taskleiste "Personen" statt zehnmal "CareOS" steht. Dashboard und Unbekanntes: "CareOS".
+ * Taskleiste "Personen" statt zehnmal "Tafelwerk" steht. Dashboard und Unbekanntes: "Tafelwerk".
  */
 export function fensterTitel(pathname: string): string {
-  if (pathname === "/dashboard" || pathname === "/") return "CareOS";
+  if (pathname === "/dashboard" || pathname === "/") return "Tafelwerk";
   let best: NavDef | null = null;
   for (const n of NAV) {
     if (n.href === "/dashboard") continue;
     if ((pathname === n.href || pathname.startsWith(n.href + "/")) && (!best || n.href.length > best.href.length)) best = n;
   }
-  if (!best) return "CareOS";
+  if (!best) return "Tafelwerk";
   const treffer = best;
   const eltern = treffer.parent ? NAV.find((x) => x.href === treffer.parent) : null;
   return eltern ? `${eltern.label} · ${treffer.label}` : treffer.label;

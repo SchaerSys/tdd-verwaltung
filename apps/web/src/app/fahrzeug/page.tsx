@@ -11,7 +11,7 @@ import { Lebenszeichen } from "@/components/Lebenszeichen";
 import { KoppelnForm } from "./KoppelnForm";
 import { mandant } from "@/lib/mandant";
 
-export const metadata: Metadata = { title: "Fahrzeug-Tablet · CareOS", manifest: "/manifest.webmanifest" };
+export const metadata: Metadata = { title: "Fahrzeug-Tablet · Tafelwerk", manifest: "/manifest.webmanifest" };
 export const viewport: Viewport = { width: "device-width", initialScale: 1, maximumScale: 1 };
 export const dynamic = "force-dynamic";
 

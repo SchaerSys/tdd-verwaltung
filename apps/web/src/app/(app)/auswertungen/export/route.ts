@@ -9,7 +9,7 @@ export async function GET() {
 
   const r = await loadReports();
   const wb = new ExcelJS.Workbook();
-  wb.creator = "CareOS";
+  wb.creator = "Tafelwerk";
   wb.created = new Date();
 
   const s1 = wb.addWorksheet("Berechtigte je Standort");

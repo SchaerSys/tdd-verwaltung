@@ -29,13 +29,13 @@ export default async function Einrichten({ params, searchParams }: { params: Pro
       <div className="panel"><div style={{ padding: 12 }}>
         {schritt === 2 ? (
           <>
-            <p className="text-sm text-muted mb-3">Über welchen Mailserver verschickt dieser Mandant Einladungen, Passwort-Links, Bescheide und Karten-Erinnerungen? Ohne Angabe wird das Plattform-SMTP verwendet (Absender CareOS).</p>
+            <p className="text-sm text-muted mb-3">Über welchen Mailserver verschickt dieser Mandant Einladungen, Passwort-Links, Bescheide und Karten-Erinnerungen? Ohne Angabe wird das Plattform-SMTP verwendet (Absender Tafelwerk).</p>
             <SmtpForm id={id} werte={smtp} weiter={`/unternehmen/${id}/einrichten?schritt=3`} />
           </>
         ) : null}
         {schritt === 3 ? (
           <>
-            <p className="text-sm text-muted mb-3">Eigener Hostname (z. B. tirol.careos.at): DNS-A-Eintrag beim Domain-Anbieter auf diesen Server setzen; das Zertifikat holt der Server beim ersten Aufruf automatisch. Ohne eigenen Host melden sich die Benutzer über <span className="mono">/m/{t.slug}</span> an.</p>
+            <p className="text-sm text-muted mb-3">Eigener Hostname (z. B. tirol.tafelwerk.at): DNS-A-Eintrag beim Domain-Anbieter auf diesen Server setzen; das Zertifikat holt der Server beim ersten Aufruf automatisch. Ohne eigenen Host melden sich die Benutzer über <span className="mono">/m/{t.slug}</span> an.</p>
             {dnsCheck ? <div className={`pill ${dnsCheck.ok ? "good" : "warn"}`} style={{ display: "block", whiteSpace: "normal", marginBottom: 10 }}>{dnsCheck.info}</div> : null}
             <HostForm id={id} host={t.host} weiter={`/unternehmen/${id}/einrichten?schritt=4`} />
           </>

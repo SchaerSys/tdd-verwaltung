@@ -78,7 +78,7 @@ export function verifyTotp(secret: string, code: string, atSeconds = Math.floor(
 }
 
 /** Adresse fuer den QR-Code, die alle Authenticator-Apps verstehen. */
-export function otpauthUrl(secret: string, account: string, issuer = "CareOS"): string {
+export function otpauthUrl(secret: string, account: string, issuer = "Tafelwerk"): string {
   const label = encodeURIComponent(`${issuer}:${account}`);
   return `otpauth://totp/${label}?secret=${secret}&issuer=${encodeURIComponent(issuer)}&algorithm=SHA1&digits=${TOTP_DIGITS}&period=${TOTP_STEP_SECONDS}`;
 }

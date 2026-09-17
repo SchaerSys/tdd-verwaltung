@@ -7,7 +7,7 @@ export function SetupForm() {
   return (
     <div className="w-full max-w-sm bg-surface border border-border rounded-card p-6 shadow-sm flex flex-col gap-4">
       <div>
-        <div className="text-lg font-semibold">CareOS Wartung einrichten</div>
+        <div className="text-lg font-semibold">Tafelwerk Wartung einrichten</div>
         <div className="text-sm text-muted">Erstes Betreiber-Konto – diese Seite gibt es nur einmal.</div>
       </div>
       <form action={action} className="flex flex-col gap-3">

@@ -18,7 +18,7 @@ import { hostsAusUmgebung, tenantAusRohdaten, type HostZuordnung } from "./tenan
  * ergaenzend aus TENANT_HOSTS; sie wird im Hintergrund alle 60 s erneuert, die
  * Aufloesung selbst bleibt synchron (kein Warten vor der Anfrage).
  */
-const SCHLUESSEL = Symbol.for("careos.tenant-hook");
+const SCHLUESSEL = Symbol.for("tafelwerk.tenant-hook");
 const g = globalThis as unknown as Record<symbol, boolean | undefined>;
 
 let hosts: HostZuordnung = hostsAusUmgebung();

@@ -1,4 +1,4 @@
-# CareOS
+# Tafelwerk
 
 Zentrales Verwaltungssystem für den gemeinnützigen Verein **Tischlein deck dich Vorarlberg**
 (Lebensmittelhilfe). Es löst das Kernproblem der bisherigen Insel-Lösungen: **eine zentrale
@@ -164,7 +164,7 @@ graph TD
 
 ### Mandantenfähigkeit
 
-Seit Migration 053 ist CareOS mandantenfähig: Über den Organisationen (Gemeinden, Institutionen, Träger)
+Seit Migration 053 ist Tafelwerk mandantenfähig: Über den Organisationen (Gemeinden, Institutionen, Träger)
 liegt die Ebene **Mandant = Unternehmen** (`tenants`). Der Bestand gehört dem Mandanten
 „Tischlein deck dich Vorarlberg“ (`e3b29c11-0000-4000-a000-000000000000`).
 

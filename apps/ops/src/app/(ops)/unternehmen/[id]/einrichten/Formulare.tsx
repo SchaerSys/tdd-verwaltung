@@ -9,7 +9,7 @@ export function HostForm({ id, host, weiter }: { id: string; host: string | null
   return (
     <form action={action} className="flex gap-2 items-end flex-wrap">
       <input type="hidden" name="id" value={id} />
-      <label className="text-xs">Host<br /><input name="host" className="inp sm mono" style={{ width: 300 }} defaultValue={host ?? ""} placeholder="tirol.careos.at" /></label>
+      <label className="text-xs">Host<br /><input name="host" className="inp sm mono" style={{ width: 300 }} defaultValue={host ?? ""} placeholder="tirol.tafelwerk.at" /></label>
       <button className="btn sm" type="submit" formAction={action}>{pending ? "Prüft …" : "Speichern & DNS prüfen"}</button>
       <button className="btn sm" type="submit" name="weiter" value={weiter} disabled={pending}>Speichern & weiter</button>
       <Link href={weiter} className="btn ghost sm">Ohne eigenen Host weiter</Link>

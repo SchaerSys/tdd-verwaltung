@@ -19,7 +19,7 @@ import { withOrg } from "./org";
  * nichts anderes getroffen werden). Loescht vorher alle Fachdaten dieses Mandanten – ausser
  * Admin-Konten und der Traegerorganisation – und baut alles deterministisch neu auf
  * (fester Zufalls-Seed, Datumsangaben relativ zu heute). Erkennbar fiktiv: Domain
- * demo.careos.invalid, Telefon 0660/000…, erfundene Strassennamen in echten Orten.
+ * demo.tafelwerk.invalid, Telefon 0660/000…, erfundene Strassennamen in echten Orten.
  */
 
 // ── Zufall mit festem Seed (mulberry32) ──────────────────────────────────
@@ -140,7 +140,7 @@ export async function demoSeed(): Promise<DemoErgebnis> {
     const notiz = i === 3 ? "Bitte Schulden ansprechen – Zahlung vereinbart." : i === 9 ? "Bringt Nachbarin mit (Übersetzung)." : null;
     const [p] = await d.insert(persons).values({
       firstName: vor, lastName: nach, address: adresse, postalCode: ort.plz, city: ort.ort, birthDate: geb,
-      phone: `0660 000 ${String(1000 + i * 37).slice(-4)}`, email: rand() < 0.6 ? `${vor.toLowerCase()}.${nach.toLowerCase().replace(/[^a-z]/g, "")}@demo.careos.invalid` : null,
+      phone: `0660 000 ${String(1000 + i * 37).slice(-4)}`, email: rand() < 0.6 ? `${vor.toLowerCase()}.${nach.toLowerCase().replace(/[^a-z]/g, "")}@demo.tafelwerk.invalid` : null,
       householdSize: adults + kinder, childrenCount: kinder, languageId: pick(sprachen)?.id ?? null, originId: pick(herkunft)?.id ?? null,
       note: notiz, status: "AKTIV", lastNameNorm: normalizeName(nach), firstNameNorm: normalizeName(vor), addressNorm: normalizeAddress(adresse),
       lastNamePhon: koelnerPhonetik(nach), firstNamePhon: koelnerPhonetik(vor), createdBy: admin?.id ?? null, consentAt: tage(-zwischen(60, 400)),
@@ -187,7 +187,7 @@ export async function demoSeed(): Promise<DemoErgebnis> {
   const institution = orgRows.find((o) => o.type === "INSTITUTION")!;
   const antrag = (vor: string, nach: string, org: number, status: string, adults: number, ku12: number, income: number, expense: number, tageAlt: number) => ({
     organizationId: org, targetType: "AUSGABESTELLE", intendedLocationId: ausgabestellen[1]!.id, firstName: vor, lastName: nach, address: `${pick(STRASSEN)} ${zwischen(1, 40)}`,
-    postalCode: "6850", city: "Dornbirn", birthDate: `${zwischen(1970, 1998)}-05-1${zwischen(0, 9)}`, phone: "0660 000 0999", email: `${vor.toLowerCase()}.${nach.toLowerCase()}@demo.careos.invalid`,
+    postalCode: "6850", city: "Dornbirn", birthDate: `${zwischen(1970, 1998)}-05-1${zwischen(0, 9)}`, phone: "0660 000 0999", email: `${vor.toLowerCase()}.${nach.toLowerCase()}@demo.tafelwerk.invalid`,
     adults, childrenU12: ku12, childrenO12: 0, financials: { income: { lohn: income }, expense: { miete: expense } }, incomeTotal: income.toFixed(2), expenseTotal: expense.toFixed(2),
     availableIncome: (income - expense).toFixed(2), incomeLimit: incomeLimit(adults, ku12, 0).toFixed(2), status, consentGiven: true, consentAt: isoTage(-tageAlt),
     lastNameNorm: normalizeName(nach), firstNameNorm: normalizeName(vor), createdAt: um(tage(-tageAlt), 9, 15),
@@ -213,17 +213,17 @@ export async function demoSeed(): Promise<DemoErgebnis> {
   const zivi = { "1": 480, "2": 480, "3": 480, "4": 480, "5": 480 };       // 40 h
   const dienstStd = (von: string, bis: string, loc: number | null) => ({ "1": { von, bis, pause: 30, location: loc }, "2": { von, bis, pause: 30, location: loc }, "3": { von, bis, pause: 30, location: loc }, "4": { von, bis, pause: 30, location: loc }, "5": { von, bis, pause: 30, location: loc } });
   const staffRows = await d.insert(staff).values([
-    { personalnr: 1, firstName: demoAdmin ? demoAdmin.name.split(" ")[0]! : "Dario", lastName: demoAdmin ? (demoAdmin.name.split(" ").slice(1).join(" ") || "Schär") : "Schär", staffType: "ANGESTELLT", email: demoAdmin?.email ?? "leitung@demo.careos.invalid", userId: demoAdmin?.id ?? null,
+    { personalnr: 1, firstName: demoAdmin ? demoAdmin.name.split(" ")[0]! : "Dario", lastName: demoAdmin ? (demoAdmin.name.split(" ").slice(1).join(" ") || "Schär") : "Schär", staffType: "ANGESTELLT", email: demoAdmin?.email ?? "leitung@demo.tafelwerk.invalid", userId: demoAdmin?.id ?? null,
       employmentStart: isoTage(-900), weeklyHours: "33.50", vacationDaysYear: "25", sollVerteilung: vollzeit, dienstStandard: dienstStd("08:00", "15:30", lager.id), locationId: lager.id, zeitkontoStart: isoTage(-42), zeitkontoAnfangMin: 310,
       geburtsdatum: "1989-03-14", svNummer: svNummer("1989-03-14", 123), staatsbuergerschaft: "Österreich", beschaeftigung: "TEILZEIT", taetigkeit: "Leitung / Verwaltung", kvEinstufung: "SWÖ VG 7/3", gehaltBrutto: "3120.00", probezeitBis: isoTage(-870), dienstzettelAm: isoTage(-895), notfallName: "Notfallkontakt (Demo)", notfallTel: "0660 000 0001", strasse: "Beispielgasse 9", plz: "6900", ort: "Bregenz", urlaubWochen: 5, kannFahren: true, fuehrerschein: "B", ortungZustimmungAm: isoTage(-30) },
-    { personalnr: 2, firstName: "Claudia", lastName: "Winkler", staffType: "ANGESTELLT", email: "claudia.winkler@demo.careos.invalid", phone: "0660 000 0002", employmentStart: isoTage(-1400), weeklyHours: "20.00", vacationDaysYear: "25", sollVerteilung: teilzeit, dienstStandard: dienstStd("08:30", "13:30", ausgabestellen[0]!.id), locationId: ausgabestellen[0]!.id, zeitkontoStart: isoTage(-42), zeitkontoAnfangMin: -45,
+    { personalnr: 2, firstName: "Claudia", lastName: "Winkler", staffType: "ANGESTELLT", email: "claudia.winkler@demo.tafelwerk.invalid", phone: "0660 000 0002", employmentStart: isoTage(-1400), weeklyHours: "20.00", vacationDaysYear: "25", sollVerteilung: teilzeit, dienstStandard: dienstStd("08:30", "13:30", ausgabestellen[0]!.id), locationId: ausgabestellen[0]!.id, zeitkontoStart: isoTage(-42), zeitkontoAnfangMin: -45,
       geburtsdatum: "1976-11-02", svNummer: svNummer("1976-11-02", 456), staatsbuergerschaft: "Österreich", beschaeftigung: "TEILZEIT", taetigkeit: "Ausgabe & Büro", kvEinstufung: "SWÖ VG 5/4", gehaltBrutto: "1480.00", probezeitBis: isoTage(-1370), dienstzettelAm: isoTage(-1395), notfallName: "Notfallkontakt (Demo)", notfallTel: "0660 000 0003", strasse: "Mustergasse 3", plz: "6850", ort: "Dornbirn", urlaubWochen: 5 },
-    { personalnr: 100, firstName: "Jonas", lastName: "Amann", staffType: "ZIVILDIENER", email: "jonas.amann@demo.careos.invalid", phone: "0660 000 0100", employmentStart: isoTage(-100), weeklyHours: "40.00", sollVerteilung: zivi, dienstStandard: dienstStd("07:30", "16:00", lager.id), locationId: lager.id, zeitkontoStart: isoTage(-42),
+    { personalnr: 100, firstName: "Jonas", lastName: "Amann", staffType: "ZIVILDIENER", email: "jonas.amann@demo.tafelwerk.invalid", phone: "0660 000 0100", employmentStart: isoTage(-100), weeklyHours: "40.00", sollVerteilung: zivi, dienstStandard: dienstStd("07:30", "16:00", lager.id), locationId: lager.id, zeitkontoStart: isoTage(-42),
       ziviBeginn: isoTage(-100), ziviEnde: addMonths(isoTage(-100), 9), ziviBescheid: "ZD-2026-0417 (Demo)", geburtsdatum: "2006-07-21", svNummer: svNummer("2006-07-21", 789), staatsbuergerschaft: "Österreich", beschaeftigung: "ZIVILDIENST", taetigkeit: "Fahrer / Ausgabe", strasse: "Probeweg 11", plz: "6971", ort: "Hard", kannFahren: true, fuehrerschein: "B", ortungZustimmungAm: isoTage(-95), notfallName: "Eltern (Demo)", notfallTel: "0660 000 0101" },
-    { personalnr: 101, firstName: "Luca", lastName: "Bertsch", staffType: "ZIVILDIENER", email: "luca.bertsch@demo.careos.invalid", phone: "0660 000 0102", employmentStart: isoTage(-40), weeklyHours: "40.00", sollVerteilung: zivi, dienstStandard: dienstStd("07:30", "16:00", ausgabestellen[1]!.id), locationId: ausgabestellen[1]!.id, zeitkontoStart: isoTage(-35),
+    { personalnr: 101, firstName: "Luca", lastName: "Bertsch", staffType: "ZIVILDIENER", email: "luca.bertsch@demo.tafelwerk.invalid", phone: "0660 000 0102", employmentStart: isoTage(-40), weeklyHours: "40.00", sollVerteilung: zivi, dienstStandard: dienstStd("07:30", "16:00", ausgabestellen[1]!.id), locationId: ausgabestellen[1]!.id, zeitkontoStart: isoTage(-35),
       ziviBeginn: isoTage(-40), ziviEnde: addMonths(isoTage(-40), 9), ziviBescheid: "ZD-2026-0522 (Demo)", geburtsdatum: "2007-02-09", svNummer: svNummer("2007-02-09", 321), staatsbuergerschaft: "Österreich", beschaeftigung: "ZIVILDIENST", taetigkeit: "Ausgabe / Lager", strasse: "Demoallee 5", plz: "6850", ort: "Dornbirn", notfallName: "Eltern (Demo)", notfallTel: "0660 000 0103" },
-    { personalnr: 200, firstName: "Herbert", lastName: "Gmeiner", staffType: "EHRENAMT", email: "herbert.gmeiner@demo.careos.invalid", phone: "0660 000 0200", employmentStart: isoTage(-600), beschaeftigung: "EHRENAMT", taetigkeit: "Fahrer", kannFahren: true, fuehrerschein: "B, C1", fahrerTage: [2, 4], strasse: "Übungsstraße 20", plz: "6900", ort: "Bregenz", ortungZustimmungAm: isoTage(-200) },
-    { personalnr: 201, firstName: "Rosa", lastName: "Mathis", staffType: "EHRENAMT", email: "rosa.mathis@demo.careos.invalid", phone: "0660 000 0201", employmentStart: isoTage(-300), beschaeftigung: "EHRENAMT", taetigkeit: "Ausgabe", strasse: "Vorführgasse 2", plz: "6800", ort: "Feldkirch" },
+    { personalnr: 200, firstName: "Herbert", lastName: "Gmeiner", staffType: "EHRENAMT", email: "herbert.gmeiner@demo.tafelwerk.invalid", phone: "0660 000 0200", employmentStart: isoTage(-600), beschaeftigung: "EHRENAMT", taetigkeit: "Fahrer", kannFahren: true, fuehrerschein: "B, C1", fahrerTage: [2, 4], strasse: "Übungsstraße 20", plz: "6900", ort: "Bregenz", ortungZustimmungAm: isoTage(-200) },
+    { personalnr: 201, firstName: "Rosa", lastName: "Mathis", staffType: "EHRENAMT", email: "rosa.mathis@demo.tafelwerk.invalid", phone: "0660 000 0201", employmentStart: isoTage(-300), beschaeftigung: "EHRENAMT", taetigkeit: "Ausgabe", strasse: "Vorführgasse 2", plz: "6800", ort: "Feldkirch" },
   ]).returning({ id: staff.id, nr: staff.personalnr, typ: staff.staffType });
   const [leitung, claudia, jonas, luca, herbert] = staffRows as [typeof staffRows[number], typeof staffRows[number], typeof staffRows[number], typeof staffRows[number], typeof staffRows[number], typeof staffRows[number]];
 
@@ -340,12 +340,12 @@ export async function demoSeed(): Promise<DemoErgebnis> {
     const uname = (await d.execute(sql`SELECT mach_benutzername(${name}) AS u`) as unknown as { u: string }[])[0]?.u ?? null;
     return d.insert(users).values({ email, displayName: name, role, passwordHash: "!", isActive: true, emailVerified: true, username: uname, organizationId: extra.organizationId ?? tdd.id, locationId: extra.locationId ?? null });
   };
-  await konto("erfassung@demo.careos.invalid", "Erfassung Demo", "ERFASSUNG");
-  await konto("kasse@demo.careos.invalid", "Kasse Bregenz Demo", "AUSGABE", { locationId: ausgabestellen[0]!.id });
-  await konto("auswertung@demo.careos.invalid", "Auswertung Demo", "AUSWERTUNG");
-  await konto("gemeinde@demo.careos.invalid", "Sachbearbeitung Dornbirn Demo", "SACHBEARBEITER", { organizationId: gemeinde.id });
-  await konto("fahrer@demo.careos.invalid", "Fahrer Demo", "FAHRER");
-  const fahrerUser = (await d.select({ id: users.id }).from(users).where(eq(users.email, "fahrer@demo.careos.invalid")).limit(1))[0];
+  await konto("erfassung@demo.tafelwerk.invalid", "Erfassung Demo", "ERFASSUNG");
+  await konto("kasse@demo.tafelwerk.invalid", "Kasse Bregenz Demo", "AUSGABE", { locationId: ausgabestellen[0]!.id });
+  await konto("auswertung@demo.tafelwerk.invalid", "Auswertung Demo", "AUSWERTUNG");
+  await konto("gemeinde@demo.tafelwerk.invalid", "Sachbearbeitung Dornbirn Demo", "SACHBEARBEITER", { organizationId: gemeinde.id });
+  await konto("fahrer@demo.tafelwerk.invalid", "Fahrer Demo", "FAHRER");
+  const fahrerUser = (await d.select({ id: users.id }).from(users).where(eq(users.email, "fahrer@demo.tafelwerk.invalid")).limit(1))[0];
   if (fahrerUser) await d.update(staff).set({ userId: fahrerUser.id }).where(eq(staff.id, herbert.id));
 
   // ── 13. Ausgabestation: gekoppelter Demo-Laptop ───────────────────────

@@ -2,12 +2,12 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "CareOS",
-  description: "CareOS – Verwaltungssystem für soziale Einrichtungen",
-  applicationName: "CareOS",
+  title: "Tafelwerk",
+  description: "Tafelwerk – Verwaltungssystem für soziale Einrichtungen",
+  applicationName: "Tafelwerk",
   manifest: "/app.webmanifest",
   icons: { icon: "/icon.svg", apple: "/icon.svg" },
-  appleWebApp: { capable: true, title: "CareOS", statusBarStyle: "default" },
+  appleWebApp: { capable: true, title: "Tafelwerk", statusBarStyle: "default" },
 };
 
 export const viewport: Viewport = {

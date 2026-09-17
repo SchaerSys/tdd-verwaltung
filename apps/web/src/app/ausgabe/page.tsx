@@ -13,7 +13,7 @@ import { Lebenszeichen } from "@/components/Lebenszeichen";
 import { STAFF_TYPE_LABEL } from "@/app/(app)/personal/types";
 import { AusgabeStart, StationKoppeln } from "./AusgabeStart";
 
-export const metadata: Metadata = { title: "Ausgabe · CareOS", manifest: "/manifest.webmanifest" };
+export const metadata: Metadata = { title: "Ausgabe · Tafelwerk", manifest: "/manifest.webmanifest" };
 export const viewport: Viewport = { width: "device-width", initialScale: 1 };
 export const dynamic = "force-dynamic";
 

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { mandant, zeilen } from "@/lib/mandant";
 
-export const metadata = { title: "Datenschutz · CareOS" };
+export const metadata = { title: "Datenschutz · Tafelwerk" };
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (

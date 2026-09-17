@@ -75,8 +75,8 @@ export async function smtpTesten(tenantId: string, an: string, von: string): Pro
   try {
     const t = transportFuer(k, `test:${tenantId}`);
     await t.verify();
-    await t.sendMail({ from: absender(k), to: an, subject: "CareOS – Test der E-Mail-Einstellungen",
-      text: `Diese Test-Mail wurde von der CareOS-Wartungsplattform über den SMTP-Server ${k.host}:${k.port} gesendet.\nAbsender: ${k.absenderEmail}\nAusgelöst von: ${von}\n\nWenn diese Mail ankommt, sind die Einstellungen in Ordnung.` });
+    await t.sendMail({ from: absender(k), to: an, subject: "Tafelwerk – Test der E-Mail-Einstellungen",
+      text: `Diese Test-Mail wurde von der Tafelwerk-Wartungsplattform über den SMTP-Server ${k.host}:${k.port} gesendet.\nAbsender: ${k.absenderEmail}\nAusgelöst von: ${von}\n\nWenn diese Mail ankommt, sind die Einstellungen in Ordnung.` });
     ok = true; info = `Gesendet an ${an} über ${k.host}:${k.port}`;
   } catch (e) { info = e instanceof Error ? e.message : "Fehler"; }
   await dbFuer(tenantId).execute(sql`UPDATE tenant_smtp SET letzter_test_am = now(), letzter_test_ok = ${ok}, letzter_test_info = ${info.slice(0, 500)} WHERE tenant_id = ${tenantId}::uuid`);

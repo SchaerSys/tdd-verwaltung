@@ -10,7 +10,7 @@ export const TENANT_VORARLBERG = "e3b29c11-0000-4000-a000-000000000000";
 
 // Eine Instanz je Prozess – auch wenn das Paket in mehreren Bundles landet (Instrumentation,
 // Routen): der Kontext aus dem HTTP-Hook muss in jedem Bundle derselbe sein.
-const SCHLUESSEL = Symbol.for("careos.tenant-als");
+const SCHLUESSEL = Symbol.for("tafelwerk.tenant-als");
 const g = globalThis as unknown as Record<symbol, AsyncLocalStorage<string> | undefined>;
 const speicher: AsyncLocalStorage<string> = g[SCHLUESSEL] ?? (g[SCHLUESSEL] = new AsyncLocalStorage<string>());
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

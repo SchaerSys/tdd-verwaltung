@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-export const metadata = { title: "Benutzeranleitung · CareOS" };
+export const metadata = { title: "Benutzeranleitung · Tafelwerk" };
 
 function Step({ n, title, children }: { n: string; title: string; children: React.ReactNode }) {
   return (
@@ -21,7 +21,7 @@ export default function AnleitungPage() {
       <p className="text-[.8125rem] text-[color:var(--muted)] mb-6">Kurzanleitung für die drei Zugänge. Über „Datenschutz" sind die DSGVO-Hinweise abrufbar.</p>
 
       <div className="panel mb-4"><div className="panel-h"><h3>Anmeldung</h3></div><div className="p-4">
-        <Step n="1" title="Zugang wählen">Wählen Sie den <b>Träger</b> (die Organisation, die CareOS betreibt), <b>Gemeinde</b> oder <b>Institution</b>.</Step>
+        <Step n="1" title="Zugang wählen">Wählen Sie den <b>Träger</b> (die Organisation, die Tafelwerk betreibt), <b>Gemeinde</b> oder <b>Institution</b>.</Step>
         <Step n="2" title="Organisation suchen">Bei Gemeinde/Institution die Stelle über das <b>Suchfeld</b> auswählen.</Step>
         <Step n="3" title="Anmelden">E-Mail und Passwort eingeben. Je nach Rolle landen Sie im Portal oder im TDD-Bereich.</Step>
       </div></div>

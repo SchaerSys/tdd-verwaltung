@@ -125,7 +125,7 @@ function Blatt({ name, typ, wochenstunden, titel, u, konto, abgeschlossen, letzt
         <div>Mitarbeiter:in</div>
         <div>Verein</div>
       </div>
-      <div className="fuss"><span>{firma} · CareOS</span><span>Erstellt {new Date().toLocaleDateString("de-AT")}</span></div>
+      <div className="fuss"><span>{firma} · Tafelwerk</span><span>Erstellt {new Date().toLocaleDateString("de-AT")}</span></div>
     </section>
   );
 }

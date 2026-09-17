@@ -4,7 +4,7 @@
 --  * Stammdaten je Mandant (Host, Kurzname fuer Drucke, Anschrift, Kontakt): werden vom
 --    Betreiber (Wartungsplattform) gepflegt und ersetzen die bisher fest verdrahteten
 --    Angaben "Tischlein deck dich Vorarlberg" in Drucken, Datenschutzinfo und E-Mails.
---  * host: eigener Hostname je Mandant (z. B. tirol.careos.at). Der Server leitet Anfragen
+--  * host: eigener Hostname je Mandant (z. B. tirol.tafelwerk.at). Der Server leitet Anfragen
 --    ohne Session ueber den Host in den richtigen Mandanten-Kontext.
 --  * tenant_fuer_login(name): Anmeldung ohne passenden Host – die E-Mail-Adresse ist global
 --    eindeutig, der Benutzername je Mandant; die Funktion (Owner, umgeht RLS) liefert den

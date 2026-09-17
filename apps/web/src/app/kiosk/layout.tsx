@@ -5,7 +5,7 @@ import { hasPermission } from "@/lib/rbac";
 import { Lebenszeichen } from "@/components/Lebenszeichen";
 
 export const metadata: Metadata = {
-  title: "Tresen-Kiosk · CareOS",
+  title: "Tresen-Kiosk · Tafelwerk",
   manifest: "/manifest.webmanifest",
 };
 

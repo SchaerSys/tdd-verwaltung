@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "CareOS Wartung",
-  description: "Wartungsplattform der CareOS (Betreiber)",
+  title: "Tafelwerk Wartung",
+  description: "Wartungsplattform der Tafelwerk (Betreiber)",
   icons: { icon: "/icon.svg" },
   robots: { index: false, follow: false },
 };

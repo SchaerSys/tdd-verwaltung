@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 export default async function MyStempeln() {
   const k = (await meinKontext())!;
   const stand = await stempelStand(k.person!.id);
-  const zeit = (d: Date) => d.toLocaleTimeString("de-AT", { hour: "2-digit", minute: "2-digit" });
+  const zeit = (d: Date) => d.toLocaleTimeString("de-AT", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Vienna" });
   return (
     <div className="flex flex-col gap-3">
       <div className="panel p-4"><StempelKnoepfe status={stand.status} /></div>

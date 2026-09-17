@@ -11,6 +11,7 @@ import { ladeRueckstatus } from "@/lib/portal-status";
 import { antragCheck, checkZusammenfassung } from "@/lib/antrag-check";
 import { RueckPill } from "@/components/portal/Pills";
 import { Verlauf } from "@/components/portal/Verlauf";
+import { CONSENT_LABEL } from "@/lib/einwilligung";
 
 const DOC_TYPES = ["AUSWEIS", "ZMR", "KONTOAUSZUG", "MIETVERTRAG", "SONSTIGES"] as const;
 const DOC_LABEL: Record<string, string> = {
@@ -106,7 +107,7 @@ export default async function AntragDetail({ params }: { params: Promise<{ id: s
             <div><span className="text-muted">Telefon:</span> <span className="mono">{a.phone ?? "—"}</span></div>
             <div><span className="text-muted">E-Mail:</span> {a.email ?? "—"}</div>
             <div><span className="text-muted">Haushalt:</span> {a.adults} Erw. · {a.childrenU12} Kind(er) &lt;12 · {a.childrenO12} Kind(er) ≥12</div>
-            <div><span className="text-muted">DSGVO-Einwilligung:</span> {a.consentGiven ? `ja (${fmtDate(a.consentAt)})` : "nein"}</div>
+            <div><span className="text-muted">DSGVO-Einwilligung:</span> {a.consentGiven ? `ja (${fmtDate(a.consentAt)}${a.consentMethod ? `, ${CONSENT_LABEL[a.consentMethod] ?? a.consentMethod}` : ""})` : a.consentTokenBis ? `Bestätigungslink gesendet, offen bis ${fmtDate(a.consentTokenBis)}` : "nein"}</div>
           </div>
         </div>
 

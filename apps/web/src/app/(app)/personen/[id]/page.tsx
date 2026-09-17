@@ -15,6 +15,8 @@ import { schuldenErlassen } from "./schulden-actions";
 import { ConfirmButton } from "@/components/ConfirmButton";
 import { ladeRueckfrage } from "@/lib/rueckfragen";
 import { fmtDate, fmtDateTime } from "@/lib/format";
+import { Einwilligung } from "./Einwilligung";
+import { CONSENT_LABEL } from "@/lib/einwilligung";
 
 async function label(id: number | null): Promise<string | null> {
   if (id == null) return null;
@@ -98,7 +100,7 @@ export default async function DossierPage({ params }: { params: Promise<{ id: st
             <Meta l="Telefon" v={p.phone ?? "—"} mono />
             <Meta l="Sprache" v={lang ?? "—"} />
             <Meta l="Herkunft" v={origin ?? "—"} />
-            <Meta l="DSGVO-Einwilligung" v={p.consentAt ? `✓ erteilt (${fmtDate(p.consentAt)})` : "✗ nicht dokumentiert"} />
+            <Meta l="DSGVO-Einwilligung" v={p.consentRevokedAt ? `✗ WIDERRUFEN (${fmtDate(p.consentRevokedAt)})` : p.consentAt ? `✓ erteilt (${fmtDate(p.consentAt)}${p.consentMethod ? `, ${CONSENT_LABEL[p.consentMethod] ?? p.consentMethod}` : ""})` : "✗ nicht dokumentiert"} />
           </div>
         </div>
       </div>
@@ -168,6 +170,13 @@ export default async function DossierPage({ params }: { params: Promise<{ id: st
             )}
         </div>
       </div>
+
+      {canManagePersons ? (
+        <div className="panel mt-4">
+          <div className="panel-h"><h3>DSGVO-Einwilligung</h3></div>
+          <div className="p-4"><Einwilligung s={{ personId: p.id, at: p.consentAt?.toISOString() ?? null, method: p.consentMethod, unterschrift: !!p.consentSignatureRef, widerrufAt: p.consentRevokedAt?.toISOString() ?? null, widerrufGrund: p.consentRevokedReason }} /></div>
+        </div>
+      ) : null}
 
       <div className="panel mt-4">
         <div className="panel-h"><h3>Kontoauszug – Ausgaben &amp; Zahlungen</h3>{offen > 0 ? <span className="pill warn">Ausstand {offen.toLocaleString("de-AT", { style: "currency", currency: "EUR" })}</span> : <span className="pill good">ausgeglichen</span>}</div>

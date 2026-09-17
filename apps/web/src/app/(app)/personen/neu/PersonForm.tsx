@@ -1,5 +1,7 @@
 "use client";
 
+import { Unterschrift } from "@/components/Unterschrift";
+
 import { useActionState, useEffect, useRef, useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import { createPerson, searchCandidates, type CreateState } from "./actions";
@@ -123,6 +125,7 @@ export function PersonForm({
                 <input type="checkbox" name="consent" value="1" />
                 DSGVO-Einwilligung zur Datenverarbeitung liegt vor (unterschrieben)
               </label>
+                <details className="mt-2"><summary className="text-xs text-muted cursor-pointer">Unterschrift jetzt am Bildschirm erfassen (optional)</summary><div className="mt-2"><Unterschrift /></div></details>
             </div>
           </div>
 

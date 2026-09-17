@@ -7,6 +7,7 @@ import { audit } from "@/lib/audit";
 import { tryPermission } from "@/lib/guard";
 import { findCandidates, type Candidate } from "@/lib/dedupe";
 import { parseForm, personSchema, text } from "@/lib/forms";
+import { unterschriftSpeichern } from "@/lib/einwilligung";
 
 export interface CreateState {
   error?: string;
@@ -57,6 +58,7 @@ export async function createPerson(_prev: CreateState, fd: FormData): Promise<Cr
   const firstNameNorm = normalizeName(firstName);
   const locationId = geprueft.data.locationId;
 
+  const unterschriftRef = await unterschriftSpeichern(String(fd.get("unterschrift") ?? ""));
   const inserted = await db()
     .insert(persons)
     .values({
@@ -66,7 +68,8 @@ export async function createPerson(_prev: CreateState, fd: FormData): Promise<Cr
       householdSize: householdTotal(geprueft.data.adults, geprueft.data.childrenCount),
       childrenCount: geprueft.data.childrenCount,
       languageId: geprueft.data.languageId, originId: geprueft.data.originId, note: geprueft.data.note,
-      consentAt: fd.get("consent") ? new Date() : null,
+      consentAt: fd.get("consent") || unterschriftRef ? new Date() : null,
+      consentMethod: unterschriftRef ? "UNTERSCHRIFT" : fd.get("consent") ? "PAPIER" : null, consentSignatureRef: unterschriftRef,
       lastNameNorm, firstNameNorm, addressNorm: normalizeAddress(address),
       lastNamePhon: koelnerPhonetik(lastNameNorm), firstNamePhon: koelnerPhonetik(firstNameNorm),
       createdBy: user.id, updatedBy: user.id,

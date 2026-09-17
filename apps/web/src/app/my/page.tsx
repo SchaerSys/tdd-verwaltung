@@ -23,7 +23,7 @@ export default async function MyHeute() {
     db().select().from(aufgaben).where(and(isNull(aufgaben.erledigtAm), or(eq(aufgaben.staffId, p.id), isNull(aufgaben.staffId)))).orderBy(asc(aufgaben.faelligAm)).limit(5),
   ]);
   const heutige = dienste.filter((d) => d.datum === heute);
-  const zeit = (d: Date) => d.toLocaleTimeString("de-AT", { hour: "2-digit", minute: "2-digit" });
+  const zeit = (d: Date) => d.toLocaleTimeString("de-AT", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Vienna" });
   return (
     <div className="flex flex-col gap-3">
       <div className="panel p-3">

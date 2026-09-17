@@ -5,7 +5,7 @@ import { writeFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
 import { and, eq, isNull } from "drizzle-orm";
-import { antraege, antragDocuments, antragNachrichten, persons, personLocationAssignments, scanDocuments } from "@tdd/db";
+import { antraege, antragDocuments, antragNachrichten, lookupValues, persons, personLocationAssignments, scanDocuments } from "@tdd/db";
 import { normalizeName, normalizeAddress, koelnerPhonetik } from "@tdd/core";
 import { withOrg } from "@/lib/org";
 import { audit } from "@/lib/audit";
@@ -14,6 +14,7 @@ import { generateBescheidPdf } from "@/lib/bescheid";
 import { fmtDate } from "@/lib/format";
 import { sendMail } from "@/lib/mail";
 import { mandant } from "@/lib/mandant";
+import { sprachCode, t2 } from "@/lib/klientensprache";
 
 function extFor(name: string, type: string): string {
   const m = name.toLowerCase().match(/\.([a-z0-9]{2,4})$/);
@@ -52,6 +53,7 @@ interface TransferInfo {
   personId?: string;
   email?: string | null;
   name?: string;
+  sprache?: string | null;
   birthDate?: string | null;
   address?: string | null;
 }
@@ -103,6 +105,7 @@ export async function decideAntrag(formData: FormData): Promise<void> {
         lastNameNorm: lnNorm, firstNameNorm: fnNorm, addressNorm: normalizeAddress(a.address),
         lastNamePhon: koelnerPhonetik(lnNorm), firstNamePhon: koelnerPhonetik(fnNorm),
         sourceAntragId: antragId, sourceOrganizationId: orgId, takeoverPending: true,
+        consentAt: a.consentGiven && a.consentAt ? new Date(a.consentAt) : null, consentMethod: a.consentMethod, consentSignatureRef: a.consentSignatureRef,
         createdBy: user.id, updatedBy: user.id,
       }).returning({ id: persons.id });
       personId = ins[0]!.id;
@@ -122,6 +125,7 @@ export async function decideAntrag(formData: FormData): Promise<void> {
     return {
       positive: true, personId, email: a.email, name: `${a.firstName} ${a.lastName}`,
       birthDate: a.birthDate, address: [a.address, a.postalCode, a.city].filter(Boolean).join(", "),
+      sprache: a.languageId ? (await tx.select({ l: lookupValues.label }).from(lookupValues).where(eq(lookupValues.id, a.languageId)).limit(1))[0]?.l ?? null : null,
     };
   });
 
@@ -132,7 +136,7 @@ export async function decideAntrag(formData: FormData): Promise<void> {
     try {
       const m = await mandant();
       const pdf = await generateBescheidPdf({
-        absender: m.name,
+        absender: m.name, sprache: info.sprache,
         name: info.name!, birthDate: info.birthDate, address: info.address,
         organization: user.organizationName ?? "TDD", date: fmtDate(new Date()), positive: true,
       });
@@ -150,7 +154,7 @@ export async function decideAntrag(formData: FormData): Promise<void> {
         const mail = await sendMail({ ausloeser: "bescheid",
           to: info.email,
           subject: `${m.kurzname} – Positiver Bescheid`,
-          text: `Guten Tag ${info.name},\n\nIhr Antrag wurde positiv beschieden. Im Anhang finden Sie Ihren Bescheid.\nBitte bringen Sie diesen zur zuständigen Ausgabestelle mit, um Ihre Berechtigungskarte zu erhalten.\n\nFreundliche Grüße\n${m.name}`,
+          text: `Guten Tag ${info.name},\n\nIhr Antrag wurde positiv beschieden. Im Anhang finden Sie Ihren Bescheid.\nBitte bringen Sie diesen zur zuständigen Ausgabestelle mit, um Ihre Berechtigungskarte zu erhalten.\n\nFreundliche Grüße\n${m.name}` + zweitsprache(info.sprache),
           attachments: [{ filename: "TDD-Bescheid.pdf", content: pdf }],
         });
         await audit({ actorUserId: user.id, action: mail.sent ? "antrag.mail.sent" : "antrag.mail.pending", entityType: "antrag", entityId: antragId, after: { to: info.email, sent: mail.sent, info: mail.info } });
@@ -179,4 +183,11 @@ export async function sendNachricht(formData: FormData): Promise<void> {
   await audit({ actorUserId: user.id, action: "antrag.nachricht", entityType: "antrag", entityId: antragId, after: { seite: "ORG", laenge: text.length } });
   revalidatePath(`/portal/${antragId}`);
   revalidatePath("/rueckfragen");
+}
+
+/** Zweiter Absatz der Bescheid-Mail in der Sprache der Person (8). */
+function zweitsprache(label: string | null | undefined): string {
+  const sc = sprachCode(label);
+  const t = t2(sc, "mailPositiv");
+  return t ? `\n\n— ${t}` : "";
 }

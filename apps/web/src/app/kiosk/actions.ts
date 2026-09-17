@@ -124,6 +124,7 @@ export async function lookupCard(rawCode: string): Promise<Eligibility> {
       personId: persons.id, first: persons.firstName, last: persons.lastName,
       photoRef: persons.photoRef, householdSize: persons.householdSize, childrenCount: persons.childrenCount,
       ausgabeNumber: persons.ausgabeNumber, gruppe: persons.gruppe, note: persons.note, birthDate: persons.birthDate,
+      consentRevokedAt: persons.consentRevokedAt,
     })
     .from(cards)
     .innerJoin(persons, eq(cards.personId, persons.id))
@@ -146,6 +147,7 @@ export async function lookupCard(rawCode: string): Promise<Eligibility> {
     return { ...base, status: "BLOCKED", reason: c.blockReason ?? "gesperrt", debt };
   }
   if (c.status === "ERSETZT") return { ...base, status: "REPLACED", reason: "Karte wurde ersetzt" };
+  if (c.consentRevokedAt) return { ...base, status: "BLOCKED", reason: "Einwilligung widerrufen – bitte ans Büro verweisen" };
 
   // Alt-Karte (legacy) am Tresen: automatisch neue EAN-Karte am Ort erzeugen, Alt-Karte ersetzen.
   if (c.legacy) {

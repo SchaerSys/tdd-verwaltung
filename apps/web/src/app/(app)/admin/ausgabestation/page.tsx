@@ -72,7 +72,7 @@ export default async function AusgabestationSeite() {
               <td>{ort}</td><td>{first ? `${first} ${last}` : <span className="text-muted">Büro</span>}</td>
               <td className="mono text-right">{s.ausgabenAnzahl ?? ""}</td><td className="mono text-right">{s.ende ? eur(s.einnahmenSoll) : ""}</td><td className="mono text-right">{eur(s.kasseGezaehlt)}</td>
               <td className="mono text-right" style={{ color: s.differenz && Number(s.differenz) !== 0 ? "var(--bad)" : undefined }}>{s.differenz != null ? eur(s.differenz) : ""}</td>
-              <td className="text-xs">{[s.uebergabeAn, s.notiz].filter(Boolean).join(" · ")}</td>
+              <td className="text-xs">{[s.uebergabeAn, s.notiz].filter(Boolean).join(" · ")} <a href={`/druck/kassenabschluss?sitzung=${s.id}`} target="_blank" className="btn ghost sm" title="Kassenabschluss drucken / als PDF">🖨</a></td>
               <td>{!s.ordentlich ? <span className="pill warn" title="Nicht über „Ausgabe beenden“ geschlossen">nicht ordentlich beendet</span> : s.kommenGestempelt ? <span className="pill muted" title="Kommen/Gehen in der Zeiterfassung">⏱</span> : null}</td>
             </tr>
           ))}

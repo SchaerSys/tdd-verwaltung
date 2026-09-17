@@ -231,6 +231,10 @@ export const persons = pgTable(
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
     deleteReason: text("delete_reason"),
     consentAt: timestamp("consent_at", { withTimezone: true }),
+    consentMethod: text("consent_method"), // PAPIER | UNTERSCHRIFT | LINK (063)
+    consentSignatureRef: text("consent_signature_ref"),
+    consentRevokedAt: timestamp("consent_revoked_at", { withTimezone: true }),
+    consentRevokedReason: text("consent_revoked_reason"),
     retentionUntil: date("retention_until"),
     sourceAntragId: uuid("source_antrag_id"),
     sourceOrganizationId: integer("source_organization_id"),
@@ -415,6 +419,10 @@ export const antraege = pgTable(
     vorgaengerAntragId: uuid("vorgaenger_antrag_id"), // Verlaengerung: vorbefuellt aus diesem Antrag
     consentGiven: boolean("consent_given").notNull().default(false),
     consentAt: date("consent_at"),
+    consentMethod: text("consent_method"), // PAPIER | UNTERSCHRIFT | LINK (063)
+    consentSignatureRef: text("consent_signature_ref"),
+    consentTokenHash: text("consent_token_hash"),
+    consentTokenBis: timestamp("consent_token_bis", { withTimezone: true }),
     lastNameNorm: text("last_name_norm").notNull().default(""),
     firstNameNorm: text("first_name_norm").notNull().default(""),
     createdBy: uuid("created_by").references(() => users.id),
@@ -862,6 +870,7 @@ export const zeitRegeln = pgTable("zeit_regeln", {
   schuldenSperreEur: numeric("schulden_sperre_eur", { precision: 6, scale: 2 }).notNull().default("20.00"),
   schuldenWarnungAnzahl: integer("schulden_warnung_anzahl").notNull().default(2),
   schuldenSperreAnzahl: integer("schulden_sperre_anzahl").notNull().default(4),
+  monatsberichtEmail: text("monatsbericht_email"), // Monatsbericht am 1. an Obmann/Vorstand (064)
 });
 
 // Zivildienst: erledigte Meldungen an die Zivildienstserviceagentur (050)

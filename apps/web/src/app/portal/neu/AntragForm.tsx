@@ -1,5 +1,7 @@
 "use client";
 
+import { Unterschrift } from "@/components/Unterschrift";
+
 import { useMemo, useState } from "react";
 import { createAntrag } from "./actions";
 import { INCOME_FIELDS, EXPENSE_FIELDS, sumValues, incomeLimit, suggest, suggestionLabel } from "@/lib/eligibility";
@@ -26,6 +28,7 @@ export function AntragForm({ locations, vorlage }: { locations: Loc[]; vorlage: 
   const [income, setIncome] = useState<Record<string, string>>({});
   const [expense, setExpense] = useState<Record<string, string>>({});
   const [consent, setConsent] = useState(false);
+  const [consentArt, setConsentArt] = useState<"" | "UNTERSCHRIFT" | "PAPIER" | "LINK">("");
   const set = (k: keyof typeof LEER) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setF({ ...f, [k]: e.target.value });
 
   const calc = useMemo(() => {
@@ -116,7 +119,18 @@ export function AntragForm({ locations, vorlage }: { locations: Loc[]; vorlage: 
         <div className="px-4 pb-4 text-[.72rem] text-muted">Der Vorschlag ist eine Rechenhilfe – die endgültige Entscheidung trifft der Mensch beim Bescheid.</div>
       </div>
 
-      <label className="flex items-center gap-2 text-[.8125rem]"><input type="checkbox" name="consent" checked={consent} onChange={(e) => setConsent(e.target.checked)} /> DSGVO-Einwilligung des Antragstellers liegt vor (Weitergabe an Gemeinde/Stadt und TDD).</label>
+      <div className="panel">
+        <div className="panel-h"><h3>DSGVO-Einwilligung der antragstellenden Person</h3></div>
+        <div className="p-4 flex flex-col gap-3 text-[.8125rem]">
+          <p className="text-muted">Die Person willigt ein, dass ihre Angaben an die Gemeinde/Institution und den Träger zur Anspruchsprüfung, Kartenverwaltung und Lebensmittelausgabe weitergegeben und dort gespeichert werden. Eine von drei Arten:</p>
+          <label className="flex items-center gap-2"><input type="radio" name="consentArt" value="UNTERSCHRIFT" checked={consentArt === "UNTERSCHRIFT"} onChange={() => { setConsentArt("UNTERSCHRIFT"); setConsent(true); }} /> <b>Unterschrift jetzt am Bildschirm</b> (Tablet/Touch/Maus)</label>
+          {consentArt === "UNTERSCHRIFT" ? <Unterschrift /> : null}
+          <label className="flex items-center gap-2"><input type="radio" name="consentArt" value="PAPIER" checked={consentArt === "PAPIER"} onChange={() => { setConsentArt("PAPIER"); setConsent(true); }} /> Liegt <b>unterschrieben auf Papier</b> vor (bei der Organisation abgelegt)</label>
+          <label className="flex items-center gap-2"><input type="radio" name="consentArt" value="LINK" checked={consentArt === "LINK"} onChange={() => { setConsentArt("LINK"); setConsent(false); }} /> <b>Bestätigungslink per E-Mail</b> an die Person senden (E-Mail-Adresse oben nötig) – Einwilligung gilt erst nach dem Klick</label>
+          <label className="flex items-center gap-2"><input type="radio" name="consentArt" value="" checked={consentArt === ""} onChange={() => { setConsentArt(""); setConsent(false); }} /> noch offen</label>
+          <input type="hidden" name="consent" value={consent ? "on" : ""} />
+        </div>
+      </div>
 
       {/* Vollstaendigkeit – live, vor dem Speichern */}
       <div className="panel" style={{ borderColor: zsf.pflichtFehlt.length ? "var(--bad)" : zsf.empfohlenFehlt.length ? "var(--warn)" : "var(--good)" }}>

@@ -9,8 +9,10 @@ import { mandant } from "./mandant";
 
 export interface Arbeitgeber { arbeitgeberName: string; arbeitgeberAnschrift: string | null; bvKasse: string | null; svTraeger: string; kvEinsicht: string | null; ausgabeStempelt: boolean; ortungAufbewahrungTage: number;
   /** Schuldengrenzen am Tresen (056) */
-  schuldenWarnungEur: number; schuldenSperreEur: number; schuldenWarnungAnzahl: number; schuldenSperreAnzahl: number }
-const ARBEITGEBER_STANDARD: Arbeitgeber = { arbeitgeberName: "Tischlein deck dich Vorarlberg", arbeitgeberAnschrift: null, bvKasse: null, svTraeger: "Österreichische Gesundheitskasse (ÖGK)", kvEinsicht: null, ausgabeStempelt: true, ortungAufbewahrungTage: 90, schuldenWarnungEur: 10, schuldenSperreEur: 20, schuldenWarnungAnzahl: 2, schuldenSperreAnzahl: 4 };
+  schuldenWarnungEur: number; schuldenSperreEur: number; schuldenWarnungAnzahl: number; schuldenSperreAnzahl: number;
+  /** Monatsbericht per Mail (064), leer = kein Versand */
+  monatsberichtEmail: string | null }
+const ARBEITGEBER_STANDARD: Arbeitgeber = { arbeitgeberName: "Tischlein deck dich Vorarlberg", arbeitgeberAnschrift: null, bvKasse: null, svTraeger: "Österreichische Gesundheitskasse (ÖGK)", kvEinsicht: null, ausgabeStempelt: true, ortungAufbewahrungTage: 90, schuldenWarnungEur: 10, schuldenSperreEur: 20, schuldenWarnungAnzahl: 2, schuldenSperreAnzahl: 4, monatsberichtEmail: null };
 
 /** Zivildienst-Grenzen laut ZISA (ZDG § 23) – als ZeitRegeln im ZDG-Modus plus Wochenminimum und Freistellung. */
 export interface ZiviRegeln { zivi: ZeitRegeln; ziviWocheMinMin: number; ziviFreistellungMonat: number }
@@ -31,7 +33,7 @@ export async function ladeRegeln(): Promise<AlleRegeln> {
   return { maxTagMin: r.maxTagMin, maxWocheMin: r.maxWocheMin, pauseAbMin: r.pauseAbMin, pauseMin: r.pauseMin, ruhezeitMin: r.ruhezeitMin,
     normalarbeitszeitWocheMin: r.normalarbeitszeitWocheMin, mehrarbeitZuschlag: r.mehrarbeitZuschlag, ueberstundenZuschlag: r.ueberstundenZuschlag, kollektivvertrag: r.kollektivvertrag,
     arbeitgeberName: r.arbeitgeberName, arbeitgeberAnschrift: r.arbeitgeberAnschrift, bvKasse: r.bvKasse, svTraeger: r.svTraeger, kvEinsicht: r.kvEinsicht, ausgabeStempelt: r.ausgabeStempelt, ortungAufbewahrungTage: r.ortungAufbewahrungTage,
-    schuldenWarnungEur: Number(r.schuldenWarnungEur), schuldenSperreEur: Number(r.schuldenSperreEur), schuldenWarnungAnzahl: r.schuldenWarnungAnzahl, schuldenSperreAnzahl: r.schuldenSperreAnzahl,
+    schuldenWarnungEur: Number(r.schuldenWarnungEur), schuldenSperreEur: Number(r.schuldenSperreEur), schuldenWarnungAnzahl: r.schuldenWarnungAnzahl, schuldenSperreAnzahl: r.schuldenSperreAnzahl, monatsberichtEmail: r.monatsberichtEmail,
     zivi: { maxTagMin: r.ziviTagMaxMin, maxWocheMin: r.ziviWocheMaxMin, pauseAbMin: r.ziviPauseAbMin, pauseMin: r.ziviPauseMin, ruhezeitMin: r.ziviRuhezeitMin, normalarbeitszeitWocheMin: r.ziviWocheMaxMin, mehrarbeitZuschlag: 0, ueberstundenZuschlag: 0, gesetz: "ZDG", sonntagErlaubt: r.ziviSonntagErlaubt },
     ziviWocheMinMin: r.ziviWocheMinMin, ziviFreistellungMonat: r.ziviFreistellungMonat };
 }

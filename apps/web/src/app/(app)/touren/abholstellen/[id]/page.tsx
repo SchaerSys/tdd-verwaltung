@@ -31,7 +31,7 @@ export default async function AbholstelleSeite({ params }: { params: Promise<{ i
     <div>
       <div className="page-h">
         <div><h1>{a.name}</h1><div className="sub">{[a.strasse, a.plz, a.ort].filter(Boolean).join(", ") || "ohne Adresse"}{a.isActive ? "" : " · inaktiv"}</div></div>
-        <Link href="/touren/abholstellen" className="btn ghost">← Abholstellen</Link>
+        <div className="flex gap-2"><a href={`/druck/spende?abholstelle=${a.id}&jahr=${new Date().getFullYear()}`} target="_blank" className="btn ghost">🎁 Spendenbestätigung</a><Link href="/touren/abholstellen" className="btn ghost">← Abholstellen</Link></div>
       </div>
       <div className="grid gap-4 lg:grid-cols-[2fr_1fr] items-start">
         <div className="panel">

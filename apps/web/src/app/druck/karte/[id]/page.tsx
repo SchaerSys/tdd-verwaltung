@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { eq } from "drizzle-orm";
 import bwipjs from "bwip-js/node";
-import { cards, persons, locations } from "@tdd/db";
+import { cards, persons, locations, lookupValues } from "@tdd/db";
 import { formatCardNumber } from "@tdd/core";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
@@ -10,6 +10,7 @@ import { hasPermission } from "@/lib/rbac";
 import { PrintButton } from "@/components/PrintButton";
 import { fmtDate } from "@/lib/format";
 import { mandant } from "@/lib/mandant";
+import { sprachCode, t2 } from "@/lib/klientensprache";
 
 /**
  * Barcode je Kartenart: neue Karten sind EAN-13 (13 Ziffern), Alt-Karten aus dem
@@ -42,11 +43,12 @@ export default async function DruckPage({ params }: { params: Promise<{ id: stri
       number: cards.cardNumber, validTo: cards.validTo, status: cards.status, legacy: cards.legacy,
       personId: persons.id, first: persons.firstName, last: persons.lastName,
       photoRef: persons.photoRef, ausgabeNumber: persons.ausgabeNumber, gruppe: persons.gruppe,
-      loc: locations.name, locType: locations.type,
+      loc: locations.name, locType: locations.type, sprache: lookupValues.label,
     })
     .from(cards)
     .innerJoin(persons, eq(cards.personId, persons.id))
     .innerJoin(locations, eq(cards.locationId, locations.id))
+    .leftJoin(lookupValues, eq(lookupValues.id, persons.languageId))
     .where(eq(cards.id, id))
     .limit(1);
   const c = rows[0];
@@ -54,6 +56,9 @@ export default async function DruckPage({ params }: { params: Promise<{ id: stri
 
   const bc = await barcode(c.number);
   const isLaden = c.locType === "LADEN";
+  const sc = sprachCode(c.sprache);
+  const rtl = sc === "ar";
+  const z = (k: string) => t2(sc, k);
   const gruppe = c.gruppe;
   const nummer = c.ausgabeNumber;
 
@@ -73,7 +78,7 @@ export default async function DruckPage({ params }: { params: Promise<{ id: stri
         <div className="print-card" style={{ width: "70mm", background: "#fff", color: "#111", border: "1px solid #ddd", borderRadius: 6, padding: "10px 12px", boxShadow: "0 1px 4px rgba(0,0,0,.1)" }}>
           <div style={{ fontSize: 11, fontWeight: 800 }}>{traeger}</div>
           <div style={{ fontSize: 15, fontWeight: 700, marginTop: 4 }}>{c.first} {c.last}</div>
-          <div style={{ fontSize: 10, color: "#555" }}>gültig bis {fmtDate(c.validTo)}</div>
+          <div style={{ fontSize: 10, color: "#555" }}>gültig bis {fmtDate(c.validTo)}{z("gueltigBis") ? <span dir={rtl ? "rtl" : undefined}> · {z("gueltigBis")} {fmtDate(c.validTo)}</span> : null}</div>
           {nummer != null ? <div style={{ fontSize: 10, color: "#111", marginTop: 2 }}>Gruppe <b>{gruppe}</b> · Nr. <b>{nummer}</b></div> : null}
           <img src={bc} alt="Barcode" style={{ width: "100%", marginTop: 8 }} />
         </div>
@@ -83,7 +88,7 @@ export default async function DruckPage({ params }: { params: Promise<{ id: stri
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
             <div>
               <div style={{ fontWeight: 800, letterSpacing: "-.02em" }}>{traeger}</div>
-              <div style={{ fontSize: 9, color: "#666" }}>{c.loc}</div>
+              <div style={{ fontSize: 9, color: "#666" }}>{c.loc}{z("karte") ? <span dir={rtl ? "rtl" : undefined}> · {z("karte")}</span> : null}</div>
             </div>
             <div style={{ width: "16mm", height: "16mm", background: "#f0f0f0", border: "1px solid #ddd", borderRadius: "1.5mm", overflow: "hidden", display: "grid", placeItems: "center", fontSize: 8, color: "#999" }}>
               {c.photoRef ? <img src={`/foto/${c.personId}`} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : "Foto"}
@@ -95,7 +100,7 @@ export default async function DruckPage({ params }: { params: Promise<{ id: stri
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
             <img src={bc} alt="Barcode" style={{ height: "12mm" }} />
-            <div style={{ fontSize: 9, color: "#555", textAlign: "right" }}>gültig bis<br /><b>{fmtDate(c.validTo)}</b></div>
+            <div style={{ fontSize: 9, color: "#555", textAlign: "right" }}>gültig bis{z("gueltigBis") ? <span dir={rtl ? "rtl" : undefined}> · {z("gueltigBis")}</span> : null}<br /><b>{fmtDate(c.validTo)}</b></div>
           </div>
         </div>
       )}

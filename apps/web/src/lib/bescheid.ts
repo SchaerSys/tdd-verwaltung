@@ -1,6 +1,8 @@
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 
 export interface BescheidData {
+  /** Name des Mandanten (Unternehmen) als Absender (055). */
+  absender?: string;
   name: string;
   birthDate?: string | null;
   address?: string | null;
@@ -21,7 +23,7 @@ export async function generateBescheidPdf(d: BescheidData): Promise<Buffer> {
     y -= size + 8;
   };
 
-  line("Tischlein deck dich", 18, bold);
+  line(d.absender ?? "Tischlein deck dich", 18, bold);
   line("Bescheid zur Berechtigungskarte", 13, bold, rgb(0.18, 0.29, 0.6));
   y -= 8;
   line(`Ausstellende Stelle: ${d.organization}`);
@@ -38,7 +40,7 @@ export async function generateBescheidPdf(d: BescheidData): Promise<Buffer> {
   line("zur zuständigen TDD-Ausgabestelle mit. Dort erhalten Sie Ihre Karte.");
   y -= 20;
   line("Mit freundlichen Grüßen", 11, font, rgb(0.4, 0.42, 0.45));
-  line("Tischlein deck dich Vorarlberg", 11, font, rgb(0.4, 0.42, 0.45));
+  line(d.absender ?? "Tischlein deck dich Vorarlberg", 11, font, rgb(0.4, 0.42, 0.45));
 
   const bytes = await pdf.save();
   return Buffer.from(bytes);

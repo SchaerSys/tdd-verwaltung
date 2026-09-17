@@ -13,6 +13,7 @@ import { requirePermission } from "@/lib/guard";
 import { generateBescheidPdf } from "@/lib/bescheid";
 import { fmtDate } from "@/lib/format";
 import { sendMail } from "@/lib/mail";
+import { mandant } from "@/lib/mandant";
 
 function extFor(name: string, type: string): string {
   const m = name.toLowerCase().match(/\.([a-z0-9]{2,4})$/);
@@ -129,7 +130,9 @@ export async function decideAntrag(formData: FormData): Promise<void> {
   // ── Bescheid-PDF + E-Mail an den Antragsteller (nach Commit) ──
   if (info?.positive && info.personId) {
     try {
+      const m = await mandant();
       const pdf = await generateBescheidPdf({
+        absender: m.name,
         name: info.name!, birthDate: info.birthDate, address: info.address,
         organization: user.organizationName ?? "TDD", date: fmtDate(new Date()), positive: true,
       });
@@ -146,8 +149,8 @@ export async function decideAntrag(formData: FormData): Promise<void> {
       if (info.email) {
         const mail = await sendMail({
           to: info.email,
-          subject: "Tischlein deck dich – Positiver Bescheid",
-          text: `Guten Tag ${info.name},\n\nIhr Antrag wurde positiv beschieden. Im Anhang finden Sie Ihren Bescheid.\nBitte bringen Sie diesen zur zuständigen TDD-Ausgabestelle mit, um Ihre Berechtigungskarte zu erhalten.\n\nFreundliche Grüße\nTischlein deck dich`,
+          subject: `${m.kurzname} – Positiver Bescheid`,
+          text: `Guten Tag ${info.name},\n\nIhr Antrag wurde positiv beschieden. Im Anhang finden Sie Ihren Bescheid.\nBitte bringen Sie diesen zur zuständigen TDD-Ausgabestelle mit, um Ihre Berechtigungskarte zu erhalten.\n\nFreundliche Grüße\n${m.name}`,
           attachments: [{ filename: "TDD-Bescheid.pdf", content: pdf }],
         });
         await audit({ actorUserId: user.id, action: mail.sent ? "antrag.mail.sent" : "antrag.mail.pending", entityType: "antrag", entityId: antragId, after: { to: info.email, sent: mail.sent, info: mail.info } });

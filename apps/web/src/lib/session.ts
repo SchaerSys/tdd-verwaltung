@@ -66,6 +66,6 @@ export function verifySession(token: string | undefined): SessionData | null {
 /** Vor-Anmeldung: Passwort war richtig, der zweite Faktor fehlt noch. Fuenf Minuten. */
 export const PRE_AUTH_COOKIE = "tdd_preauth";
 export const PRE_AUTH_MAX_AGE = 5 * 60;
-export interface PreAuthData { uid: string; orgId?: number | null; }
+export interface PreAuthData { uid: string; orgId?: number | null; tenantId?: string | null; }
 
 export { SESSION_COOKIE, SESSION_MAX_AGE } from "./constants";

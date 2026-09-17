@@ -9,6 +9,7 @@ import { audit } from "@/lib/audit";
 import { requirePermission } from "@/lib/guard";
 import { ladeMonat } from "@/lib/azg-daten";
 import type { Verteilung } from "@/lib/azg";
+import { mandant } from "@/lib/mandant";
 
 const num = (fd: FormData, k: string, min: number, max: number, std: number) => { const n = Number(String(fd.get(k) ?? "").replace(",", ".")); return Number.isFinite(n) && n >= min && n <= max ? Math.round(n) : std; };
 
@@ -20,7 +21,7 @@ export async function regelnSpeichern(fd: FormData): Promise<void> {
     pauseAbMin: num(fd, "pauseAbStd", 1, 12, 6) * 60, pauseMin: num(fd, "pauseMin", 0, 120, 30), ruhezeitMin: num(fd, "ruhezeitStd", 1, 24, 11) * 60,
     normalarbeitszeitWocheMin: num(fd, "normalStd", 1, 60, 40) * 60, mehrarbeitZuschlag: num(fd, "mehrarbeitZuschlag", 0, 100, 25), ueberstundenZuschlag: num(fd, "ueberstundenZuschlag", 0, 200, 50),
     kollektivvertrag: String(fd.get("kollektivvertrag") ?? "").trim() || null,
-    arbeitgeberName: String(fd.get("arbeitgeberName") ?? "").trim() || "Tischlein deck dich Vorarlberg",
+    arbeitgeberName: String(fd.get("arbeitgeberName") ?? "").trim() || (await mandant()).name,
     arbeitgeberAnschrift: String(fd.get("arbeitgeberAnschrift") ?? "").trim() || null,
     bvKasse: String(fd.get("bvKasse") ?? "").trim() || null,
     svTraeger: String(fd.get("svTraeger") ?? "").trim() || "Österreichische Gesundheitskasse (ÖGK)",

@@ -30,6 +30,15 @@ export const tenants = pgTable("tenants", {
   slug: text("slug").notNull().unique(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   isActive: boolean("is_active").notNull().default(true),
+  // Stammdaten (055): eigener Hostname, Angaben fuer Drucke/Datenschutzinfo/E-Mails
+  host: text("host"),
+  kurzname: text("kurzname"),
+  anschrift: text("anschrift"),
+  kontaktEmail: text("kontakt_email"),
+  kontaktTelefon: text("kontakt_telefon"),
+  website: text("website"),
+  vertretung: text("vertretung"),
+  updatedAt: timestamp("updated_at"),
 });
 
 

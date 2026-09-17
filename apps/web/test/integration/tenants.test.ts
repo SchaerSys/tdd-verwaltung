@@ -81,6 +81,16 @@ describe("Mandanten-Isolation (RLS ueber tenant_id)", () => {
         await expect(ops2`SELECT ops_create_tenant('Nochmal', 'dritter')`).rejects.toThrow(/duplicate|unique/i);
         await expect(ops2`INSERT INTO organizations (name, type, tenant_id) VALUES ('Direkt', 'TDD', ${dritter})`).rejects.toThrow(/permission denied/i);
         await owner`DELETE FROM tenants WHERE id = ${dritter}`;
+
+        // Anmeldung ohne passenden Host (055): die Fach-App erfaehrt nur den Mandanten des Kontos
+        await ops2`SELECT ops_invite_user('login-test@example.org', 'Login Test', 'ADMIN', NULL, NULL, ${zweiter}::uuid)`;
+        expect((await a`SELECT tenant_fuer_login('Login-Test@example.org') AS t`)[0]!.t).toBe(zweiter);
+        expect((await a`SELECT tenant_fuer_login('login.test') AS t`)[0]!.t).toBe(zweiter); // Benutzername, eindeutig ueber alle Mandanten
+        expect((await a`SELECT tenant_fuer_login('gibt-es-nicht@example.org') AS t`)[0]!.t).toBeNull();
+        expect((await a`SELECT count(*)::int AS n FROM users WHERE email = 'login-test@example.org'`)[0]!.n).toBe(0); // A sieht das Konto selbst nicht
+        await owner`UPDATE tenants SET is_active = false WHERE id = ${zweiter}`;
+        expect((await a`SELECT tenant_fuer_login('login-test@example.org') AS t`)[0]!.t).toBeNull(); // deaktivierter Mandant
+        await owner`UPDATE tenants SET is_active = true WHERE id = ${zweiter}`;
       } finally { await ops2.end(); }
 
       // Aufraeumen

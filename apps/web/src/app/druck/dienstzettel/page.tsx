@@ -12,6 +12,7 @@ import { sollJeWochentag, type Verteilung } from "@/lib/azg";
 import { arbeitstageProWoche } from "@/lib/abwesenheit";
 import { BESCHAEFTIGUNG_LABEL } from "@/lib/personalakte";
 import { WOCHENTAGE_KURZ } from "@/lib/touren";
+import { mandant } from "@/lib/mandant";
 
 /**
  * Dienstzettel nach § 2 AVRAG zum Ausdrucken – /druck/dienstzettel?staff=<id>.
@@ -24,6 +25,7 @@ export default async function DienstzettelDruck({ searchParams }: { searchParams
   if (!user) redirect("/login");
   if (!hasPermission(user.role, "staff:manage") || !hasPermission(user.role, "admin:manage")) redirect("/dashboard");
   const sp = await searchParams;
+  const m = await mandant();
   if (!sp.staff) redirect("/personal");
 
   const [rows, regelnRows] = await Promise.all([
@@ -57,7 +59,7 @@ export default async function DienstzettelDruck({ searchParams }: { searchParams
 
         <table>
           <tbody>
-            <tr><th>1. Arbeitgeber (Name, Anschrift, Sitz)</th><td>{r?.arbeitgeberName ?? "Tischlein deck dich Vorarlberg"}<br />{r?.arbeitgeberAnschrift ?? fehlt}</td></tr>
+            <tr><th>1. Arbeitgeber (Name, Anschrift, Sitz)</th><td>{r?.arbeitgeberName ?? m.name}<br />{r?.arbeitgeberAnschrift ?? fehlt}</td></tr>
             <tr><th>2. Arbeitnehmer:in (Name, Anschrift)</th><td>{p.firstName} {p.lastName}<br />{p.strasse || p.plz || p.ort ? <>{p.strasse ?? ""}<br />{p.plz ?? ""} {p.ort ?? ""}</> : fehlt}<br /><span className="klein">geboren {p.geburtsdatum ? fmtDate(p.geburtsdatum) : "—"} · SV-Nr. {p.svNummer ?? "—"}</span></td></tr>
             <tr><th>3. Beginn des Arbeitsverhältnisses</th><td>{p.employmentStart ? fmtDate(p.employmentStart) : fehlt}</td></tr>
             <tr><th>4. Dauer / Ende bei Befristung</th><td>{p.befristetBis ? `befristet bis ${fmtDate(p.befristetBis)}` : "unbefristet"}</td></tr>

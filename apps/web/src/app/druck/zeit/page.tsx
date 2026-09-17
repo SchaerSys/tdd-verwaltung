@@ -7,6 +7,7 @@ import { fmtMin, fmtSaldo } from "@/lib/zeit";
 import { ladeMonat } from "@/lib/azg-daten";
 import type { MonatAuswertung } from "@/lib/azg";
 import { STAFF_TYPE_LABEL } from "@/app/(app)/personal/types";
+import { mandant } from "@/lib/mandant";
 
 const MONATE = ["Jänner", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
 const WOCHENTAG = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
@@ -23,6 +24,7 @@ export default async function ZeitDruck({ searchParams }: { searchParams: Promis
   if (!hasPermission(user.role, "staff:manage")) redirect("/dashboard");
 
   const sp = await searchParams;
+  const firma = await mandant();
   const heute = new Date();
   const vormonat = new Date(Date.UTC(heute.getUTCFullYear(), heute.getUTCMonth() - 1, 1));
   const m = /^(\d{4})-(\d{2})$/.exec(sp.monat ?? "");
@@ -50,7 +52,7 @@ export default async function ZeitDruck({ searchParams }: { searchParams: Promis
       </div>
 
       {blaetter.map(({ p, u, konto, abschluss }, i) => (
-        <Blatt key={p.id} name={`${p.lastName}, ${p.firstName}`} typ={STAFF_TYPE_LABEL[p.staffType] ?? p.staffType}
+        <Blatt key={p.id} firma={firma.kurzname} name={`${p.lastName}, ${p.firstName}`} typ={STAFF_TYPE_LABEL[p.staffType] ?? p.staffType}
                wochenstunden={p.weeklyHours ? Number(p.weeklyHours) : null} titel={titel} u={u} konto={konto} abgeschlossen={!!abschluss} letztes={i === blaetter.length - 1} />
       ))}
       <style>{`
@@ -75,8 +77,8 @@ export default async function ZeitDruck({ searchParams }: { searchParams: Promis
   );
 }
 
-function Blatt({ name, typ, wochenstunden, titel, u, konto, abgeschlossen, letztes }: {
-  name: string; typ: string; wochenstunden: number | null; titel: string; u: MonatAuswertung; konto: number; abgeschlossen: boolean; letztes: boolean;
+function Blatt({ name, typ, wochenstunden, titel, u, konto, abgeschlossen, letztes, firma }: {
+  name: string; typ: string; wochenstunden: number | null; titel: string; u: MonatAuswertung; konto: number; abgeschlossen: boolean; letztes: boolean; firma: string;
 }) {
   const offene = u.tage.filter((t) => t.offen).length;
   return (
@@ -123,7 +125,7 @@ function Blatt({ name, typ, wochenstunden, titel, u, konto, abgeschlossen, letzt
         <div>Mitarbeiter:in</div>
         <div>Verein</div>
       </div>
-      <div className="fuss"><span>Tischlein deck dich Vorarlberg · CareOS</span><span>Erstellt {new Date().toLocaleDateString("de-AT")}</span></div>
+      <div className="fuss"><span>{firma} · CareOS</span><span>Erstellt {new Date().toLocaleDateString("de-AT")}</span></div>
     </section>
   );
 }

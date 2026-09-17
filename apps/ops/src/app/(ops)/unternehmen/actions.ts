@@ -47,6 +47,32 @@ export async function mandantSchalten(fd: FormData): Promise<void> {
   revalidatePath("/unternehmen"); revalidatePath("/", "layout");
 }
 
+const HOST = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/;
+
+/** Stammdaten (055): Host, Kurzname, Anschrift, Kontakt – erscheinen in Drucken, Datenschutzinfo und E-Mails der Fach-App. */
+export async function stammdatenSpeichern(_prev: UnternehmenState, fd: FormData): Promise<UnternehmenState> {
+  const ops = await requireOps();
+  const id = String(fd.get("id") ?? "");
+  const t = (v: string) => { const s = String(fd.get(v) ?? "").trim(); return s ? s : null; };
+  const name = t("name"); const host = t("host")?.toLowerCase() ?? null;
+  if (!id || !name) return { error: "Name ist Pflicht." };
+  if (host && !HOST.test(host)) return { error: "Host: nur Hostname ohne Protokoll und Pfad, z. B. tirol.careos.at." };
+  const email = t("kontaktEmail");
+  if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return { error: "Kontakt-E-Mail ist ungültig." };
+  try {
+    await (await db()).update(tenants).set({
+      name, host, kurzname: t("kurzname"), anschrift: t("anschrift"), vertretung: t("vertretung"),
+      kontaktEmail: email, kontaktTelefon: t("kontaktTelefon"), website: t("website"), updatedAt: new Date(),
+    }).where(eq(tenants.id, id));
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Speichern fehlgeschlagen.";
+    return { error: /uq_tenants_host/.test(msg) ? "Dieser Host ist schon einem anderen Mandanten zugeordnet." : msg };
+  }
+  await audit({ akteur: ops.email, action: "tenant.update", entityType: "tenant", entityId: id, after: { name, host } });
+  revalidatePath(`/unternehmen/${id}`); revalidatePath("/unternehmen"); revalidatePath("/", "layout");
+  return { info: "Stammdaten gespeichert. Die Fach-App übernimmt den Host innerhalb einer Minute." };
+}
+
 /** Mandant im Kopf der Wartungsplattform waehlen (Cookie, steuert den DB-Kontext aller Seiten). */
 export async function mandantSetzen(fd: FormData): Promise<void> {
   await requireOps();

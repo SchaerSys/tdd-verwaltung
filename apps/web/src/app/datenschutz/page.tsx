@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { mandant, zeilen } from "@/lib/mandant";
 
 export const metadata = { title: "Datenschutz · CareOS" };
 
@@ -11,7 +12,10 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-export default function DatenschutzPage() {
+export const dynamic = "force-dynamic"; // Verantwortlicher aus den Mandanten-Stammdaten (055)
+
+export default async function DatenschutzPage() {
+  const m = await mandant();
   return (
     <main className="max-w-3xl mx-auto p-6">
       <div className="flex items-center justify-between mb-4">
@@ -24,15 +28,16 @@ export default function DatenschutzPage() {
       </p>
 
       <Section title="Verantwortlicher">
-        <div><b>Tischlein deck dich Vorarlberg</b></div>
-        <div>Ladritschweg 10c, A-6773 Vandans</div>
-        <div>Vereinsregister: ZVR 263197010</div>
-        <div>Vertreten durch den Obmann Elmar Stüttler</div>
+        <div><b>{m.name}</b></div>
+        {zeilen(m.anschrift).map((z) => <div key={z}>{z}</div>)}
+        {zeilen(m.vertretung).map((z) => <div key={z}>{z}</div>)}
+        {m.kontaktEmail ? <div>E-Mail: {m.kontaktEmail}</div> : null}
+        {m.kontaktTelefon ? <div>Telefon: {m.kontaktTelefon}</div> : null}
       </Section>
 
       <Section title="Kontakt für Datenschutzfragen">
         <div>Für Fragen zum Datenschutz und zur Ausübung Ihrer Rechte wenden Sie sich bitte an den
-          Verantwortlichen (Tischlein deck dich Vorarlberg, Anschrift siehe oben).</div>
+          Verantwortlichen ({m.name}, Anschrift siehe oben).</div>
       </Section>
 
       <Section title="Entwickler / technischer Betrieb der Plattform (Auftragsverarbeiter)">

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { ladePortalAntraege, portalStatistik } from "@/lib/portal-daten";
 import { PrintButton } from "@/components/PrintButton";
+import { mandant } from "@/lib/mandant";
 
 const MONATE = ["Jän", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"];
 
@@ -11,6 +12,7 @@ const MONATE = ["Jän", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep",
  */
 export default async function PortalStatistikSeite({ searchParams }: { searchParams: Promise<{ jahr?: string }> }) {
   const sp = await searchParams;
+  const m = await mandant();
   const heute = new Date();
   const jahr = /^\d{4}$/.test(sp.jahr ?? "") ? Number(sp.jahr) : heute.getFullYear();
   const user = await getCurrentUser();
@@ -38,7 +40,7 @@ export default async function PortalStatistikSeite({ searchParams }: { searchPar
 
       <div className="print-only" style={{ display: "none" }}>
         <h1 style={{ margin: 0 }}>{user?.organizationName}</h1>
-        <div style={{ color: "#555", marginBottom: 12 }}>Tischlein deck dich Vorarlberg · Antrags-Statistik {jahr} · erstellt {heute.toLocaleDateString("de-AT")}</div>
+        <div style={{ color: "#555", marginBottom: 12 }}>{m.kurzname} · Antrags-Statistik {jahr} · erstellt {heute.toLocaleDateString("de-AT")}</div>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 mb-4">

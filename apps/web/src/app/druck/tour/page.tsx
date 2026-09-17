@@ -6,6 +6,7 @@ import { heuteIso, WOCHENTAGE, wochentag, zeitKurz } from "@/lib/touren";
 import { ladeTouren } from "@/lib/touren-daten";
 import { fmtDate } from "@/lib/format";
 import { PrintButton } from "@/components/PrintButton";
+import { mandant } from "@/lib/mandant";
 
 /**
  * Laufzettel je Tour (A4): Fahrer, Fahrzeug, Stopps mit Adresse, Telefon, Fenster und
@@ -18,6 +19,7 @@ export default async function TourDruck({ searchParams }: { searchParams: Promis
   if (!user) redirect("/login");
   if (!hasPermission(user.role, "tour:manage")) redirect("/dashboard");
   const sp = await searchParams;
+  const m = await mandant();
   const datum = /^\d{4}-\d{2}-\d{2}$/.test(sp.datum ?? "") ? sp.datum! : heuteIso();
   const liste = sp.tour ? await ladeTouren({ id: sp.tour }) : (await ladeTouren({ datum })).filter((t) => t.status !== "AUSGEFALLEN");
 
@@ -33,7 +35,7 @@ export default async function TourDruck({ searchParams }: { searchParams: Promis
         <section key={t.id} className={`lz${i === liste.length - 1 ? " letztes" : ""}`}>
           <div className="kopf">
             <div><h1>{t.name}</h1><div className="meta">{WOCHENTAGE[wochentag(t.datum)]}, {fmtDate(t.datum)} · Start {zeitKurz(t.startzeit) || "—"}{t.start ? ` ab ${t.start}` : ""}</div></div>
-            <div className="marke">Tischlein deck dich Vorarlberg</div>
+            <div className="marke">{m.kurzname}</div>
           </div>
           <table className="info">
             <tbody>

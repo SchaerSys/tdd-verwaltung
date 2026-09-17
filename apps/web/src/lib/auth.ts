@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
-import { and, eq, isNotNull, lt } from "drizzle-orm";
+import { and, eq, isNotNull, lt, sql } from "drizzle-orm";
 import { verify } from "@node-rs/argon2";
-import { users, organizations, staff, currentTenantId } from "@tdd/db";
+import { users, organizations, staff, tenants, currentTenantId, istTenantId, runWithTenant } from "@tdd/db";
 import { db } from "./db";
 import { audit } from "./audit";
 import { verifySession, signSession, signToken, verifyToken, SESSION_COOKIE, SESSION_MAX_AGE, PRE_AUTH_COOKIE, PRE_AUTH_MAX_AGE, type PreAuthData, type AusgabeSession } from "./session";
@@ -95,7 +95,16 @@ export async function login(email: string, password: string, orgId?: number | nu
   const name = email.trim().toLowerCase();
   const rows = await db().select().from(users).where(name.includes("@") ? eq(users.email, name) : eq(users.username, name)).limit(1);
   const u = rows[0];
-  if (!u || !u.isActive) return null;
+  if (!u) {
+    // Konto in einem anderen Mandanten (Anmeldung ueber den Host eines anderen Unternehmens
+    // oder ohne eigenen Host)? Die DB nennt den Mandanten, die Anmeldung laeuft dann dort (055).
+    const fremd = await mandantDesKontos(name);
+    if (fremd && fremd !== currentTenantId()) return runWithTenant(fremd, () => login(email, password, orgId));
+    return null;
+  }
+  if (!u.isActive) return null;
+  // Deaktivierter Mandant (Wartungsplattform): keine Anmeldung mehr
+  if (!(await db().select({ a: tenants.isActive }).from(tenants).where(eq(tenants.id, u.tenantId)).limit(1))[0]?.a) return null;
 
   // Ausgetreten (Austritt am Personal-Datensatz liegt in der Vergangenheit)? Kein Login mehr, Konto sperren.
   const ausgetreten = (await db().select({ id: staff.id }).from(staff)
@@ -132,7 +141,7 @@ export async function login(email: string, password: string, orgId?: number | nu
   // Zweiter Faktor aktiv: noch keine Session, nur ein kurzlebiges Vor-Cookie.
   if (u.totpEnabled) {
     const store = await cookies();
-    store.set(PRE_AUTH_COOKIE, signToken<PreAuthData>({ uid: u.id, orgId: u.organizationId ?? null }, PRE_AUTH_MAX_AGE), {
+    store.set(PRE_AUTH_COOKIE, signToken<PreAuthData>({ uid: u.id, orgId: u.organizationId ?? null, tenantId: u.tenantId }, PRE_AUTH_MAX_AGE), {
       httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/", maxAge: PRE_AUTH_MAX_AGE,
     });
     return { user: null, needsSecondFactor: true };
@@ -140,6 +149,13 @@ export async function login(email: string, password: string, orgId?: number | nu
 
   await startSession(u.id, u.role, u.organizationId ?? null, u.tenantId);
   return { user: await loadUser(eq(users.id, u.id)), needsSecondFactor: false };
+}
+
+/** Mandant eines Kontos ueber E-Mail (global eindeutig) oder eindeutigen Benutzernamen – DB-Funktion, umgeht RLS nur dafuer. */
+async function mandantDesKontos(name: string): Promise<string | null> {
+  const r = await db().execute(sql`SELECT tenant_fuer_login(${name}) AS t`);
+  const t = (r as unknown as { t: string | null }[])[0]?.t;
+  return istTenantId(t) ? t.toLowerCase() : null;
 }
 
 /** Setzt das Session-Cookie und merkt den Login. */
@@ -164,6 +180,10 @@ export async function completeSecondFactor(code: string): Promise<CurrentUser | 
   const store = await cookies();
   const pre = verifyToken<PreAuthData>(store.get(PRE_AUTH_COOKIE)?.value);
   if (!pre) return null;
+  // Der zweite Schritt muss im Mandanten des Kontos laufen (Anmeldung ohne passenden Host, 055)
+  if (pre.tenantId && istTenantId(pre.tenantId) && pre.tenantId.toLowerCase() !== currentTenantId()) {
+    return runWithTenant(pre.tenantId, () => completeSecondFactor(code));
+  }
   const rows = await db().select().from(users).where(eq(users.id, pre.uid)).limit(1);
   const u = rows[0];
   if (!u || !u.isActive || !u.totpEnabled || !u.totpSecret) return null;

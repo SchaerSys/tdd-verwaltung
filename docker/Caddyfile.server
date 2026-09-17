@@ -2,11 +2,19 @@
 # Aenderungen von Hand einspielen: docker exec tdd-caddy caddy validate --config /etc/caddy/Caddyfile
 #                                  docker exec tdd-caddy caddy reload   --config /etc/caddy/Caddyfile
 
-tdd.schaer-systems.at {
-    encode zstd gzip
+{
+    # Mandanten-Hosts (055): Zertifikat bei Bedarf, aber nur fuer Hosts, die die Fach-App kennt
+    # (tenants.host eines aktiven Mandanten oder TENANT_HOSTS). Verhindert Missbrauch der
+    # On-Demand-Ausstellung durch beliebige DNS-Eintraege auf diese IP.
+    on_demand_tls {
+        ask http://tdd-web:3000/api/tls-ask
+    }
+}
 
-    # Wartungsmodus: existiert /opt/tdd/ops/wartung.flag (Schalter der Wartungsplattform),
-    # bekommen alle Besucher:innen die Hinweisseite mit 503. Kein Neustart noetig.
+# Wartungsmodus als Baustein: existiert /opt/tdd/ops/wartung.flag (Schalter der Wartungsplattform),
+# bekommen alle Besucher:innen die Hinweisseite mit 503. Kein Neustart noetig.
+(fachapp) {
+    encode zstd gzip
     @wartung file {
         root /ops
         try_files wartung.flag
@@ -19,8 +27,24 @@ tdd.schaer-systems.at {
             status 503
         }
     }
-
     reverse_proxy tdd-web:3000
+}
+
+# Bestandsmandant Tischlein deck dich Vorarlberg
+tdd.schaer-systems.at {
+    import fachapp
+}
+
+# Weitere Mandanten: eigener Host je Unternehmen (DNS-A-Record auf diesen Server,
+# Host in der Wartungsplattform unter Mandanten (Unternehmen) eingetragen).
+https:// {
+    tls {
+        on_demand
+    }
+    import fachapp
+}
+http:// {
+    redir https://{host}{uri} permanent
 }
 
 # Wartungsplattform (nur Betreiber). Erst aktivieren, wenn der DNS-A-Record

@@ -6,6 +6,14 @@ import type { Instrumentation } from "next";
  * ging, ohne in die Sitzung zu schauen. Nur in der Node-Laufzeit (documented pattern:
  * Import im if-Block, damit node:crypto nicht ins Edge-Bundle geraet).
  */
+/** Beim Start: Mandanten-Kontext um jede Anfrage legen (lib/tenant-hook.ts). */
+export async function register(): Promise<void> {
+  if (process.env.NEXT_RUNTIME === "nodejs") {
+    const { installiereMandantenKontext } = await import("./lib/tenant-hook");
+    installiereMandantenKontext();
+  }
+}
+
 export const onRequestError: Instrumentation.onRequestError = async (err, request, context) => {
   if (process.env.NEXT_RUNTIME === "nodejs") {
     const { meldeServerFehler } = await import("./instrumentation-node");

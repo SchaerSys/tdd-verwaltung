@@ -11,6 +11,7 @@ import { InstallButton } from "./InstallButton";
 import { UebernahmenReiter, type Uebernahme } from "./UebernahmenReiter";
 import { UpdateChecker } from "./UpdateChecker";
 import { setNavCollapsed } from "@/app/(app)/dashboard/prefs-actions";
+import { fensterTitel } from "@/lib/nav";
 
 export function AppShell({
   groups,
@@ -44,6 +45,9 @@ export function AppShell({
   const pathname = usePathname();
   const router = useRouter();
   const onDashboard = pathname === "/dashboard";
+
+  // Fenstertitel = Modulname (Taskleiste/Tabs unterscheidbar), Dashboard bleibt "CareOS"
+  useEffect(() => { document.title = fensterTitel(pathname); }, [pathname]);
 
   useEffect(() => {
     if (!userMenu) return;

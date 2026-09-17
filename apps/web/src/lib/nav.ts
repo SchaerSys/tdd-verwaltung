@@ -91,6 +91,22 @@ export function navLabel(href: string): string {
   return eltern ? `${eltern.label} · ${n.label}` : n.label;
 }
 
+/**
+ * Fenstertitel zu einem Pfad: Name des Moduls (laengster passender Nav-Eintrag), damit in der
+ * Taskleiste "Personen" statt zehnmal "CareOS" steht. Dashboard und Unbekanntes: "CareOS".
+ */
+export function fensterTitel(pathname: string): string {
+  if (pathname === "/dashboard" || pathname === "/") return "CareOS";
+  let best: NavDef | null = null;
+  for (const n of NAV) {
+    if (n.href === "/dashboard") continue;
+    if ((pathname === n.href || pathname.startsWith(n.href + "/")) && (!best || n.href.length > best.href.length)) best = n;
+  }
+  if (!best) return "CareOS";
+  const eltern = best.parent ? NAV.find((x) => x.href === best!.parent) : null;
+  return eltern ? `${eltern.label} · ${best.label}` : best.label;
+}
+
 /** Als Favorit hinzufügbar? (Dashboard selbst ausgenommen.) */
 export function isFavoritable(href: string): boolean {
   return href !== "/dashboard" && NAV.some((n) => n.href === href);

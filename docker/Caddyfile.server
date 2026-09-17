@@ -47,9 +47,13 @@ http:// {
     redir https://{host}{uri} permanent
 }
 
-# Wartungsplattform (nur Betreiber). Erst aktivieren, wenn der DNS-A-Record
-# tdd-ops.schaer-systems.at -> 49.13.128.107 zeigt (sonst scheitert die Zertifikatsausstellung).
-# tdd-ops.schaer-systems.at {
-#     encode zstd gzip
-#     reverse_proxy tdd-ops:3000
-# }
+# Wartungsplattform / Super-Admin (nur Betreiber, Login + 2FA). DNS-A-Record
+# tddops.schaer-systems.at -> 49.13.128.107; Zertifikat holt Caddy automatisch.
+tddops.schaer-systems.at {
+    encode zstd gzip
+    header {
+        X-Robots-Tag "noindex, nofollow"
+        Strict-Transport-Security "max-age=31536000"
+    }
+    reverse_proxy tdd-ops:3000
+}

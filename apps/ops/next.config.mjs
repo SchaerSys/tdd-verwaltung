@@ -14,7 +14,7 @@ const nextConfig = {
   serverExternalPackages: ["@node-rs/argon2", "postgres", "nodemailer"],
   experimental: {
     serverActions: {
-      allowedOrigins: ["tdd-ops.schaer-systems.at", "127.0.0.1:3081", "localhost:3081"],
+      allowedOrigins: ["tddops.schaer-systems.at", "tdd-ops.schaer-systems.at", "127.0.0.1:3081", "localhost:3081"],
     },
   },
 };

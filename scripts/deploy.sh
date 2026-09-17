@@ -92,5 +92,11 @@ done
 j=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3080/api/jobs/retention)
 [ "$j" = "403" ] || { echo "Job ohne Token muesste 403 sein, ist $j"; exit 1; }
 rm -f "deploy-$STAND.tar.gz"
-echo "Ausgerollt: $STAND  (Login 200, Job ohne Token 403, Wartung 200)"
+# Aufraeumen: alte Images, Build-Cache (> 24 h), namenlose Volumes der Wegwerf-Postgres – sonst
+# frisst der Docker-Cache die Platte (am 17.09. lagen 45 GB Build-Cache herum).
+docker image prune -f >/dev/null 2>&1 || true
+docker builder prune -f --filter "until=24h" >/dev/null 2>&1 || true
+docker volume prune -f >/dev/null 2>&1 || true
+rm -f deploy*.tar.gz mt-stage.tgz
+echo "Ausgerollt: $STAND  (Login 200, Job ohne Token 403, Wartung 200)  Platte: $(df -h / | awk 'NR==2{print $5" belegt"}')"
 REMOTE

@@ -3,6 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { eq } from "drizzle-orm";
 import { abwesenheiten, staff } from "@tdd/db";
+import { pushAnPersonal } from "@/lib/push";
+import { fmtDate } from "@/lib/format";
+import { ABW_ART_LABEL } from "@/lib/abwesenheit";
 import { db } from "@/lib/db";
 import { audit } from "@/lib/audit";
 import { requirePermission } from "@/lib/guard";
@@ -30,8 +33,9 @@ export async function abwesenheitErfassen(fd: FormData): Promise<void> {
 export async function abwesenheitEntscheiden(fd: FormData): Promise<void> {
   const u = await requirePermission("staff:manage");
   const id = String(fd.get("id") ?? ""); const status = String(fd.get("status")) === "ABGELEHNT" ? "ABGELEHNT" : "GENEHMIGT";
-  await db().update(abwesenheiten).set({ status, entschiedenBy: u.id, entschiedenAt: new Date() }).where(eq(abwesenheiten.id, id));
+  const r = await db().update(abwesenheiten).set({ status, entschiedenBy: u.id, entschiedenAt: new Date() }).where(eq(abwesenheiten.id, id)).returning({ staffId: abwesenheiten.staffId, art: abwesenheiten.art, von: abwesenheiten.von, bis: abwesenheiten.bis });
   await audit({ actorUserId: u.id, action: status === "GENEHMIGT" ? "abwesenheit.approve" : "abwesenheit.reject", entityType: "abwesenheit", entityId: id });
+  if (r[0]) void pushAnPersonal([r[0].staffId], { titel: status === "GENEHMIGT" ? "Antrag genehmigt" : "Antrag abgelehnt", text: `${ABW_ART_LABEL[r[0].art] ?? r[0].art} ${fmtDate(r[0].von)}${r[0].bis !== r[0].von ? ` – ${fmtDate(r[0].bis)}` : ""}`, url: "/my/antraege", tag: `antrag-${id}` });
   alles();
 }
 

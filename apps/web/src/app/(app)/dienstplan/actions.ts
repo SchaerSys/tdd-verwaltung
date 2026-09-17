@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { and, eq, gte, lte } from "drizzle-orm";
 import { abwesenheiten, dienste, dienstplanWochen, staff } from "@tdd/db";
+import { pushAnPersonal } from "@/lib/push";
+import { fmtDate } from "@/lib/format";
 import { db } from "@/lib/db";
 import { audit } from "@/lib/audit";
 import { requirePermission } from "@/lib/guard";
@@ -103,6 +105,11 @@ export async function wocheStatus(fd: FormData): Promise<void> {
   const set = { status, veroeffentlichtAt: status === "VEROEFFENTLICHT" ? new Date() : null, veroeffentlichtBy: status === "VEROEFFENTLICHT" ? u.id : null };
   await db().insert(dienstplanWochen).values({ wocheStart: woche, ...set }).onConflictDoUpdate({ target: [dienstplanWochen.tenantId, dienstplanWochen.wocheStart], set });
   await audit({ actorUserId: u.id, action: status === "VEROEFFENTLICHT" ? "dienstplan.veroeffentlicht" : "dienstplan.entwurf", entityType: "dienstplan", entityId: woche });
+  if (status === "VEROEFFENTLICHT") {
+    // myTafelwerk: alle eingeplanten Personen der Woche benachrichtigen
+    const leute = await db().selectDistinct({ id: dienste.staffId }).from(dienste).where(and(gte(dienste.datum, woche), lte(dienste.datum, plusTage(woche, 6))));
+    void pushAnPersonal(leute.map((l) => l.id), { titel: "Dienstplan veröffentlicht", text: `Deine Dienste ab ${fmtDate(woche)} stehen fest.`, url: "/my/dienste", tag: `dienstplan-${woche}` });
+  }
   alles();
 }
 

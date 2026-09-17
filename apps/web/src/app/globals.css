@@ -430,3 +430,15 @@
   .k-zwei .k-badge { width: 44px; height: 44px; font-size: 1.4rem; }
   .k-zwei .k-note-inp { min-height: 34px; }
 }
+
+
+/* ── myTafelwerk (Handy-App) ── */
+.my-app { min-height: 100vh; min-height: 100dvh; background: var(--bg); display: flex; flex-direction: column; max-width: 640px; margin: 0 auto; }
+.my-kopf { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; padding-top: max(10px, env(safe-area-inset-top)); background: var(--surface); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 5; }
+.my-kopf b { display: block; color: var(--accent); }
+.my-kopf small { color: var(--muted); font-size: .75rem; }
+.my-inhalt { flex: 1; padding: 12px; padding-bottom: calc(72px + env(safe-area-inset-bottom)); }
+.my-leiste { position: fixed; bottom: 0; left: 0; right: 0; max-width: 640px; margin: 0 auto; display: grid; grid-template-columns: repeat(6, 1fr); background: var(--surface); border-top: 1px solid var(--border); padding-bottom: env(safe-area-inset-bottom); z-index: 5; }
+.my-leiste a { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 2px 6px; font-size: .62rem; color: var(--muted); text-decoration: none; }
+.my-leiste a .ic { font-size: 1.15rem; }
+.my-leiste a.on { color: var(--accent); font-weight: 700; }

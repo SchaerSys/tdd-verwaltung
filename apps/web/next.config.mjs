@@ -16,7 +16,7 @@ const nextConfig = {
   outputFileTracingRoot: path.join(dir, "../../"),
   // Workspace-Pakete werden von Next transpiliert (kein Vorab-Build nötig)
   transpilePackages: ["@tdd/core", "@tdd/db"],
-  serverExternalPackages: ["@node-rs/argon2", "postgres", "bwip-js", "tesseract.js", "exceljs", "mammoth", "nodemailer"],
+  serverExternalPackages: ["@node-rs/argon2", "postgres", "bwip-js", "tesseract.js", "exceljs", "mammoth", "nodemailer", "web-push"],
   // Server-Actions hinter dem Reverse-Proxy (tdd.schaer-systems.at) erlauben.
   experimental: {
     serverActions: {

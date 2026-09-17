@@ -899,3 +899,30 @@ export const zeitAbschluesse = pgTable("zeit_abschluesse", {
   abgeschlossenAt: timestamp("abgeschlossen_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => ({ pk: uniqueIndex("uq_zeit_abschluss").on(t.staffId, t.jahr, t.monat) }));
 
+// ── myTafelwerk (062): Aufgaben und Push-Abos ─────────────────────────────
+export const aufgaben = pgTable("aufgaben", {
+  tenantId: uuid("tenant_id").notNull().default(sql`current_tenant_id()`).references(() => tenants.id, { onDelete: "cascade" }),
+  id: uuid("id").primaryKey().defaultRandom(),
+  titel: text("titel").notNull(),
+  beschreibung: text("beschreibung"),
+  staffId: uuid("staff_id").references(() => staff.id, { onDelete: "cascade" }), // null = alle
+  faelligAm: date("faellig_am"),
+  prio: text("prio").notNull().default("NORMAL"), // NIEDRIG | NORMAL | HOCH
+  erledigtAm: timestamp("erledigt_am", { withTimezone: true }),
+  erledigtVon: uuid("erledigt_von").references(() => staff.id, { onDelete: "set null" }),
+  createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const pushAbos = pgTable("push_abos", {
+  tenantId: uuid("tenant_id").notNull().default(sql`current_tenant_id()`).references(() => tenants.id, { onDelete: "cascade" }),
+  id: uuid("id").primaryKey().defaultRandom(),
+  staffId: uuid("staff_id").notNull().references(() => staff.id, { onDelete: "cascade" }),
+  endpoint: text("endpoint").notNull().unique(),
+  p256dh: text("p256dh").notNull(),
+  auth: text("auth").notNull(),
+  userAgent: text("user_agent"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  zuletztOk: timestamp("zuletzt_ok", { withTimezone: true }),
+  fehler: integer("fehler").notNull().default(0),
+});

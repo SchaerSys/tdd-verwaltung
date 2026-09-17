@@ -50,6 +50,7 @@ export const NAV: NavDef[] = [
 
   { href: "/personal", label: "Personal", perm: "staff:manage", group: "Personal", modul: "personal" },
   { href: "/personal/zivildienst", label: "Zivildienst", perm: "staff:manage", group: "Personal", parent: "/personal", modul: "zivildienst" },
+  { href: "/personal/aufgaben", label: "Aufgaben (myTafelwerk)", perm: "staff:manage", group: "Personal", parent: "/personal", modul: "personal" },
   { href: "/zeit", label: "Zeiterfassung", perm: "staff:manage", group: "Personal", modul: "personal" },
   { href: "/zeit/monat", label: "Monatsauswertung", perm: "staff:manage", group: "Personal", parent: "/zeit", modul: "personal" },
   { href: "/zeit/pruefung", label: "AZG-Prüfung", perm: "staff:manage", group: "Personal", parent: "/zeit", modul: "personal" },

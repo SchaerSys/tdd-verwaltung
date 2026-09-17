@@ -227,6 +227,6 @@ export function landingFor(role: Role, mustChangePassword = false): string {
   if (role === "SACHBEARBEITER") return "/portal"; // Antragsportal (Gemeinde/Institution)
   if (role === "AUSGABE") return "/kiosk";           // Zivildiener: nur Tresen-Kiosk
   if (role === "FAHRER") return "/fahrt";            // Fahrer: Tour des Tages am Handy
-  if (role === "MITARBEITER") return "/mein";        // Selbstservice: eigene Zeiten und Urlaub
+  if (role === "MITARBEITER") return "/my";          // myTafelwerk: Handy-App (Stempeln, Zeiten, Antraege, Dienste, Aufgaben)
   return "/dashboard";
 }

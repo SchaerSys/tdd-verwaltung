@@ -61,7 +61,7 @@ export default async function MeinBereich({ searchParams }: { searchParams: Prom
     <div>
       <div className="page-h">
         <div><h1>Mein Bereich</h1><div className="sub">{p.firstName} {p.lastName}{p.weeklyHours ? ` · ${p.weeklyHours} h/Woche` : ""}{p.employmentStart ? ` · seit ${fmtDate(p.employmentStart)}` : ""}</div></div>
-        <Link href="/konto" className="btn ghost">Konto &amp; Passwort</Link>
+        <div className="flex gap-2"><Link href="/my" className="btn">📱 myTafelwerk (Handy-App)</Link><Link href="/konto" className="btn ghost">Konto &amp; Passwort</Link></div>
       </div>
 
       {widget ? <div className="panel mb-4"><div className="panel-h"><h3>Mein Zeitkonto</h3><span className="text-xs text-muted">Woche, Zeitausgleich, Urlaub</span></div><div className="p-4"><ZeitkontoWidget d={widget} /></div></div> : null}

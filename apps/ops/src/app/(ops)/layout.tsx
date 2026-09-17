@@ -16,6 +16,7 @@ const NAV: { href: string; label: string; nurSuper?: boolean }[] = [
   { href: "/unternehmen", label: "Mandanten (Unternehmen)" },
   { href: "/protokoll", label: "Protokoll" },
   { href: "/wartung", label: "Wartung" },
+  { href: "/historie", label: "Historie & Alarme" },
   { href: "/betreiber", label: "Betreiber", nurSuper: true },
 ];
 

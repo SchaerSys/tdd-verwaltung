@@ -247,3 +247,46 @@ export async function demoZuruecksetzen(_prev: UnternehmenState, fd: FormData): 
     return { error: e instanceof Error ? e.message : "Aufruf fehlgeschlagen" };
   }
 }
+
+// ── Loeschung eines Mandanten: Antrag → Freigabe (andere Person oder 7 Tage) → Ausfuehrung (>= 7 Tage nach Antrag) ──
+export async function loeschungBeantragen(fd: FormData): Promise<void> {
+  const ops = await requireSuper();
+  const id = String(fd.get("id") ?? "");
+  const t = (await dbFuer(null).select({ slug: tenants.slug, name: tenants.name }).from(tenants).where(eq(tenants.id, id)).limit(1))[0];
+  if (!t || String(fd.get("bestaetigung") ?? "") !== t.slug) throw new Error("Zur Bestätigung den Kurznamen des Mandanten eingeben.");
+  await dbFuer(null).update(tenants).set({ loeschungBeantragtAm: new Date(), loeschungBeantragtVon: ops.email, loeschungFreigegebenAm: null, loeschungFreigegebenVon: null, isActive: false }).where(eq(tenants.id, id));
+  await audit({ akteur: ops.email, action: "tenant.delete.request", entityType: "tenant", entityId: id, after: { name: t.name } });
+  revalidatePath(`/unternehmen/${id}`); revalidatePath("/unternehmen");
+}
+
+export async function loeschungFreigeben(fd: FormData): Promise<void> {
+  const ops = await requireSuper();
+  const id = String(fd.get("id") ?? "");
+  const t = (await dbFuer(null).select({ von: tenants.loeschungBeantragtVon, am: tenants.loeschungBeantragtAm }).from(tenants).where(eq(tenants.id, id)).limit(1))[0];
+  if (!t?.am) throw new Error("Keine Löschung beantragt.");
+  const siebenTage = Date.now() - t.am.getTime() >= 7 * 864e5;
+  if (t.von === ops.email && !siebenTage) throw new Error("Freigabe durch eine zweite Person – oder frühestens 7 Tage nach dem Antrag.");
+  await dbFuer(null).update(tenants).set({ loeschungFreigegebenAm: new Date(), loeschungFreigegebenVon: ops.email }).where(eq(tenants.id, id));
+  await audit({ akteur: ops.email, action: "tenant.delete.approve", entityType: "tenant", entityId: id });
+  revalidatePath(`/unternehmen/${id}`);
+}
+
+export async function loeschungAbbrechen(fd: FormData): Promise<void> {
+  const ops = await requireSuper();
+  const id = String(fd.get("id") ?? "");
+  await dbFuer(null).update(tenants).set({ loeschungBeantragtAm: null, loeschungBeantragtVon: null, loeschungFreigegebenAm: null, loeschungFreigegebenVon: null }).where(eq(tenants.id, id));
+  await audit({ akteur: ops.email, action: "tenant.delete.cancel", entityType: "tenant", entityId: id });
+  revalidatePath(`/unternehmen/${id}`); revalidatePath("/unternehmen");
+}
+
+export async function loeschungAusfuehren(_prev: UnternehmenState, fd: FormData): Promise<UnternehmenState> {
+  const ops = await requireSuper();
+  const id = String(fd.get("id") ?? "");
+  try {
+    const r = rows<{ n: string }>(await dbFuer(null).execute(sql`SELECT ops_tenant_loeschen(${id}::uuid, ${ops.email}) AS n`));
+    revalidatePath("/unternehmen"); revalidatePath("/", "layout");
+    return { info: `Mandant „${r[0]?.n ?? ""}“ endgültig gelöscht (alle Fachdaten). Hochgeladene Dateien räumt der nächtliche Löschjob auf.` };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message.replace(/^.*?ERROR:\s*/i, "") : "Löschen fehlgeschlagen" };
+  }
+}

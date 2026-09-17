@@ -10,6 +10,7 @@ import { SmtpForm, SmtpTest } from "./SmtpForm";
 import { VertragForm } from "./VertragForm";
 import { notizenSpeichern, smtpLoeschen } from "../actions";
 import { DemoReset } from "./DemoReset";
+import { Loeschung } from "./Loeschung";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +37,7 @@ export default async function UnternehmenDetail({ params, searchParams }: { para
       <div className="page-h">
         <div>
           <h1>{t.name}</h1>
-          <div className="sub mono">{t.slug} · {t.id} · angelegt {fmt(t.createdAt)} · Plan {t.plan}{t.testBis ? ` · Test bis ${t.testBis}` : ""}{!m.aktiv_effektiv ? " · INAKTIV" : ""}</div>
+          <div className="sub mono">{t.slug} · {t.id} · angelegt {fmt(t.createdAt)} · Plan {t.plan}{t.testBis ? ` · Test bis ${t.testBis}` : ""}{!m.aktiv_effektiv ? " · INAKTIV" : ""}{t.loeschungBeantragtAm ? " · LÖSCHUNG BEANTRAGT" : ""}</div>
         </div>
         <Link href="/unternehmen" className="btn ghost sm">← Alle Mandanten</Link>
       </div>
@@ -71,6 +72,14 @@ export default async function UnternehmenDetail({ params, searchParams }: { para
           <div style={{ padding: 12 }}>
             {super_ ? <VertragForm t={{ id: t.id, plan: t.plan, testBis: t.testBis, vertragBeginn: t.vertragBeginn, vertragEnde: t.vertragEnde, kuendigungsfrist: t.kuendigungsfrist, limitBenutzer: t.limitBenutzer, limitStandorte: t.limitStandorte, module: t.module ?? {}, ansprechpartner: t.ansprechpartner }} zaehler={{ benutzer: m.benutzer, standorte: m.standorte }} />
               : <NurLesen zeilen={[["Plan", t.plan], ["Testphase bis", t.testBis], ["Vertrag", [t.vertragBeginn, t.vertragEnde].filter(Boolean).join(" – ")], ["Kündigungsfrist", t.kuendigungsfrist], ["Limit Benutzer", t.limitBenutzer != null ? String(t.limitBenutzer) : null], ["Limit Standorte", t.limitStandorte != null ? String(t.limitStandorte) : null], ["Ansprechpartner", t.ansprechpartner]]} />}
+          </div>
+        </div>
+      ) : null}
+      {tab === "vertrag" && super_ ? (
+        <div className="panel mt-4"><div className="panel-h"><h3>Datenschutz &amp; Löschung</h3><Link href={`/unternehmen/${id}/avv`} className="btn ghost sm" style={{ marginLeft: "auto" }} target="_blank">Auftragsverarbeitungs-Angaben (Druck)</Link></div>
+          <div style={{ padding: 12 }}>
+            {t.id === "e3b29c11-0000-4000-a000-000000000000" ? <div className="text-sm text-muted">Der Bestandsmandant kann über die Plattform nicht gelöscht werden.</div>
+              : <Loeschung s={{ id: t.id, slug: t.slug, beantragtAm: t.loeschungBeantragtAm?.toISOString() ?? null, beantragtVon: t.loeschungBeantragtVon, freigegebenAm: t.loeschungFreigegebenAm?.toISOString() ?? null, freigegebenVon: t.loeschungFreigegebenVon, ich: ops.email }} />}
           </div>
         </div>
       ) : null}

@@ -69,6 +69,7 @@ for f in packages/db/sql/*.sql; do
   # Owner-Sitzung im Kontext des Bestandsmandanten: Seeds/Nachtraege erben tenant_id (053)
   { echo "SET app.current_tenant_id = '${DEFAULT_TENANT_ID:-e3b29c11-0000-4000-a000-000000000000}';"; cat "$f"; }     | docker exec -i tdd-postgres psql -U tdd_owner -d tdd -v ON_ERROR_STOP=1 -q
   echo "$n" >> migrations.done
+  echo "$(date -Is) $n" >> migrations.log
 done
 
 docker tag tdd-web:candidate tdd-web:latest
@@ -78,7 +79,7 @@ mkdir -p ops && cp stage/docker/ops/wartung.html ops/wartung.html
 docker compose --env-file .env -f docker-compose.server.yml up -d --no-build web ops >/dev/null 2>&1
 # Routing-Dienst nur, wenn die Kartendaten schon aufbereitet sind (scripts/osrm-setup.sh).
 [ -f osrm/vorarlberg-latest.osrm.cells ] && docker compose --env-file .env -f docker-compose.server.yml up -d osrm >/dev/null 2>&1 || true
-cp scripts/jobs-cron.sh jobs-cron.sh 2>/dev/null; cp scripts/backup.sh backup.sh 2>/dev/null; cp scripts/ops-agent.sh ops-agent.sh 2>/dev/null; cp scripts/osrm-setup.sh osrm-setup.sh 2>/dev/null; chmod +x *.sh
+cp scripts/jobs-cron.sh jobs-cron.sh 2>/dev/null; cp scripts/backup.sh backup.sh 2>/dev/null; cp scripts/ops-agent.sh ops-agent.sh 2>/dev/null; cp scripts/osrm-setup.sh osrm-setup.sh 2>/dev/null; cp scripts/alarm-cron.sh alarm-cron.sh 2>/dev/null; cp scripts/restore-probe.sh restore-probe.sh 2>/dev/null; chmod +x *.sh
 
 echo "── 5/5 Nachweis ──"
 for i in $(seq 1 40); do
@@ -98,5 +99,6 @@ docker image prune -f >/dev/null 2>&1 || true
 docker builder prune -f --filter "until=24h" >/dev/null 2>&1 || true
 docker volume prune -f >/dev/null 2>&1 || true
 rm -f deploy*.tar.gz mt-stage.tgz
+echo "$(date -Is) $STAND" >> deploys.log
 echo "Ausgerollt: $STAND  (Login 200, Job ohne Token 403, Wartung 200)  Platte: $(df -h / | awk 'NR==2{print $5" belegt"}')"
 REMOTE

@@ -5,6 +5,7 @@
 # Minute, root) fuehrt genau diese zwei Dinge aus und schreibt das Ergebnis daneben:
 #   backup.request  -> /opt/tdd/backup.sh           -> backup.result
 #   restart.request -> docker compose restart web   -> restart.result
+#   restoretest.request -> /opt/tdd/restore-probe.sh  -> restoretest.result
 # Der Wartungsmodus (wartung.flag) braucht keinen Agenten: Caddy prueft die Datei selbst.
 # Cron (root):  * * * * * /opt/tdd/ops-agent.sh
 set -u
@@ -26,4 +27,12 @@ if [ -f "$DIR/restart.request" ]; then
     echo "$(date -Is) angefordert von: $wer"
     if docker compose --env-file .env -f docker-compose.server.yml restart web >/dev/null 2>&1; then echo "Fach-App neu gestartet."; else echo "FEHLER beim Neustart."; fi
   } > "$DIR/restart.result" 2>&1
+fi
+
+if [ -f "$DIR/restoretest.request" ]; then
+  wer=$(cat "$DIR/restoretest.request"); rm -f "$DIR/restoretest.request"
+  {
+    echo "$(date -Is) angefordert von: $wer"
+    /opt/tdd/restore-probe.sh 2>&1
+  } > "$DIR/restoretest.result" 2>&1
 fi

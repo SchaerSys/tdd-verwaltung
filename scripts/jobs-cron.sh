@@ -8,7 +8,7 @@
 # ausdruecklicher Freigabe in den Cron aufgenommen.
 JOB="${1:?Job angeben: cleanup | retention | expiry}"
 TOKEN=$(grep -E '^JOB_TOKEN=' /opt/tdd/.env | cut -d= -f2-)
-LOG=/var/log/tdd-jobs.log
+LOG=/opt/tdd/jobs.log
 printf '%s %s ' "$(date -Is)" "$JOB" >> "$LOG"
 curl -sS -H "Authorization: Bearer $TOKEN" "http://127.0.0.1:3080/api/jobs/$JOB" >> "$LOG" 2>&1
 echo >> "$LOG"

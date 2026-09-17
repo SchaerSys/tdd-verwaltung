@@ -52,6 +52,21 @@ export const tenants = pgTable("tenants", {
   module: jsonb("module").$type<Record<string, boolean>>().notNull().default({}),
   ansprechpartner: text("ansprechpartner"),
   notizen: text("notizen"),
+  // Loeschung mit Zwei-Personen-Regel (061)
+  loeschungBeantragtAm: timestamp("loeschung_beantragt_am", { withTimezone: true }),
+  loeschungBeantragtVon: text("loeschung_beantragt_von"),
+  loeschungFreigegebenAm: timestamp("loeschung_freigegeben_am", { withTimezone: true }),
+  loeschungFreigegebenVon: text("loeschung_freigegeben_von"),
+});
+
+/** Alarmzustand der Betreiber-Pruefungen (061). */
+export const opsAlarme = pgTable("ops_alarme", {
+  schluessel: text("schluessel").primaryKey(),
+  aktiv: boolean("aktiv").notNull().default(false),
+  text: text("text"),
+  seit: timestamp("seit", { withTimezone: true }),
+  zuletztGemeldet: timestamp("zuletzt_gemeldet", { withTimezone: true }),
+  zuletztGeprueft: timestamp("zuletzt_geprueft", { withTimezone: true }).notNull().defaultNow(),
 });
 
 /** SMTP je Mandant (057). Passwort nur verschluesselt; tdd_ops liest die Spalte nicht. */

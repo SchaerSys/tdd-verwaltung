@@ -1,13 +1,14 @@
 import { anfrageOffen, hostDatei, letztesErgebnis, wartungsmodus } from "@/lib/host";
 import { webStatus } from "@/lib/health";
-import { backupJetzt, neustartFachApp, wartungsmodus as wartungsmodusAction } from "./actions";
+import { backupJetzt, neustartFachApp, rueckspielprobe, wartungsmodus as wartungsmodusAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
 /** Betriebsaktionen ueber den Host-Agenten (Dateien in /opt/tdd/ops) – keine Docker-Rechte im Container. */
 export default async function WartungSeite() {
-  const [wartung, backupOffen, restartOffen, backupErgebnis, restartErgebnis, migrationen, web] = await Promise.all([
+  const [wartung, backupOffen, restartOffen, backupErgebnis, restartErgebnis, migrationen, web, probeOffen, probeErgebnis] = await Promise.all([
     wartungsmodus(), anfrageOffen("backup"), anfrageOffen("restart"), letztesErgebnis("backup"), letztesErgebnis("restart"), hostDatei("migrations.done", 8), webStatus(),
+    anfrageOffen("restoretest"), letztesErgebnis("restoretest"),
   ]);
 
   return (
@@ -41,6 +42,15 @@ export default async function WartungSeite() {
             <p>Startet den Container der Fach-App neu (ca. 20 Sekunden Unterbrechung). Nötig nach geänderten Umgebungsvariablen oder wenn die App hängt. Version derzeit: <span className="mono">{web.version ?? "—"}</span></p>
             <form action={neustartFachApp}><button className="btn danger" type="submit" disabled={restartOffen}>Neustart anfordern</button></form>
             {restartErgebnis ? <pre className="text-xs mono p-2 border border-[color:var(--border)] rounded" style={{ whiteSpace: "pre-wrap" }}>{restartErgebnis}</pre> : null}
+          </div>
+        </div>
+
+        <div className="panel">
+          <div className="panel-h"><h3>Rückspielprobe</h3>{probeOffen ? <span className="pill warn">läuft</span> : probeErgebnis?.includes("\nOK") ? <span className="pill good">letzte ok</span> : probeErgebnis ? <span className="pill bad">letzte fehlgeschlagen</span> : null}</div>
+          <div className="p-4 text-[.8125rem] flex flex-col gap-3">
+            <p>Nimmt jetzt einen Dump der Produktionsdatenbank, spielt ihn in eine Wegwerf-Datenbank ein, zählt Mandanten/Personen/Karten/Ausgaben/Personal/Benutzer gegen die Produktion und räumt auf (ca. 1 Minute, keine Unterbrechung). Prüft die Dump/Restore-Mechanik und das Schema. Die verschlüsselten Archive auf der Storage Box prüft <code className="mono">scripts/restore-test.sh</code> vom Betreiber-PC – alle drei Monate.</p>
+            <form action={rueckspielprobe}><button className="btn" type="submit" disabled={probeOffen}>Rückspielprobe starten</button></form>
+            {probeErgebnis ? <pre className="text-xs mono p-2 border border-[color:var(--border)] rounded" style={{ whiteSpace: "pre-wrap" }}>{probeErgebnis}</pre> : null}
           </div>
         </div>
 

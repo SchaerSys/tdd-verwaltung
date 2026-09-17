@@ -71,6 +71,7 @@ export default async function DossierPage({ params }: { params: Promise<{ id: st
         {canManagePersons ? (
           <div className="flex gap-2">
             <Link href={`/personen/${p.id}/bearbeiten`} className="btn">✎ Bearbeiten</Link>
+            <a href={`/personen/${p.id}/auskunft`} className="btn ghost" title="Alle gespeicherten Daten der Person als Textdatei (Art. 15 DSGVO); wird protokolliert">📄 Auskunft (Art. 15)</a>
             <form action={deletePerson}>
               <input type="hidden" name="personId" value={p.id} />
               <ConfirmButton className="btn danger" message={`Person „${p.firstName} ${p.lastName}" wirklich löschen?`}>🗑 Löschen</ConfirmButton>

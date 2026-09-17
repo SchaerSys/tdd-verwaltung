@@ -29,3 +29,11 @@ export async function wartungsmodus(fd: FormData): Promise<void> {
   revalidatePath("/wartung");
   revalidatePath("/", "layout");
 }
+
+/** Rueckspielprobe auf dem Server (Dump → Wegwerf-DB → Zaehlung) ueber den Host-Agenten. */
+export async function rueckspielprobe(): Promise<void> {
+  const ops = await requireSuper();
+  await anfrageStellen("restoretest", ops.email);
+  await audit({ akteur: ops.email, action: "restoretest.request", entityType: "system" });
+  revalidatePath("/wartung");
+}

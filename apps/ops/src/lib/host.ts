@@ -10,7 +10,7 @@ import { join } from "node:path";
 const OPS_DIR = () => process.env.OPS_DIR ?? "/ops";
 const HOST_DIR = () => process.env.HOST_DIR ?? "/host"; // /opt/tdd, nur lesend
 
-export type Anfrage = "backup" | "restart";
+export type Anfrage = "backup" | "restart" | "restoretest";
 
 export async function anfrageStellen(art: Anfrage, akteur: string): Promise<void> {
   await writeFile(join(OPS_DIR(), `${art}.request`), `${new Date().toISOString()} ${akteur}\n`, { flag: "w" });

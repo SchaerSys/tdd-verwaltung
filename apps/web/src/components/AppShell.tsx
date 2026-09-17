@@ -47,7 +47,15 @@ export function AppShell({
   const onDashboard = pathname === "/dashboard";
 
   // Fenstertitel = Modulname (Taskleiste/Tabs unterscheidbar), Dashboard bleibt "CareOS"
-  useEffect(() => { document.title = fensterTitel(pathname); }, [pathname]);
+  useEffect(() => {
+    // Next setzt den <title> aus den Metadaten auch nach dem Navigieren neu – deshalb nachhalten
+    const gewuenscht = fensterTitel(pathname);
+    const setzen = () => { if (document.title !== gewuenscht) document.title = gewuenscht; };
+    setzen();
+    const beobachter = new MutationObserver(setzen);
+    beobachter.observe(document.head, { childList: true, subtree: true, characterData: true });
+    return () => beobachter.disconnect();
+  }, [pathname]);
 
   useEffect(() => {
     if (!userMenu) return;

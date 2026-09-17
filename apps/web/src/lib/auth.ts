@@ -218,6 +218,7 @@ export async function completeSecondFactor(code: string): Promise<CurrentUser | 
 export async function logout(): Promise<void> {
   const store = await cookies();
   store.delete(SESSION_COOKIE);
+  store.delete("tdd_mandant"); // Mandantenwahl (/m/<kurzname>) zuruecksetzen – danach gilt wieder der Host-Mandant
 }
 
 /** Landeseite nach dem Login je nach Rolle. */

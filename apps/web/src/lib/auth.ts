@@ -99,7 +99,9 @@ export async function login(email: string, password: string, orgId?: number | nu
     // Konto in einem anderen Mandanten (Anmeldung ueber den Host eines anderen Unternehmens
     // oder ohne eigenen Host)? Die DB nennt den Mandanten, die Anmeldung laeuft dann dort (055).
     const fremd = await mandantDesKontos(name);
-    if (fremd && fremd !== currentTenantId()) return runWithTenant(fremd, () => login(email, password, orgId));
+    // Die auf der Login-Seite gewaehlte Organisation stammt aus dem Host-Mandanten und ist dort bedeutungslos;
+    // die Session bekommt ohnehin die Organisation des Kontos.
+    if (fremd && fremd !== currentTenantId()) return runWithTenant(fremd, () => login(email, password, null));
     return null;
   }
   if (!u.isActive) return null;

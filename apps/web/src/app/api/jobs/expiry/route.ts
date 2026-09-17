@@ -5,6 +5,7 @@ import { sendMail } from "@/lib/mail";
 import { audit } from "@/lib/audit";
 import { requireJobToken } from "@/lib/job-auth";
 import { fuerAlleMandanten } from "@/lib/tenant-jobs";
+import { mandant } from "@/lib/mandant";
 
 /**
  * Karten-Ablauf-Job: markiert abgelaufene Karten als ABGELAUFEN und benachrichtigt
@@ -29,13 +30,14 @@ async function lauf(): Promise<unknown> {
     .where(and(eq(cards.status, "AKTIV"), lt(cards.validTo, todayStr)));
 
   let mailed = 0;
+  const m = await mandant();
   for (const c of expired) {
     await db().update(cards).set({ status: "ABGELAUFEN", updatedAt: new Date() }).where(eq(cards.id, c.cardId));
     if (c.email) {
       const r = await sendMail({
         to: c.email,
-        subject: "Tischlein deck dich – Ihre Berechtigungskarte ist abgelaufen",
-        text: `Guten Tag ${c.first} ${c.last},\n\nIhre TDD-Berechtigungskarte ist abgelaufen. Für eine weitere Nutzung stellen Sie bitte einen neuen Antrag bei Ihrer Gemeinde/Stadt oder der betreuenden Institution.\n\nFreundliche Grüße\nTischlein deck dich`,
+        subject: `${m.kurzname} – Ihre Berechtigungskarte ist abgelaufen`,
+        text: `Guten Tag ${c.first} ${c.last},\n\nIhre Berechtigungskarte ist abgelaufen. Für eine weitere Nutzung stellen Sie bitte einen neuen Antrag bei Ihrer Gemeinde/Stadt oder der betreuenden Institution.\n\nFreundliche Grüße\nTischlein deck dich`,
       });
       if (r.sent) mailed++;
     }

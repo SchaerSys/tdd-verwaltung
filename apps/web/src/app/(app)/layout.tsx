@@ -9,6 +9,7 @@ import { AppShell } from "@/components/AppShell";
 import { hasPermission } from "@/lib/rbac";
 import { fmtDate } from "@/lib/format";
 import type { Uebernahme } from "@/components/UebernahmenReiter";
+import { mandant } from "@/lib/mandant";
 
 async function logoutAction() {
   "use server";
@@ -67,6 +68,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       collapsedInit={prefs.navCollapsed}
       logout={logoutAction}
       uebernahmen={uebernahmen}
+      traeger={(await mandant()).kurzname}
     >
       {children}
     </AppShell>

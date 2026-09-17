@@ -22,8 +22,11 @@ export function AppShell({
   collapsedInit,
   logout,
   uebernahmen = [],
+  traeger,
   children,
 }: {
+  /** Name des Mandanten (Unternehmen) im Kopf. */
+  traeger: string;
   groups: NavGroup[];
   user: { displayName: string; role: string };
   roleLabel: string;
@@ -79,7 +82,7 @@ export function AppShell({
         <button type="button" className="btn ghost icon" onClick={toggle} aria-label="Navigation ein-/ausblenden" title="Navigation ein-/ausblenden">☰</button>
         <Link href="/dashboard" className="hdr-brand" title="CareOS">
           <span className="hdr-logo">C</span>
-          <span className="hdr-name"><b>CareOS</b><small>Tischlein deck dich</small></span>
+          <span className="hdr-name"><b>CareOS</b><small>{traeger}</small></span>
         </Link>
         {!onDashboard ? <Link href="/dashboard" className="btn ghost" title="Zurück zum Dashboard">← Dashboard</Link> : null}
 

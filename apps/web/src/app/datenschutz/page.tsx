@@ -48,7 +48,7 @@ export default async function DatenschutzPage() {
 
       <Section title="Zwecke der Verarbeitung">
         <div>Prüfung der Anspruchsberechtigung, Verwaltung von Berechtigungskarten und Dokumentation der
-          Lebensmittelausgabe im Rahmen der Tätigkeit von Tischlein deck dich.</div>
+          Lebensmittelausgabe im Rahmen der Tätigkeit von {m.name}.</div>
       </Section>
 
       <Section title="Verarbeitete Datenkategorien">
@@ -61,7 +61,7 @@ export default async function DatenschutzPage() {
       </Section>
 
       <Section title="Empfänger / Weitergabe">
-        <div>Zuständige Gemeinde/Stadt bzw. antragstellende Institution und Tischlein deck dich – ausschließlich
+        <div>Zuständige Gemeinde/Stadt bzw. antragstellende Institution und {m.name} – ausschließlich
           zum Zweck der Anspruchsprüfung und Kartenausstellung. Eine Weitergabe an unbeteiligte Dritte erfolgt nicht.</div>
       </Section>
 

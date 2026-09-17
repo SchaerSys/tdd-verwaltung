@@ -9,6 +9,7 @@ import { fmtDateTime } from "@/lib/format";
 import { setUserRole, toggleUserActive, resetUserTotp } from "../actions";
 import { NeuerBenutzer } from "./NeuerBenutzer";
 import { BenutzerBearbeiten } from "./BenutzerBearbeiten";
+import { mandant } from "@/lib/mandant";
 
 const ROLE_LABEL: Record<string, string> = {
   ADMIN: "Admin", ERFASSUNG: "Erfassung", AUSGABE: "Kasse", AUSWERTUNG: "Auswertung", FAHRER: "Fahrer", MITARBEITER: "Mitarbeiter:in",
@@ -46,7 +47,7 @@ export default async function BenutzerPage() {
       <div className="page-h">
         <div>
           <h1>Benutzerverwaltung</h1>
-          <div className="sub">Konten von Tischlein deck dich – Gemeinden und Institutionen verwaltet der Betreiber</div>
+          <div className="sub">Konten von {(await mandant()).kurzname} – Gemeinden und Institutionen verwaltet der Betreiber</div>
         </div>
         <Link href="/admin" className="btn ghost">← Stammdaten</Link>
       </div>

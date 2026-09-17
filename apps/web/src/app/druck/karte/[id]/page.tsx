@@ -9,6 +9,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { hasPermission } from "@/lib/rbac";
 import { PrintButton } from "@/components/PrintButton";
 import { fmtDate } from "@/lib/format";
+import { mandant } from "@/lib/mandant";
 
 /**
  * Barcode je Kartenart: neue Karten sind EAN-13 (13 Ziffern), Alt-Karten aus dem
@@ -35,6 +36,7 @@ export default async function DruckPage({ params }: { params: Promise<{ id: stri
   if (!hasPermission(user.role, "card:manage")) redirect("/dashboard");
 
   const { id } = await params;
+  const traeger = (await mandant()).kurzname;
   const rows = await db()
     .select({
       number: cards.cardNumber, validTo: cards.validTo, status: cards.status, legacy: cards.legacy,
@@ -69,7 +71,7 @@ export default async function DruckPage({ params }: { params: Promise<{ id: stri
       {isLaden ? (
         // Etikett für Läden
         <div className="print-card" style={{ width: "70mm", background: "#fff", color: "#111", border: "1px solid #ddd", borderRadius: 6, padding: "10px 12px", boxShadow: "0 1px 4px rgba(0,0,0,.1)" }}>
-          <div style={{ fontSize: 11, fontWeight: 800 }}>Tischlein deck dich</div>
+          <div style={{ fontSize: 11, fontWeight: 800 }}>{traeger}</div>
           <div style={{ fontSize: 15, fontWeight: 700, marginTop: 4 }}>{c.first} {c.last}</div>
           <div style={{ fontSize: 10, color: "#555" }}>gültig bis {fmtDate(c.validTo)}</div>
           {nummer != null ? <div style={{ fontSize: 10, color: "#111", marginTop: 2 }}>Gruppe <b>{gruppe}</b> · Nr. <b>{nummer}</b></div> : null}
@@ -80,7 +82,7 @@ export default async function DruckPage({ params }: { params: Promise<{ id: stri
         <div className="print-card" style={{ width: "85.6mm", height: "54mm", background: "#fff", color: "#111", border: "1px solid #ddd", borderRadius: "3mm", padding: "4mm 5mm", boxShadow: "0 2px 8px rgba(0,0,0,.12)", display: "flex", flexDirection: "column", justifyContent: "space-between", boxSizing: "border-box" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
             <div>
-              <div style={{ fontWeight: 800, letterSpacing: "-.02em" }}>Tischlein deck dich</div>
+              <div style={{ fontWeight: 800, letterSpacing: "-.02em" }}>{traeger}</div>
               <div style={{ fontSize: 9, color: "#666" }}>{c.loc}</div>
             </div>
             <div style={{ width: "16mm", height: "16mm", background: "#f0f0f0", border: "1px solid #ddd", borderRadius: "1.5mm", overflow: "hidden", display: "grid", placeItems: "center", fontSize: 8, color: "#999" }}>

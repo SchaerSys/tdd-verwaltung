@@ -7,7 +7,7 @@ import { loginAction, listOrganizations, type LoginState } from "./actions";
 type Access = "TDD" | "GEMEINDE" | "INSTITUTION";
 interface Org { id: number; name: string }
 
-export function LoginForm({ notice }: { notice?: string }) {
+export function LoginForm({ notice, traeger }: { notice?: string; traeger: string }) {
   const [access, setAccess] = useState<Access | null>(null);
   const [org, setOrg] = useState<Org | null>(null);
   const [orgs, setOrgs] = useState<Org[]>([]);
@@ -41,7 +41,7 @@ export function LoginForm({ notice }: { notice?: string }) {
       {!access ? (
         <div className="flex flex-col gap-2">
           <div className="text-xs text-muted font-semibold">Zugang wählen</div>
-          <button className="btn" onClick={() => setAccess("TDD")}>🏢 Tischlein deck dich</button>
+          <button className="btn" onClick={() => setAccess("TDD")}>🏢 {traeger}</button>
           <button className="btn" onClick={() => setAccess("GEMEINDE")}>🏛 Gemeinde</button>
           <button className="btn" onClick={() => setAccess("INSTITUTION")}>🤝 Institution</button>
         </div>
@@ -70,7 +70,7 @@ export function LoginForm({ notice }: { notice?: string }) {
       {showLoginForm ? (
         <form action={action} className="flex flex-col gap-4">
           <div className="flex items-center justify-between text-sm">
-            <span className="rolepill">{access === "TDD" ? "Tischlein deck dich" : org?.name}</span>
+            <span className="rolepill">{access === "TDD" ? traeger : org?.name}</span>
             <button type="button" className="text-xs text-accent hover:underline" onClick={() => { setAccess(null); setOrg(null); setQ(""); }}>ändern</button>
           </div>
           <input type="hidden" name="orgId" value={access === "TDD" ? (org?.id ?? "") : (org?.id ?? "")} />

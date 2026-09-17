@@ -150,7 +150,7 @@ export async function decideAntrag(formData: FormData): Promise<void> {
         const mail = await sendMail({
           to: info.email,
           subject: `${m.kurzname} – Positiver Bescheid`,
-          text: `Guten Tag ${info.name},\n\nIhr Antrag wurde positiv beschieden. Im Anhang finden Sie Ihren Bescheid.\nBitte bringen Sie diesen zur zuständigen TDD-Ausgabestelle mit, um Ihre Berechtigungskarte zu erhalten.\n\nFreundliche Grüße\n${m.name}`,
+          text: `Guten Tag ${info.name},\n\nIhr Antrag wurde positiv beschieden. Im Anhang finden Sie Ihren Bescheid.\nBitte bringen Sie diesen zur zuständigen Ausgabestelle mit, um Ihre Berechtigungskarte zu erhalten.\n\nFreundliche Grüße\n${m.name}`,
           attachments: [{ filename: "TDD-Bescheid.pdf", content: pdf }],
         });
         await audit({ actorUserId: user.id, action: mail.sent ? "antrag.mail.sent" : "antrag.mail.pending", entityType: "antrag", entityId: antragId, after: { to: info.email, sent: mail.sent, info: mail.info } });

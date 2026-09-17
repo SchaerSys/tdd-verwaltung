@@ -35,9 +35,9 @@ export async function generateBescheidPdf(d: BescheidData): Promise<Buffer> {
   if (d.birthDate) line(`Geburtsdatum: ${d.birthDate}`);
   if (d.address) line(`Adresse: ${d.address}`);
   y -= 12;
-  line("Sie sind berechtigt, eine TDD-Berechtigungskarte zu erhalten.");
+  line("Sie sind berechtigt, eine Berechtigungskarte zu erhalten.");
   line("Bitte bringen Sie diesen Bescheid (im Original oder ausgedruckt)");
-  line("zur zuständigen TDD-Ausgabestelle mit. Dort erhalten Sie Ihre Karte.");
+  line("zur zuständigen Ausgabestelle mit. Dort erhalten Sie Ihre Karte.");
   y -= 20;
   line("Mit freundlichen Grüßen", 11, font, rgb(0.4, 0.42, 0.45));
   line(d.absender ?? "Tischlein deck dich Vorarlberg", 11, font, rgb(0.4, 0.42, 0.45));

@@ -9,6 +9,7 @@ import { TourAblauf } from "@/components/TourAblauf";
 import { ortungErlaubt } from "@/lib/touren-daten";
 import { Lebenszeichen } from "@/components/Lebenszeichen";
 import { KoppelnForm } from "./KoppelnForm";
+import { mandant } from "@/lib/mandant";
 
 export const metadata: Metadata = { title: "Fahrzeug-Tablet · CareOS", manifest: "/manifest.webmanifest" };
 export const viewport: Viewport = { width: "device-width", initialScale: 1, maximumScale: 1 };
@@ -44,7 +45,7 @@ export default async function FahrzeugSeite({ searchParams }: { searchParams: Pr
         </div>
         {liste.length === 0 ? <div className="panel"><div className="empty">Keine Tour für dieses Fahrzeug an diesem Tag. Sobald das Büro eine Tour sendet, erscheint sie hier von selbst.</div></div> : null}
         <TourAblauf liste={liste} strecken={strecken} fahrer={fahrerListe} ortung={await ortungErlaubt(liste)} />
-        <div className="text-[.7rem] text-muted text-center py-4">Tischlein deck dich · Fahrzeug-Tablet · Seite lädt Änderungen beim Öffnen; zum Aktualisieren nach unten ziehen.</div>
+        <div className="text-[.7rem] text-muted text-center py-4">{(await mandant()).kurzname} · Fahrzeug-Tablet · Seite lädt Änderungen beim Öffnen; zum Aktualisieren nach unten ziehen.</div>
       </main>
     </div>
   );

@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "CareOS",
-  description: "Verwaltungssystem Tischlein deck dich",
+  description: "CareOS – Verwaltungssystem für soziale Einrichtungen",
   applicationName: "CareOS",
   manifest: "/app.webmanifest",
   icons: { icon: "/icon.svg", apple: "/icon.svg" },

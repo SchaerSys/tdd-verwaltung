@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq, ilike, isNull, or, sql, inArray } from "drizzle-orm";
+import { and, desc, eq, ilike, isNull, or, sql, inArray } from "drizzle-orm";
 import { cards, persons, locations, distributions, personLocationAssignments } from "@tdd/db";
 import { normalizeName } from "@tdd/core";
 import { db } from "@/lib/db";
@@ -172,15 +172,15 @@ export async function searchByName(q: string): Promise<Eligibility[]> {
   // erscheint die Person am Kiosk NICHT (gelöschte/kartenlose ausblenden).
   const ids = people.map((p) => p.id);
   if (ids.length === 0) return [];
-  const cardRows = await db().execute(sql`
-    SELECT DISTINCT ON (person_id) person_id, id, card_number, status, valid_to
-    FROM cards
-    WHERE person_id = ANY(${ids}::uuid[]) AND deleted_at IS NULL
-    ORDER BY person_id, created_at DESC`);
-  const byPerson = new Map(
-    (cardRows as unknown as { person_id: string; id: string; card_number: string; status: string; valid_to: string }[])
-      .map((c) => [c.person_id, { id: c.id, number: c.card_number, status: c.status, validTo: c.valid_to }]),
-  );
+  // Query-Builder statt sql-Template: ein JS-Array im sql`...`-Template wird von Drizzle zu
+  // "(a, b)" aufgeloest (Record), nicht zu einem uuid[]-Parameter – bei mehreren Treffern
+  // brach die Suche mit "cannot cast type record to uuid[]" ab.
+  const cardRows = await db().selectDistinctOn([cards.personId], {
+    person_id: cards.personId, id: cards.id, card_number: cards.cardNumber, status: cards.status, valid_to: cards.validTo,
+  }).from(cards)
+    .where(and(inArray(cards.personId, ids), isNull(cards.deletedAt)))
+    .orderBy(cards.personId, desc(cards.createdAt));
+  const byPerson = new Map(cardRows.map((c) => [c.person_id, { id: c.id, number: c.card_number, status: c.status, validTo: c.valid_to }]));
 
   const results: Eligibility[] = [];
   const todayStr = new Date().toISOString().slice(0, 10);

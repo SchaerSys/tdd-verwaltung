@@ -30,6 +30,10 @@ describe("Mandanten-Aufloesung aus Rohdaten der Anfrage", () => {
     expect(tenantAusRohdaten({ host: "TIROL.careos.at:443", cookie: undefined }, hosts)).toBe(TIROL);
     // nichts passt: Standard
     expect(tenantAusRohdaten({ host: "unbekannt.example", cookie: "x=1" }, hosts)).toBe(TENANT_VORARLBERG);
+    // Mandanten-Cookie (/m/<kurzname>) schlaegt Host, aber nur fuer bekannte aktive Mandanten
+    expect(tenantAusRohdaten({ host: "tirol.careos.at", cookie: `tdd_mandant=${SALZBURG}` }, hosts, new Set([SALZBURG]))).toBe(SALZBURG);
+    expect(tenantAusRohdaten({ host: "tirol.careos.at", cookie: `tdd_mandant=${SALZBURG}` }, hosts, new Set([TIROL]))).toBe(TIROL);
+    expect(tenantAusRohdaten({ host: "tirol.careos.at", cookie: `tdd_mandant=${SALZBURG}` }, hosts, null)).toBe(SALZBURG);
   });
 
   it("gefaelschte Session zaehlt nicht (Signatur), Geraete-Cookie ohne Praefix auch nicht", () => {

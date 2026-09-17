@@ -26,6 +26,8 @@ export default async function AbschlussSeite() {
         <div className="grid grid-cols-2 gap-3">
           <div className="card stat"><div className="k">Ausgaben in dieser Sitzung</div><div className="v">{stand.anzahl}</div></div>
           <div className="card stat"><div className="k">Einnahmen laut System</div><div className="v">{eur(stand.einnahmen)}</div></div>
+          <div className="card stat"><div className="k">davon Schuldentilgung</div><div className="v">{eur(stand.tilgung)}</div></div>
+          <div className="card stat"><div className="k">Neu entstandene Schulden</div><div className="v" style={{ color: stand.neueSchulden > 0 ? "var(--warn)" : "inherit" }}>{eur(stand.neueSchulden)}</div></div>
         </div>
         <div className="field"><label className="lbl">Kasse gezählt (€)</label><input name="kasseGezaehlt" className="inp mono" inputMode="decimal" placeholder={stand.einnahmen.toFixed(2)} style={{ fontSize: "1.3rem" }} autoFocus /><div className="text-[.7rem] text-muted">Bargeld in der Kasse aus dieser Sitzung. Leer lassen, wenn keine Zählung.</div></div>
         <div className="field"><label className="lbl">Übergabe an</label><input name="uebergabeAn" className="inp" placeholder="Name (Kasse/Schlüssel)" /></div>

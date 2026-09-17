@@ -139,11 +139,17 @@ async function sitzungenAutoSchliessen(where: ReturnType<typeof eq>): Promise<vo
   for (const s of offen) await sitzungBeenden(s.id, { ordentlich: false });
 }
 
-export async function sitzungStand(id: string): Promise<{ anzahl: number; einnahmen: number; beginn: Date; locationId: number; staffId: string | null } | null> {
+export async function sitzungStand(id: string): Promise<{ anzahl: number; einnahmen: number; tilgung: number; neueSchulden: number; beginn: Date; locationId: number; staffId: string | null } | null> {
   const s = (await db().select().from(ausgabeSitzungen).where(eq(ausgabeSitzungen.id, id)).limit(1))[0];
   if (!s) return null;
-  const agg = (await db().select({ n: sql<number>`count(*)::int`, sum: sql<string>`coalesce(sum(${distributions.amountPaid}), 0)` }).from(distributions).where(eq(distributions.sitzungId, id)))[0]!;
-  return { anzahl: agg.n, einnahmen: Number(agg.sum), beginn: s.beginn, locationId: s.locationId, staffId: s.staffId };
+  // Einnahmen = alles Bezahlte; davon Tilgung = Bezahltes ueber dem heute Faelligen; neue Schulden = Faelliges ohne Zahlung (056)
+  const agg = (await db().select({
+    n: sql<number>`count(*) filter (where ${distributions.buchungsart} = 'AUSGABE')::int`,
+    sum: sql<string>`coalesce(sum(${distributions.amountPaid}), 0)`,
+    tilgung: sql<string>`coalesce(sum(greatest(coalesce(${distributions.amountPaid}, 0) - greatest(coalesce(${distributions.amountDue}, 0), 0), 0)), 0)`,
+    neu: sql<string>`coalesce(sum(greatest(coalesce(${distributions.amountDue}, 0) - coalesce(${distributions.amountPaid}, 0), 0)) filter (where ${distributions.buchungsart} = 'AUSGABE'), 0)`,
+  }).from(distributions).where(eq(distributions.sitzungId, id)))[0]!;
+  return { anzahl: agg.n, einnahmen: Number(agg.sum), tilgung: Number(agg.tilgung), neueSchulden: Number(agg.neu), beginn: s.beginn, locationId: s.locationId, staffId: s.staffId };
 }
 
 /** Sitzung schliessen: Zahlen einfrieren, Kassenzaehlung/Differenz, optional Gehen stempeln. */

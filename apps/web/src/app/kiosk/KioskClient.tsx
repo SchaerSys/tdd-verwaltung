@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { lookupCard, searchByName, recordDistribution, getActiveCards, issueCardKiosk, savePersonNote, saveBirthDate, payDebt, blockCardKiosk, unblockCardKiosk, todayStats, type Eligibility, type CachedCard, type IssueResult } from "./actions";
+import { lookupCard, searchByName, recordDistribution, getActiveCards, issueCardKiosk, savePersonNote, saveBirthDate, payDebt, blockCardKiosk, unblockCardKiosk, todayStats, type Eligibility, type CachedCard, type IssueResult, type Zahlung } from "./actions";
 import { KameraScan } from "./KameraScan";
 import { Footer } from "@/components/Footer";
 import { fmtDate, fmtDateTime } from "@/lib/format";
@@ -9,7 +9,7 @@ import { fmtDate, fmtDateTime } from "@/lib/format";
 const CACHE_KEY = "tdd_kiosk_cards";
 const QUEUE_KEY = "tdd_kiosk_queue";
 
-interface QueueItem { clientRef: string; cardId: string; name: string; at: string; amountDue?: number; moneyForgotten?: boolean; settleDebt?: boolean; note?: string | null }
+interface QueueItem { clientRef: string; cardId: string; name: string; at: string; amountDue?: number; zahlung?: Zahlung; moneyForgotten?: boolean; settleDebt?: boolean; note?: string | null }
 
 const eur = (n: number) => n.toLocaleString("de-AT", { style: "currency", currency: "EUR" });
 
@@ -43,7 +43,9 @@ export function KioskClient({ locationName, initialCards, logout, abschlussHref,
   const [nameHits, setNameHits] = useState<Eligibility[] | null>(null);
   const [issued, setIssued] = useState<IssueResult | null>(null);
   const [issuing, setIssuing] = useState(false);
-  const [moneyForgotten, setMoneyForgotten] = useState(false);
+  const [zahlung, setZahlung] = useState<Zahlung>("TOTAL");
+  const [fehler, setFehler] = useState<string | null>(null);
+  const suchTimer = useRef<number | null>(null);
   const [paying, setPaying] = useState(false);
   const [paidMsg, setPaidMsg] = useState<string | null>(null);
   const [note, setNote] = useState("");
@@ -57,7 +59,7 @@ export function KioskClient({ locationName, initialCards, logout, abschlussHref,
     let q = readQueue();
     for (const item of [...q]) {
       try {
-        await recordDistribution(item.cardId, item.clientRef, { amountDue: item.amountDue, moneyForgotten: item.moneyForgotten, settleDebt: item.settleDebt, note: item.note });
+        await recordDistribution(item.cardId, item.clientRef, { amountDue: item.amountDue, zahlung: item.zahlung, moneyForgotten: item.moneyForgotten, settleDebt: item.settleDebt, note: item.note });
         q = q.filter((x) => x.clientRef !== item.clientRef);
         writeQueue(q);
       } catch { /* später erneut */ }
@@ -134,30 +136,29 @@ export function KioskClient({ locationName, initialCards, logout, abschlussHref,
     finally { setPaying(false); }
   }
 
-  async function payNow() {
-    if (!result?.cardId || !result.debt || result.debt <= 0) return;
-    setPaying(true);
-    try {
-      const r = await payDebt(result.cardId, crypto.randomUUID());
-      if (r.ok) { setPaidMsg(`✓ ${eur(r.settled)} beglichen · ${new Date().toLocaleTimeString("de-AT")}`); setResult({ ...result, debt: 0 }); }
-    } catch { alert("Zahlung konnte nicht gespeichert werden (offline?)."); }
-    finally { setPaying(false); }
-  }
-
-  async function confirm() {
+  async function confirm(art: Zahlung = zahlung) {
     if (!result?.cardId) return;
+    setFehler(null);
     const clientRef = crypto.randomUUID();
-    const opts = { amountDue: result.amountDue, moneyForgotten, note };
+    const opts = { amountDue: result.amountDue, zahlung: art, note };
     const item: QueueItem = { clientRef, cardId: result.cardId, name: result.name ?? "", at: new Date().toISOString(), ...opts };
     if (navigator.onLine) {
-      try { await recordDistribution(result.cardId, clientRef, opts); setConfirmed(new Date().toLocaleTimeString("de-AT")); void loadToday(); }
-      catch { const q = readQueue(); q.push(item); writeQueue(q); setPending(q.length); setConfirmed("offline gespeichert"); }
+      try {
+        await recordDistribution(result.cardId, clientRef, opts);
+        setConfirmed(new Date().toLocaleTimeString("de-AT")); setZahlung(art); void loadToday();
+        if (art === "TOTAL") setResult({ ...result, debt: 0, schuldenStufe: "OK" });
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : "";
+        // Fachlicher Ablehnungsgrund (Standort, Schuldensperre) → anzeigen, NICHT in den Offline-Puffer
+        if (/Abholung nur|Schuldensperre/.test(msg)) { setFehler(msg); return; }
+        const q = readQueue(); q.push(item); writeQueue(q); setPending(q.length); setConfirmed("offline gespeichert");
+      }
     } else {
       const q = readQueue(); q.push(item); writeQueue(q); setPending(q.length); setConfirmed("offline gespeichert");
     }
   }
 
-  function reset() { setResult(null); setConfirmed(null); setNameHits(null); setIssued(null); setScanVal(""); setMoneyForgotten(false); setPaying(false); setPaidMsg(null); setNote(""); focusScan(); }
+  function reset() { setResult(null); setConfirmed(null); setNameHits(null); setIssued(null); setScanVal(""); setZahlung("TOTAL"); setFehler(null); setPaying(false); setPaidMsg(null); setNote(""); focusScan(); }
 
   async function issue(personId: string) {
     setIssuing(true);
@@ -172,12 +173,20 @@ export function KioskClient({ locationName, initialCards, logout, abschlussHref,
     if (!navigator.onLine) { setNameHits([]); return; }
     setNameHits(await searchByName(q));
   }
+  /** Tippen: 200 ms nach der letzten Eingabe suchen (ab 1 Zeichen), nicht bei jedem Tastendruck. */
+  function sucheGeplant(v: string) {
+    if (suchTimer.current) window.clearTimeout(suchTimer.current);
+    const q = v.trim();
+    if (q.length < 1) { setNameHits(null); return; }
+    suchTimer.current = window.setTimeout(() => void runNameSearch(q), 200);
+  }
 
   const isOk = result?.status === "OK";
   const noReason: Record<string, string> = {
     EXPIRED: "Karte abgelaufen", BLOCKED: "Karte gesperrt", REPLACED: "Karte wurde ersetzt",
-    NOTFOUND: "Karte nicht gefunden", NOCARD: "Keine Karte vorhanden",
+    NOTFOUND: "Karte nicht gefunden", NOCARD: "Keine Karte vorhanden", WRONG_LOCATION: "Falsche Ausgabestelle",
   };
+  const gesperrtDurchSchulden = isOk && result?.schuldenStufe === "SPERRE";
 
   return (
     <div className="kiosk">
@@ -226,32 +235,41 @@ export function KioskClient({ locationName, initialCards, logout, abschlussHref,
             </div>
 
             <div className="namesearch">
-              <div className="lbl" style={{ marginBottom: 6 }}>Nicht gefunden? Suche nach Name, Adresse oder Telefon</div>
-              <input className="inp" placeholder="Name, Adresse oder Telefon…" onChange={(e) => { const v = e.target.value; if (v.length >= 2) void runNameSearch(v); else setNameHits(null); }} />
+              <div className="lbl" style={{ marginBottom: 6 }}>Nicht gefunden? Name, Familiennummer (z. B. 12 oder 3/12), Adresse, Telefon oder Kartennummer</div>
+              <input className="inp" placeholder="Name, Nummer, Adresse, Telefon…" onChange={(e) => sucheGeplant(e.target.value)} />
               {nameHits && nameHits.length > 0 ? (
-                <div className="panel" style={{ marginTop: 8 }}>
-                  {nameHits.map((h, i) => (
-                    <div key={i} className="namehit" style={{ cursor: "default" }}>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-semibold">{h.name}</div>
-                        <span className={`pill ${h.status === "OK" ? "good" : "muted"}`}>{h.status === "OK" ? "berechtigt" : (noReason[h.status] ?? h.status)}</span>
+                <div className="panel namehits" style={{ marginTop: 8 }}>
+                  {nameHits.map((h, i) => {
+                    const fremd = h.status === "WRONG_LOCATION";
+                    return (
+                      <div key={i} className={`namehit${fremd ? " fremd" : ""}`} style={{ cursor: "default" }}>
+                        <div className="flex-1 min-w-0" style={{ textAlign: "left" }}>
+                          <div className="font-semibold">{h.name}</div>
+                          <div className="text-xs text-muted">
+                            {h.locationName ?? "kein Standort"}{h.gruppe != null && h.familienNr != null ? ` · Gruppe ${h.gruppe} · Nr. ${h.familienNr}` : ""}{h.cardNumber ? ` · Karte ${h.cardNumber}` : ""}
+                          </div>
+                          <span className={`pill ${h.status === "OK" ? "good" : fremd ? "bad" : "muted"}`}>{h.status === "OK" ? "berechtigt" : fremd ? (h.reason ?? "andere Ausgabestelle") : (noReason[h.status] ?? h.status)}</span>
+                        </div>
+                        <div className="flex gap-2">
+                          {(h.status === "OK" || fremd) && h.cardNumber ? <button className="btn sm" onClick={() => void doScan(h.cardNumber!)}>Anzeigen</button> : null}
+                          {h.personId && !fremd && h.status !== "OK" ? <button className="btn primary sm" disabled={issuing} onClick={() => void issue(h.personId!)}>{issuing ? "…" : "Karte ausstellen"}</button> : null}
+                        </div>
                       </div>
-                      <div className="flex gap-2">
-                        {h.status === "OK" && h.cardNumber ? <button className="btn sm" onClick={() => void doScan(h.cardNumber!)}>Anzeigen</button> : null}
-                        {h.personId ? <button className="btn primary sm" disabled={issuing} onClick={() => void issue(h.personId!)}>{issuing ? "…" : "Karte ausstellen"}</button> : null}
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : null}
               {nameHits && nameHits.length === 0 ? <div className="empty" style={{ color: "var(--bad)", fontWeight: 600 }}>⚠ Person nicht registriert.</div> : null}
             </div>
           </div>
         ) : (
-          <div className="k-inner">
-            <div className={`k-result ${isOk ? "ok" : "no"} show`}>
-              <div className="k-badge">{isOk ? "✓" : "✕"}</div>
-              <div className="k-status">{isOk ? "Berechtigt" : "Nicht berechtigt"}</div>
+          <div className="k-inner k-breit">
+            <div className={`k-result ${isOk && !gesperrtDurchSchulden ? "ok" : "no"} show k-zwei`}>
+             <div className="k-links">
+              <div className="k-kopf">
+                <div className="k-badge">{isOk && !gesperrtDurchSchulden ? "✓" : "✕"}</div>
+                <div className="k-status">{isOk ? (gesperrtDurchSchulden ? "Schuldensperre" : "Berechtigt") : (result.status === "WRONG_LOCATION" ? "Falsche Ausgabestelle" : "Nicht berechtigt")}</div>
+              </div>
               <div className="k-person">
                 <div className="k-photo">
                   {result.photoRef && result.personId && !photoError
@@ -276,6 +294,15 @@ export function KioskClient({ locationName, initialCards, logout, abschlussHref,
               {isOk
                 ? <div className="k-valid">Gültig bis <b>{fmtDate(result.validTo)}</b></div>
                 : <div className="k-valid">{noReason[result.status] ?? "Nicht berechtigt"}{result.reason ? ` · ${result.reason}` : ""}</div>}
+              {result.status === "WRONG_LOCATION" ? (
+                <div role="alert" className="k-alarm">Diese Person holt in <b>{result.standortName ?? "einer anderen Ausgabestelle"}</b> ab. Ein Wechsel der Ausgabestelle ist nur im Büro (Personenakte) möglich.</div>
+              ) : null}
+              {isOk && result.schuldenStufe === "WARNUNG" ? (
+                <div role="alert" className="k-alarm warn">⚠ Schulden {eur(result.debt ?? 0)} ({result.offeneAusgaben ?? 0} unbezahlte Ausgaben) – bitte heute mitkassieren.</div>
+              ) : null}
+              {gesperrtDurchSchulden ? (
+                <div role="alert" className="k-alarm">⛔ Schuldensperre: {eur(result.debt ?? 0)} offen ({result.offeneAusgaben ?? 0} unbezahlte Ausgaben). Ausgabe nur, wenn heute das Total bezahlt wird. Erlass nur durchs Büro.</div>
+              ) : null}
 
               {isOk && (result.visitsToday ?? 0) > 0 ? (
                 <div
@@ -286,6 +313,8 @@ export function KioskClient({ locationName, initialCards, logout, abschlussHref,
                 </div>
               ) : null}
 
+             </div>
+             <div className="k-rechts">
               {isOk && result.adults != null ? (
                 <div className="k-pay">
                   <div className="k-pay-row">
@@ -296,28 +325,21 @@ export function KioskClient({ locationName, initialCards, logout, abschlussHref,
                     <span>Letzte Anwesenheit</span>
                     <b>{fmtDate(result.lastVisit)}</b>
                   </div>
+                  <div className="k-pay-row">
+                    <span>Heute</span>
+                    <b>{eur(result.amountDue ?? 0)}</b>
+                  </div>
                   {result.debt && result.debt > 0 ? (
                     <div className="k-pay-row debt">
                       <span>Offene Schulden</span>
-                      <div className="flex items-center gap-2">
-                        <b>{eur(result.debt)}</b>
-                        <button className="k-pay-btn" disabled={paying} onClick={() => void payNow()}>{paying ? "…" : "💶 Bezahlt"}</button>
-                      </div>
+                      <b>{eur(result.debt)}</b>
                     </div>
                   ) : null}
                   {paidMsg ? <div className="k-pay-row"><span /><b style={{ color: "#c9f5dd" }}>{paidMsg}</b></div> : null}
                   <div className="k-pay-row total">
-                    <span>Zu zahlen</span>
-                    <b>{eur(moneyForgotten ? 0 : (result.amountDue ?? 0))}</b>
+                    <span>Zu zahlen (Total)</span>
+                    <b>{eur(confirmed ? (zahlung === "KEINE" ? 0 : zahlung === "HEUTE" ? (result.amountDue ?? 0) : (result.total ?? result.amountDue ?? 0)) : (result.total ?? result.amountDue ?? 0))}</b>
                   </div>
-                  {!confirmed ? (
-                    <div className="k-pay-opts">
-                      <label className={`k-chk ${moneyForgotten ? "on" : ""}`}>
-                        <input type="checkbox" checked={moneyForgotten} onChange={(e) => setMoneyForgotten(e.target.checked)} />
-                        Geld vergessen
-                      </label>
-                    </div>
-                  ) : null}
                   {result.personId && !result.birthDate ? (
                     <div className="k-note" style={{ borderColor: "var(--warn)" }}>
                       <span>Geburtsdatum fehlt – bitte erfragen</span>
@@ -336,18 +358,27 @@ export function KioskClient({ locationName, initialCards, logout, abschlussHref,
                 </div>
               ) : null}
 
-              {isOk && !confirmed ? <button className="btn-huge" onClick={() => void confirm()}>✓ Ausgabe bestätigen</button> : null}
-              {confirmed ? <div className="k-confirmed">✓ Ausgabe erfasst · {confirmed}</div> : null}
+              {isOk && !confirmed ? (
+                <div className="k-zahlen">
+                  <button className="btn-huge" onClick={() => void confirm("TOTAL")}>✓ Total bezahlt · {eur(result.total ?? result.amountDue ?? 0)}</button>
+                  {!gesperrtDurchSchulden ? (
+                    <div className="k-zahlen-neben">
+                      {result.debt && result.debt > 0 ? <button className="btn-huge re" onClick={() => void confirm("HEUTE")}>Nur heute · {eur(result.amountDue ?? 0)}</button> : null}
+                      <button className="btn-huge re" onClick={() => void confirm("KEINE")}>Geld vergessen</button>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+              {fehler ? <div role="alert" className="k-alarm">{fehler}</div> : null}
+              {confirmed ? <div className="k-confirmed">✓ Ausgabe erfasst · {confirmed}{zahlung === "KEINE" ? " · nichts bezahlt (Schuld)" : zahlung === "HEUTE" ? " · nur heute bezahlt" : " · Total bezahlt"}</div> : null}
 
-              {/* Karte (neu) drucken – direkt aus dem Dossier */}
-              {isOk && result.cardId
-                ? <a className="btn-huge print" href={`/druck/karte/${result.cardId}`} target="_blank" rel="noreferrer" onClick={() => void persistNote()}>🖨 Karte drucken</a>
-                : null}
-
-              {/* Person/Karte am Tresen sperren */}
-              {isOk && result.cardId
-                ? <button className="btn-huge block" onClick={() => void blockNow()}>🚫 Sperren</button>
-                : null}
+              {/* Karte drucken / sperren – klein, in einer Zeile */}
+              {isOk && result.cardId ? (
+                <div className="k-neben">
+                  <a className="btn-huge print" href={`/druck/karte/${result.cardId}`} target="_blank" rel="noreferrer" onClick={() => void persistNote()}>🖨 Karte drucken</a>
+                  <button className="btn-huge block" onClick={() => void blockNow()}>🚫 Sperren</button>
+                </div>
+              ) : null}
 
               {/* Abgelaufen / ersetzt / keine Karte: neue Karte direkt am Tresen ausstellen */}
               {!isOk && result.personId && ["EXPIRED", "REPLACED", "NOCARD"].includes(result.status)
@@ -363,7 +394,8 @@ export function KioskClient({ locationName, initialCards, logout, abschlussHref,
                 </>
               ) : null}
 
-              <button className="btn-huge re" onClick={reset}>Nächste Karte</button>
+              <button className="btn-huge re weiter" onClick={reset}>Nächste Karte →</button>
+             </div>
             </div>
           </div>
         )}

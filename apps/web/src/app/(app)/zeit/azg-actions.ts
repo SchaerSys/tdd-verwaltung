@@ -28,6 +28,9 @@ export async function regelnSpeichern(fd: FormData): Promise<void> {
     kvEinsicht: String(fd.get("kvEinsicht") ?? "").trim() || null,
     ausgabeStempelt: fd.get("ausgabeStempelt") === "on",
     ortungAufbewahrungTage: num(fd, "ortungAufbewahrungTage", 1, 3650, 90),
+    // Schuldengrenzen am Tresen (056)
+    schuldenWarnungEur: num(fd, "schuldenWarnungEur", 0, 9999, 10).toFixed(2), schuldenSperreEur: num(fd, "schuldenSperreEur", 0, 9999, 20).toFixed(2),
+    schuldenWarnungAnzahl: Math.round(num(fd, "schuldenWarnungAnzahl", 1, 999, 2)), schuldenSperreAnzahl: Math.round(num(fd, "schuldenSperreAnzahl", 1, 999, 4)),
     // Zivildienst-Grenzen laut ZISA
     ziviWocheMinMin: num(fd, "ziviWocheMinStd", 0, 60, 36) * 60, ziviWocheMaxMin: num(fd, "ziviWocheMaxStd", 1, 60, 45) * 60,
     ziviTagMaxMin: num(fd, "ziviTagMaxStd", 1, 12, 10) * 60, ziviRuhezeitMin: num(fd, "ziviRuhezeitStd", 1, 24, 11) * 60,

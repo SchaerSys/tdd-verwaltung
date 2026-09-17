@@ -30,6 +30,7 @@ export const NAV: NavDef[] = [
 
   { href: "/ausgabe", label: "Ausgabe starten", perm: "distribution:record", group: "Ausgabe" },
   { href: "/ausgaben", label: "Ausgaben heute", perm: "distribution:record", group: "Ausgabe" },
+  { href: "/ausgaben/schulden", label: "Offene Schulden", perm: "distribution:record", group: "Ausgabe", parent: "/ausgaben" },
   { href: "/auswertungen", label: "Auswertungen", perm: "report:view", group: "Ausgabe" },
 
   { href: "/personal", label: "Personal", perm: "staff:manage", group: "Personal" },
@@ -103,8 +104,9 @@ export function fensterTitel(pathname: string): string {
     if ((pathname === n.href || pathname.startsWith(n.href + "/")) && (!best || n.href.length > best.href.length)) best = n;
   }
   if (!best) return "CareOS";
-  const eltern = best.parent ? NAV.find((x) => x.href === best!.parent) : null;
-  return eltern ? `${eltern.label} · ${best.label}` : best.label;
+  const treffer = best;
+  const eltern = treffer.parent ? NAV.find((x) => x.href === treffer.parent) : null;
+  return eltern ? `${eltern.label} · ${treffer.label}` : treffer.label;
 }
 
 /** Als Favorit hinzufügbar? (Dashboard selbst ausgenommen.) */

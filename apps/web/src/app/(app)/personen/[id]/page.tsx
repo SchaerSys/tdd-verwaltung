@@ -11,6 +11,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { hasPermission } from "@/lib/rbac";
 import { issueCard, renewCard, blockCard, replaceCard, unblockCard } from "../../karten/actions";
 import { deletePerson } from "./bearbeiten/actions";
+import { schuldenErlassen } from "./schulden-actions";
 import { ConfirmButton } from "@/components/ConfirmButton";
 import { ladeRueckfrage } from "@/lib/rueckfragen";
 import { fmtDate, fmtDateTime } from "@/lib/format";
@@ -168,32 +169,54 @@ export default async function DossierPage({ params }: { params: Promise<{ id: st
       </div>
 
       <div className="panel mt-4">
-        <div className="panel-h"><h3>Ausgaben &amp; Zahlungen</h3></div>
+        <div className="panel-h"><h3>Kontoauszug – Ausgaben &amp; Zahlungen</h3>{offen > 0 ? <span className="pill warn">Ausstand {offen.toLocaleString("de-AT", { style: "currency", currency: "EUR" })}</span> : <span className="pill good">ausgeglichen</span>}</div>
+        {offen > 0 && canManagePersons ? (
+          <form action={schuldenErlassen} className="p-3 flex gap-2 items-end flex-wrap border-b border-[color:var(--border)]">
+            <input type="hidden" name="personId" value={id} />
+            <div className="field"><label className="lbl">Erlass (€)</label><input name="betrag" className="inp mono" style={{ width: 110 }} placeholder={offen.toFixed(2)} /></div>
+            <div className="field flex-1 min-w-[240px]"><label className="lbl">Begründung (Pflicht)</label><input name="begruendung" className="inp" required minLength={5} placeholder="z. B. Härtefall, Beschluss Büro vom …" /></div>
+            <ConfirmButton className="btn" message="Schulden erlassen? Es fliesst kein Geld; die Buchung wird protokolliert.">Erlassen</ConfirmButton>
+            <div className="text-[.7rem] text-muted basis-full">Nur das Büro darf erlassen; leer = ganzer Ausstand. Am Tresen wird nur kassiert.</div>
+          </form>
+        ) : null}
         {personDist.length === 0
           ? <div className="empty">Noch keine Ausgaben protokolliert.</div>
           : <div className="twrap"><table className="data">
-              <thead><tr><th>Datum</th><th>Art</th><th className="text-right">Fällig</th><th className="text-right">Bezahlt</th></tr></thead>
+              <thead><tr><th>Datum</th><th>Art</th><th className="text-right">Fällig</th><th className="text-right">Bezahlt</th><th className="text-right">Saldo danach</th><th>Notiz</th></tr></thead>
               <tbody>
-                {personDist.map((d) => {
-                  const paid = d.amountPaid != null ? Number(d.amountPaid) : null;
-                  const due = d.amountDue != null ? Number(d.amountDue) : null;
-                  const isSettle = d.note === "Schulden beglichen" || (due === 0 && (paid ?? 0) > 0);
+                {(() => {
+                  // laufender Saldo (bezahlt − fällig) von alt nach neu, Anzeige neu nach alt
+                  const chrono = [...personDist].reverse();
+                  let saldo = 0;
+                  const mitSaldo = chrono.map((d) => { saldo += Number(d.amountPaid ?? 0) - Number(d.amountDue ?? 0); return { d, saldo: Math.round(saldo * 100) / 100 }; }).reverse();
                   const fmt = (n: number | null) => n == null ? "—" : n.toLocaleString("de-AT", { style: "currency", currency: "EUR" });
-                  return (
-                    <tr key={d.id}>
-                      <td className="mono">{fmtDateTime(d.distributedAt)}</td>
-                      <td>{isSettle ? <span className="pill good">Schulden beglichen</span> : <span className="pill muted">Ausgabe</span>}</td>
-                      <td className="text-right mono">{fmt(due)}</td>
-                      <td className="text-right mono">{fmt(paid)}</td>
-                    </tr>
-                  );
-                })}
+                  return mitSaldo.map(({ d, saldo: s }) => {
+                    const paid = d.amountPaid != null ? Number(d.amountPaid) : null;
+                    const due = d.amountDue != null ? Number(d.amountDue) : null;
+                    const art = d.buchungsart === "ERLASS" ? <span className="pill">Erlass</span>
+                      : d.buchungsart === "TILGUNG" || d.note === "Schulden beglichen" ? <span className="pill good">Schulden beglichen</span>
+                      : (paid ?? 0) > (due ?? 0) ? <span className="pill good">Ausgabe + Tilgung</span>
+                      : (paid ?? 0) < (due ?? 0) ? <span className="pill warn">Ausgabe (offen)</span>
+                      : <span className="pill muted">Ausgabe</span>;
+                    return (
+                      <tr key={d.id}>
+                        <td className="mono">{fmtDateTime(d.distributedAt)}</td>
+                        <td>{art}</td>
+                        <td className="text-right mono">{fmt(due)}</td>
+                        <td className="text-right mono">{fmt(paid)}</td>
+                        <td className="text-right mono" style={{ color: s < 0 ? "var(--warn)" : "inherit" }}>{fmt(s)}</td>
+                        <td className="text-xs text-muted">{d.buchungsart === "ERLASS" ? d.note : ""}</td>
+                      </tr>
+                    );
+                  });
+                })()}
               </tbody>
               <tfoot>
                 <tr className="total-row">
                   <td colSpan={2}><b>Total</b></td>
                   <td className="text-right mono"><b>{sumDue.toLocaleString("de-AT", { style: "currency", currency: "EUR" })}</b></td>
                   <td className="text-right mono"><b>{sumPaid.toLocaleString("de-AT", { style: "currency", currency: "EUR" })}</b></td>
+                  <td colSpan={2} />
                 </tr>
                 <tr className="total-row">
                   <td colSpan={3}><b>Offener Ausstand</b></td>

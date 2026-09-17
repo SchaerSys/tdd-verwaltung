@@ -9,10 +9,12 @@ import { SESSION_COOKIE } from "./constants";
  * Reihenfolge:
  *  1. verifizierte Session (tenantId im signierten Payload) – verbindlich fuer angemeldete Personen,
  *  2. Geraete-/Stations-Cookie mit Praefix "<tenant>:<token>" (Fahrzeug-Tablet, Ausgabestation),
- *  3. Hostname (Stammdaten tenants.host oder Umgebung TENANT_HOSTS "host=uuid;host2=uuid"),
- *  4. Standard-Mandant.
+ *  3. Mandanten-Cookie (gesetzt ueber /m/<kurzname>, z. B. Demo auf dem gemeinsamen Host),
+ *  4. Hostname (Stammdaten tenants.host oder Umgebung TENANT_HOSTS "host=uuid;host2=uuid"),
+ *  5. Standard-Mandant.
  */
 export const GERAETE_COOKIES = ["tdd_geraet", "tdd_station"] as const;
+export const MANDANT_COOKIE = "tdd_mandant";
 
 export interface HostZuordnung { [host: string]: string }
 
@@ -42,6 +44,8 @@ export function hostsAusUmgebung(wert = process.env.TENANT_HOSTS ?? ""): HostZuo
 export function tenantAusRohdaten(
   eingabe: { host: string | undefined; cookie: string | undefined },
   hosts: HostZuordnung,
+  /** Bekannte aktive Mandanten (Pruefung des Mandanten-Cookies); null = jede gueltige UUID. */
+  bekannt: ReadonlySet<string> | null = null,
 ): string {
   const cookies = cookiesLesen(eingabe.cookie);
   try {
@@ -53,6 +57,8 @@ export function tenantAusRohdaten(
     const t = v?.includes(":") ? v.split(":")[0] : null;
     if (t && istTenantId(t)) return t.toLowerCase();
   }
+  const mc = cookies.get(MANDANT_COOKIE)?.toLowerCase();
+  if (mc && istTenantId(mc) && (!bekannt || bekannt.has(mc))) return mc;
   const h = eingabe.host?.toLowerCase().split(":")[0];
   const treffer = h ? hosts[h] : undefined;
   if (treffer) return treffer;

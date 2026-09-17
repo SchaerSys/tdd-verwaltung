@@ -1,14 +1,15 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, sql } from "drizzle-orm";
 import { hash } from "@node-rs/argon2";
 import { organizations, users } from "@tdd/db";
 import { db } from "@/lib/db";
 import { MIN_PASSWORD_LENGTH } from "@/lib/constants";
 import { login, landingFor, completeSecondFactor } from "@/lib/auth";
 import { audit } from "@/lib/audit";
-import { createAuthToken, consumeAuthToken, appUrl } from "@/lib/auth-tokens";
+import { createAuthToken, consumeAuthToken, appUrl, imMandantenDesKontos } from "@/lib/auth-tokens";
+import { istTenantId, currentTenantId, runWithTenant } from "@tdd/db";
 import { sendMail } from "@/lib/mail";
 
 export interface LoginState { error?: string }
@@ -49,6 +50,10 @@ export async function secondFactorAction(_prev: LoginState, formData: FormData):
 export async function requestPasswordReset(_prev: FormState, formData: FormData): Promise<FormState> {
   const email = String(formData.get("email") ?? "").toLowerCase().trim();
   if (!email) return { error: "Bitte E-Mail-Adresse angeben." };
+  // Konto in einem anderen Mandanten (gemeinsamer Host)? Dann dort weitermachen (055)
+  const tr = await db().execute(sql`SELECT tenant_fuer_login(${email}) AS t`);
+  const t = (tr as unknown as { t: string | null }[])[0]?.t;
+  if (istTenantId(t) && t.toLowerCase() !== currentTenantId()) return runWithTenant(t, () => requestPasswordReset(_prev, formData));
   const rows = await db().select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
   if (rows[0]) {
     const token = await createAuthToken(rows[0].id, "RESET", 60);
@@ -67,8 +72,11 @@ export async function resetPassword(_prev: FormState, formData: FormData): Promi
   if (pw.length < MIN_PASSWORD_LENGTH) return { error: `Das Passwort muss mindestens ${MIN_PASSWORD_LENGTH} Zeichen haben.` };
   const userId = await consumeAuthToken(token, "RESET");
   if (!userId) return { error: "Der Link ist ungültig oder abgelaufen." };
-  await db().update(users).set({ passwordHash: await hash(pw), failedAttempts: 0, lockedUntil: null }).where(eq(users.id, userId));
-  await audit({ actorUserId: userId, action: "password.reset.done", entityType: "user", entityId: userId });
+  await imMandantenDesKontos(userId, async () => {
+    const r = await db().update(users).set({ passwordHash: await hash(pw), failedAttempts: 0, lockedUntil: null }).where(eq(users.id, userId)).returning({ id: users.id });
+    if (!r[0]) throw new Error("Konto nicht gefunden");
+    await audit({ actorUserId: userId, action: "password.reset.done", entityType: "user", entityId: userId });
+  });
   redirect("/login?reset=1");
 }
 
@@ -104,7 +112,9 @@ export async function confirmAccount(_prev: FormState, formData: FormData): Prom
   const userId = await consumeAuthToken(token, "VERIFY");
   if (!userId) return { error: "Der Bestätigungslink ist ungültig oder abgelaufen." };
   // E-Mail bestätigt – aber NICHT aktiv: wartet auf Admin-Freigabe.
-  await db().update(users).set({ emailVerified: true }).where(eq(users.id, userId));
-  await audit({ actorUserId: userId, action: "user.emailverified", entityType: "user", entityId: userId });
+  await imMandantenDesKontos(userId, async () => {
+    await db().update(users).set({ emailVerified: true }).where(eq(users.id, userId));
+    await audit({ actorUserId: userId, action: "user.emailverified", entityType: "user", entityId: userId });
+  });
   redirect("/login?confirmed=1");
 }

@@ -1,5 +1,4 @@
 import http from "node:http";
-import { isNotNull } from "drizzle-orm";
 import { runWithTenant, tenants } from "@tdd/db";
 import { db } from "./db";
 import { hostsAusUmgebung, tenantAusRohdaten, type HostZuordnung } from "./tenant-aufloesung";
@@ -22,15 +21,21 @@ const SCHLUESSEL = Symbol.for("careos.tenant-hook");
 const g = globalThis as unknown as Record<symbol, boolean | undefined>;
 
 let hosts: HostZuordnung = hostsAusUmgebung();
+let bekannt: Set<string> | null = null; // aktive Mandanten (Pruefung des Mandanten-Cookies)
 let zuletzt = 0;
 let laden: Promise<void> | null = null;
 
 async function hostsErneuern(): Promise<void> {
   try {
-    const rows = await db().select({ host: tenants.host, id: tenants.id }).from(tenants).where(isNotNull(tenants.host));
+    const rows = await db().select({ host: tenants.host, id: tenants.id, aktiv: tenants.isActive }).from(tenants);
     const neu: HostZuordnung = { ...hostsAusUmgebung() };
-    for (const r of rows) if (r.host) neu[r.host.trim().toLowerCase()] = r.id;
-    hosts = neu;
+    const ids = new Set<string>();
+    for (const r of rows) {
+      if (!r.aktiv) continue;
+      ids.add(r.id.toLowerCase());
+      if (r.host) neu[r.host.trim().toLowerCase()] = r.id;
+    }
+    hosts = neu; bekannt = ids;
   } catch (e) {
     console.error("[tenant] Host-Zuordnung konnte nicht geladen werden:", e instanceof Error ? e.message : e);
   } finally {
@@ -58,7 +63,7 @@ export function installiereMandantenKontext(): void {
   const ersatz = function (this: http.Server, ereignis: string | symbol, ...args: unknown[]): boolean {
     if (ereignis === "request") {
       const req = args[0] as http.IncomingMessage;
-      const tenant = tenantAusRohdaten({ host: req.headers.host, cookie: req.headers.cookie }, hostsAktuell());
+      const tenant = tenantAusRohdaten({ host: req.headers.host, cookie: req.headers.cookie }, hostsAktuell(), bekannt);
       return runWithTenant(tenant, () => original.call(this, ereignis, ...args));
     }
     return original.call(this, ereignis, ...args);

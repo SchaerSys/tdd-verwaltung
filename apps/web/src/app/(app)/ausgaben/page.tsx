@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { hasPermission } from "@/lib/rbac";
@@ -32,7 +33,7 @@ export default async function AusgabenPage({ searchParams }: { searchParams: Pro
           <h1>Ausgaben</h1>
           <div className="sub">Täglich getrackt je Ausgabestelle · {fmtDate(von)} – {fmtDate(bis)}</div>
         </div>
-        <a href={exportHref} className="btn primary">⬇ Excel-Export</a>
+        <div className="flex gap-2"><Link href="/ausgaben/schulden" className="btn ghost">Offene Schulden</Link><a href={exportHref} className="btn primary">⬇ Excel-Export</a></div>
       </div>
 
       <form className="panel mb-4" method="get">

@@ -243,6 +243,8 @@ export const distributions = pgTable(
     amountDue: numeric("amount_due", { precision: 6, scale: 2 }),
     amountPaid: numeric("amount_paid", { precision: 6, scale: 2 }),
     sitzungId: uuid("sitzung_id"), // Ausgabe-Sitzung (049)
+    /** AUSGABE (Tresen) | TILGUNG (reine Schuldenzahlung) | ERLASS (Buero, faellig negativ) – 056 */
+    buchungsart: text("buchungsart").notNull().default("AUSGABE"),
   },
   (t) => ({
     locTimeIdx: index("idx_distributions_location_time").on(t.locationId, t.distributedAt),
@@ -793,6 +795,11 @@ export const zeitRegeln = pgTable("zeit_regeln", {
   ziviFreistellungMonat: smallint("zivi_freistellung_monat").notNull().default(2),
   ortungAufbewahrungTage: integer("ortung_aufbewahrung_tage").notNull().default(90), // Geofence-Ereignisse (052)
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  // Schuldengrenzen am Tresen (056): ab Warnung roter Hinweis, ab Sperre keine Ausgabe ohne Begleichung
+  schuldenWarnungEur: numeric("schulden_warnung_eur", { precision: 6, scale: 2 }).notNull().default("10.00"),
+  schuldenSperreEur: numeric("schulden_sperre_eur", { precision: 6, scale: 2 }).notNull().default("20.00"),
+  schuldenWarnungAnzahl: integer("schulden_warnung_anzahl").notNull().default(2),
+  schuldenSperreAnzahl: integer("schulden_sperre_anzahl").notNull().default(4),
 });
 
 // Zivildienst: erledigte Meldungen an die Zivildienstserviceagentur (050)

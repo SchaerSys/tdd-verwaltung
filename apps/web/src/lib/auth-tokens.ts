@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
-import { and, eq, isNull } from "drizzle-orm";
-import { authTokens } from "@tdd/db";
+import { and, eq, isNull, sql } from "drizzle-orm";
+import { authTokens, istTenantId, currentTenantId, runWithTenant } from "@tdd/db";
 import { db } from "./db";
 
 export type TokenType = "RESET" | "VERIFY";
@@ -26,6 +26,17 @@ export async function consumeAuthToken(raw: string, type: TokenType): Promise<st
   if (!t || t.expiresAt < new Date()) return null;
   await db().update(authTokens).set({ usedAt: new Date() }).where(eq(authTokens.id, t.id));
   return t.userId;
+}
+
+/**
+ * Fuehrt `fn` im Mandanten des Kontos aus (Passwort-/Bestaetigungslinks kommen ueber den
+ * gemeinsamen Host an; im Host-Mandanten traefe das Update sonst keine Zeile – RLS). 056.
+ */
+export async function imMandantenDesKontos<T>(userId: string, fn: () => Promise<T>): Promise<T> {
+  const r = await db().execute(sql`SELECT tenant_fuer_benutzer(${userId}::uuid) AS t`);
+  const t = (r as unknown as { t: string | null }[])[0]?.t;
+  if (istTenantId(t) && t.toLowerCase() !== currentTenantId()) return runWithTenant(t, fn);
+  return fn();
 }
 
 /** Basis-URL für Links in E-Mails. */

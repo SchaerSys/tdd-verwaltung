@@ -31,16 +31,21 @@ function pageList(cur: number, total: number): (number | "…")[] {
 export default async function PersonenPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; page?: string }>;
+  searchParams: Promise<{ q?: string; page?: string; ort?: string; status?: string }>;
 }) {
   const user = await getCurrentUser();
   if (!user || !hasPermission(user.role, "person:read")) redirect("/dashboard");
 
-  const { q, page: pageRaw } = await searchParams;
+  const { q, page: pageRaw, ort, status } = await searchParams;
   const scoped = user.role !== "ADMIN" && user.locationId != null;
+  // Filter Ausgabestelle (nur wer nicht ohnehin standortgebunden ist) und Status
+  const ortId = !scoped && ort && /^\d+$/.test(ort) ? Number(ort) : null;
+  const statusFilter = status && ["AKTIV", "INAKTIV", "GESPERRT"].includes(status) ? status : null;
 
   const conds = [isNull(persons.deletedAt), eq(persons.takeoverPending, false)];
   if (scoped) conds.push(eq(personLocationAssignments.locationId, user.locationId!));
+  if (ortId != null) conds.push(eq(personLocationAssignments.locationId, ortId));
+  if (statusFilter) conds.push(eq(persons.status, statusFilter));
   if (q && q.trim()) {
     const raw = q.trim();
     const nameLike = `%${normalizeName(raw)}%`;
@@ -99,9 +104,12 @@ export default async function PersonenPage({
     : [{ n: 0 }];
   const trashCount = trashRow[0]?.n ?? 0;
 
+  const orte = scoped ? [] : await db().select({ id: locations.id, name: locations.name, type: locations.type }).from(locations).where(eq(locations.isActive, true)).orderBy(asc(locations.name));
   const mk = (p: number) => {
     const sp = new URLSearchParams();
     if (q && q.trim()) sp.set("q", q.trim());
+    if (ortId != null) sp.set("ort", String(ortId));
+    if (statusFilter) sp.set("status", statusFilter);
     if (p > 1) sp.set("page", String(p));
     const s = sp.toString();
     return `/personen${s ? `?${s}` : ""}`;
@@ -127,8 +135,22 @@ export default async function PersonenPage({
 
       <div className="panel">
         <div className="panel-h">
-          <form className="search max-w-[320px]" style={{ padding: 0 }}>
-            <input name="q" defaultValue={q ?? ""} placeholder="🔍 Name, Adresse oder Kartennummer…" className="inp" style={{ border: 0, background: "transparent" }} />
+          <form className="flex gap-2 items-center flex-wrap" style={{ padding: 0 }}>
+            <input name="q" defaultValue={q ?? ""} placeholder="🔍 Name, Adresse oder Kartennummer…" className="inp" style={{ minWidth: 260 }} />
+            {!scoped ? (
+              <select name="ort" className="inp" defaultValue={ortId != null ? String(ortId) : ""} title="Nach Ausgabestelle filtern">
+                <option value="">Alle Ausgabestellen</option>
+                {orte.filter((o) => o.type !== "LAGER").map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
+              </select>
+            ) : null}
+            <select name="status" className="inp" defaultValue={statusFilter ?? ""} title="Nach Status filtern">
+              <option value="">Alle Status</option>
+              <option value="AKTIV">Aktiv</option>
+              <option value="INAKTIV">Inaktiv</option>
+              <option value="GESPERRT">Gesperrt</option>
+            </select>
+            <button type="submit" className="btn sm">Filtern</button>
+            {(q || ortId != null || statusFilter) ? <Link href="/personen" className="btn ghost sm">Zurücksetzen</Link> : null}
           </form>
         </div>
         <div className="twrap">

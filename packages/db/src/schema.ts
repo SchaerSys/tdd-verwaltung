@@ -21,6 +21,7 @@ import {
   bigint,
   bigserial,
   index,
+  primaryKey,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 
@@ -576,12 +577,12 @@ export const dienste = pgTable("dienste", {
 
 export const dienstplanWochen = pgTable("dienstplan_wochen", {
   tenantId: uuid("tenant_id").notNull().default(sql`current_tenant_id()`).references(() => tenants.id, { onDelete: "cascade" }), // Mandant (053), Default = Kontext
-  wocheStart: date("woche_start").primaryKey(),
+  wocheStart: date("woche_start").notNull(),
   status: text("status").notNull().default("ENTWURF"), // ENTWURF | VEROEFFENTLICHT
   veroeffentlichtAt: timestamp("veroeffentlicht_at", { withTimezone: true }),
   veroeffentlichtBy: uuid("veroeffentlicht_by").references(() => users.id),
   notiz: text("notiz"),
-});
+}, (t) => ({ pk: primaryKey({ columns: [t.tenantId, t.wocheStart] }) })); // je Mandant (059)
 
 // ── A2 · Zeiterfassung (Stempel-Ereignisse) ────────────────────────────────
 export const timeEvents = pgTable("time_events", {
@@ -862,10 +863,10 @@ export const ziviMeldungen = pgTable("zivi_meldungen", {
 
 export const betriebsfreieTage = pgTable("betriebsfreie_tage", {
   tenantId: uuid("tenant_id").notNull().default(sql`current_tenant_id()`).references(() => tenants.id, { onDelete: "cascade" }), // Mandant (053), Default = Kontext
-  datum: date("datum").primaryKey(),
+  datum: date("datum").notNull(),
   name: text("name").notNull(),
   createdBy: uuid("created_by").references(() => users.id),
-});
+}, (t) => ({ pk: primaryKey({ columns: [t.tenantId, t.datum] }) })); // je Mandant (059)
 
 export const zeitAbschluesse = pgTable("zeit_abschluesse", {
   tenantId: uuid("tenant_id").notNull().default(sql`current_tenant_id()`).references(() => tenants.id, { onDelete: "cascade" }), // Mandant (053), Default = Kontext

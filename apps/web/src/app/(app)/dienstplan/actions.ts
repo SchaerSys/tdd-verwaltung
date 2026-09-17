@@ -101,7 +101,7 @@ export async function wocheStatus(fd: FormData): Promise<void> {
   const woche = datum(str(fd, "woche")); if (!woche) return;
   const status = str(fd, "status") === "VEROEFFENTLICHT" ? "VEROEFFENTLICHT" : "ENTWURF";
   const set = { status, veroeffentlichtAt: status === "VEROEFFENTLICHT" ? new Date() : null, veroeffentlichtBy: status === "VEROEFFENTLICHT" ? u.id : null };
-  await db().insert(dienstplanWochen).values({ wocheStart: woche, ...set }).onConflictDoUpdate({ target: dienstplanWochen.wocheStart, set });
+  await db().insert(dienstplanWochen).values({ wocheStart: woche, ...set }).onConflictDoUpdate({ target: [dienstplanWochen.tenantId, dienstplanWochen.wocheStart], set });
   await audit({ actorUserId: u.id, action: status === "VEROEFFENTLICHT" ? "dienstplan.veroeffentlicht" : "dienstplan.entwurf", entityType: "dienstplan", entityId: woche });
   alles();
 }

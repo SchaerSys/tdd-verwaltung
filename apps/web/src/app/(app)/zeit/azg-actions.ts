@@ -47,7 +47,7 @@ export async function betriebsfreiAnlegen(fd: FormData): Promise<void> {
   const u = await requirePermission("admin:manage");
   const datum = String(fd.get("datum") ?? ""); const name = String(fd.get("name") ?? "").trim();
   if (!/^\d{4}-\d{2}-\d{2}$/.test(datum) || !name) return;
-  await db().insert(betriebsfreieTage).values({ datum, name, createdBy: u.id }).onConflictDoUpdate({ target: betriebsfreieTage.datum, set: { name } });
+  await db().insert(betriebsfreieTage).values({ datum, name, createdBy: u.id }).onConflictDoUpdate({ target: [betriebsfreieTage.tenantId, betriebsfreieTage.datum], set: { name } });
   await audit({ actorUserId: u.id, action: "zeit.betriebsfrei", entityType: "betriebsfrei", entityId: datum, after: { name } });
   revalidatePath("/zeit/regeln");
 }

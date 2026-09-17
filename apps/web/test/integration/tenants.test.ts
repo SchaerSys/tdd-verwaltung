@@ -113,6 +113,12 @@ describe("Mandanten-Isolation (RLS ueber tenant_id)", () => {
         expect((await a`SELECT count(*)::int AS n FROM mail_log WHERE betreff = 'Test'`)[0]!.n).toBe(0);
         expect((await b`SELECT count(*)::int AS n FROM mail_log WHERE betreff = 'Test'`)[0]!.n).toBe(1);
         await expect(a`SELECT notizen FROM tenants LIMIT 1`).rejects.toThrow(/permission denied/i);
+        // Natuerliche Schluessel je Mandant (059): beide Mandanten koennen dieselbe Woche / denselben Tag anlegen
+        await a`INSERT INTO dienstplan_wochen (woche_start) VALUES ('2026-09-14') ON CONFLICT DO NOTHING`;
+        await b`INSERT INTO dienstplan_wochen (woche_start) VALUES ('2026-09-14')`;
+        await a`INSERT INTO betriebsfreie_tage (datum, name) VALUES ('2026-12-24', 'Heiligabend') ON CONFLICT DO NOTHING`;
+        await b`INSERT INTO betriebsfreie_tage (datum, name) VALUES ('2026-12-24', 'Heiligabend')`;
+        expect((await b`SELECT count(*)::int AS n FROM dienstplan_wochen`)[0]!.n).toBe(1);
       } finally { await ops2.end(); }
 
       // Aufraeumen

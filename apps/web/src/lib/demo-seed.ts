@@ -166,10 +166,10 @@ export async function demoSeed(): Promise<DemoErgebnis> {
     for (let w = 8; w >= 1; w--) {
       const datum = tage(-7 * w + (tag - wochentag(heute)));
       if (datum > heute) continue;
-      if (rand() > 0.8) continue;
       const idx = leute.indexOf(p);
-      // Schuldenmuster: Person 3 zwei offene, Person 7 fuenf offene (Sperre), Person 15 einmal Geld vergessen
-      const offen = (idx === 3 && w <= 2) || (idx === 7 && w <= 5) || (idx === 15 && w === 4);
+      if (idx !== 3 && idx !== 7 && rand() > 0.8) continue;
+      // Schuldenmuster: Person 3 zwei offene (Warnung), Person 7 sechs offene (Sperre), Person 15 einmal Geld vergessen
+      const offen = (idx === 3 && w <= 2) || (idx === 7 && w <= 6) || (idx === 15 && w === 4);
       await d.insert(distributions).values({
         cardId: p.kartenId, personId: p.id, locationId: p.loc.id, distributedAt: um(datum, 14, zwischen(5, 110)),
         distributedBy: admin?.id ?? null, amountDue: due.toFixed(2), amountPaid: offen ? "0.00" : due.toFixed(2), clientRef: crypto.randomUUID(),
@@ -214,13 +214,13 @@ export async function demoSeed(): Promise<DemoErgebnis> {
   const dienstStd = (von: string, bis: string, loc: number | null) => ({ "1": { von, bis, pause: 30, location: loc }, "2": { von, bis, pause: 30, location: loc }, "3": { von, bis, pause: 30, location: loc }, "4": { von, bis, pause: 30, location: loc }, "5": { von, bis, pause: 30, location: loc } });
   const staffRows = await d.insert(staff).values([
     { personalnr: 1, firstName: demoAdmin ? demoAdmin.name.split(" ")[0]! : "Dario", lastName: demoAdmin ? (demoAdmin.name.split(" ").slice(1).join(" ") || "Schär") : "Schär", staffType: "ANGESTELLT", email: demoAdmin?.email ?? "leitung@demo.careos.invalid", userId: demoAdmin?.id ?? null,
-      employmentStart: isoTage(-900), weeklyHours: "33.50", vacationDaysYear: "25", sollVerteilung: vollzeit, dienstStandard: dienstStd("08:00", "15:30", lager.id), locationId: lager.id, zeitkontoStart: isoTage(-120), zeitkontoAnfangMin: 310,
+      employmentStart: isoTage(-900), weeklyHours: "33.50", vacationDaysYear: "25", sollVerteilung: vollzeit, dienstStandard: dienstStd("08:00", "15:30", lager.id), locationId: lager.id, zeitkontoStart: isoTage(-42), zeitkontoAnfangMin: 310,
       geburtsdatum: "1989-03-14", svNummer: svNummer("1989-03-14", 123), staatsbuergerschaft: "Österreich", beschaeftigung: "TEILZEIT", taetigkeit: "Leitung / Verwaltung", kvEinstufung: "SWÖ VG 7/3", gehaltBrutto: "3120.00", probezeitBis: isoTage(-870), dienstzettelAm: isoTage(-895), notfallName: "Notfallkontakt (Demo)", notfallTel: "0660 000 0001", strasse: "Beispielgasse 9", plz: "6900", ort: "Bregenz", urlaubWochen: 5, kannFahren: true, fuehrerschein: "B", ortungZustimmungAm: isoTage(-30) },
-    { personalnr: 2, firstName: "Claudia", lastName: "Winkler", staffType: "ANGESTELLT", email: "claudia.winkler@demo.careos.invalid", phone: "0660 000 0002", employmentStart: isoTage(-1400), weeklyHours: "20.00", vacationDaysYear: "25", sollVerteilung: teilzeit, dienstStandard: dienstStd("08:30", "13:30", ausgabestellen[0]!.id), locationId: ausgabestellen[0]!.id, zeitkontoStart: isoTage(-120), zeitkontoAnfangMin: -45,
+    { personalnr: 2, firstName: "Claudia", lastName: "Winkler", staffType: "ANGESTELLT", email: "claudia.winkler@demo.careos.invalid", phone: "0660 000 0002", employmentStart: isoTage(-1400), weeklyHours: "20.00", vacationDaysYear: "25", sollVerteilung: teilzeit, dienstStandard: dienstStd("08:30", "13:30", ausgabestellen[0]!.id), locationId: ausgabestellen[0]!.id, zeitkontoStart: isoTage(-42), zeitkontoAnfangMin: -45,
       geburtsdatum: "1976-11-02", svNummer: svNummer("1976-11-02", 456), staatsbuergerschaft: "Österreich", beschaeftigung: "TEILZEIT", taetigkeit: "Ausgabe & Büro", kvEinstufung: "SWÖ VG 5/4", gehaltBrutto: "1480.00", probezeitBis: isoTage(-1370), dienstzettelAm: isoTage(-1395), notfallName: "Notfallkontakt (Demo)", notfallTel: "0660 000 0003", strasse: "Mustergasse 3", plz: "6850", ort: "Dornbirn", urlaubWochen: 5 },
-    { personalnr: 100, firstName: "Jonas", lastName: "Amann", staffType: "ZIVILDIENER", email: "jonas.amann@demo.careos.invalid", phone: "0660 000 0100", employmentStart: isoTage(-100), weeklyHours: "40.00", sollVerteilung: zivi, dienstStandard: dienstStd("07:30", "16:00", lager.id), locationId: lager.id,
+    { personalnr: 100, firstName: "Jonas", lastName: "Amann", staffType: "ZIVILDIENER", email: "jonas.amann@demo.careos.invalid", phone: "0660 000 0100", employmentStart: isoTage(-100), weeklyHours: "40.00", sollVerteilung: zivi, dienstStandard: dienstStd("07:30", "16:00", lager.id), locationId: lager.id, zeitkontoStart: isoTage(-42),
       ziviBeginn: isoTage(-100), ziviEnde: addMonths(isoTage(-100), 9), ziviBescheid: "ZD-2026-0417 (Demo)", geburtsdatum: "2006-07-21", svNummer: svNummer("2006-07-21", 789), staatsbuergerschaft: "Österreich", beschaeftigung: "ZIVILDIENST", taetigkeit: "Fahrer / Ausgabe", strasse: "Probeweg 11", plz: "6971", ort: "Hard", kannFahren: true, fuehrerschein: "B", ortungZustimmungAm: isoTage(-95), notfallName: "Eltern (Demo)", notfallTel: "0660 000 0101" },
-    { personalnr: 101, firstName: "Luca", lastName: "Bertsch", staffType: "ZIVILDIENER", email: "luca.bertsch@demo.careos.invalid", phone: "0660 000 0102", employmentStart: isoTage(-40), weeklyHours: "40.00", sollVerteilung: zivi, dienstStandard: dienstStd("07:30", "16:00", ausgabestellen[1]!.id), locationId: ausgabestellen[1]!.id,
+    { personalnr: 101, firstName: "Luca", lastName: "Bertsch", staffType: "ZIVILDIENER", email: "luca.bertsch@demo.careos.invalid", phone: "0660 000 0102", employmentStart: isoTage(-40), weeklyHours: "40.00", sollVerteilung: zivi, dienstStandard: dienstStd("07:30", "16:00", ausgabestellen[1]!.id), locationId: ausgabestellen[1]!.id, zeitkontoStart: isoTage(-35),
       ziviBeginn: isoTage(-40), ziviEnde: addMonths(isoTage(-40), 9), ziviBescheid: "ZD-2026-0522 (Demo)", geburtsdatum: "2007-02-09", svNummer: svNummer("2007-02-09", 321), staatsbuergerschaft: "Österreich", beschaeftigung: "ZIVILDIENST", taetigkeit: "Ausgabe / Lager", strasse: "Demoallee 5", plz: "6850", ort: "Dornbirn", notfallName: "Eltern (Demo)", notfallTel: "0660 000 0103" },
     { personalnr: 200, firstName: "Herbert", lastName: "Gmeiner", staffType: "EHRENAMT", email: "herbert.gmeiner@demo.careos.invalid", phone: "0660 000 0200", employmentStart: isoTage(-600), beschaeftigung: "EHRENAMT", taetigkeit: "Fahrer", kannFahren: true, fuehrerschein: "B, C1", fahrerTage: [2, 4], strasse: "Übungsstraße 20", plz: "6900", ort: "Bregenz", ortungZustimmungAm: isoTage(-200) },
     { personalnr: 201, firstName: "Rosa", lastName: "Mathis", staffType: "EHRENAMT", email: "rosa.mathis@demo.careos.invalid", phone: "0660 000 0201", employmentStart: isoTage(-300), beschaeftigung: "EHRENAMT", taetigkeit: "Ausgabe", strasse: "Vorführgasse 2", plz: "6800", ort: "Feldkirch" },
@@ -235,8 +235,13 @@ export async function demoSeed(): Promise<DemoErgebnis> {
       const a = ausnahmen(dat);
       if (a?.frei) continue;
       const von = a?.von ?? tagesplan.von, bis = a?.bis ?? tagesplan.bis;
+      const lang = (bis[0] * 60 + bis[1]) - (von[0] * 60 + von[1]) > 360; // ueber 6 h: Pause stempeln (§ 11 AZG)
       await d.insert(timeEvents).values([
         { staffId: s.id, kind: "IN", at: um(dat, von[0], von[1] + zwischen(-4, 6)), source: "TERMINAL_NFC" },
+        ...(lang ? [
+          { staffId: s.id, kind: "BREAK_START", at: um(dat, 12, zwischen(0, 10)), source: "TERMINAL_NFC" },
+          { staffId: s.id, kind: "BREAK_END", at: um(dat, 12, 30 + zwischen(2, 8)), source: "TERMINAL_NFC" },
+        ] : []),
         { staffId: s.id, kind: "OUT", at: um(dat, bis[0], bis[1] + zwischen(-5, 12)), source: "TERMINAL_NFC" },
       ]);
     }

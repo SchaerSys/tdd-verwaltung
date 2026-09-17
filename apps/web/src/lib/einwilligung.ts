@@ -7,7 +7,7 @@ import { randomUUID } from "node:crypto";
  * DSGVO-Einwilligung digital (063): Unterschrift als PNG-Datei im Upload-Verzeichnis
  * (Referenz in der DB), Bestaetigungslink als Token (DB speichert nur den Hash, 14 Tage).
  */
-export const CONSENT_LABEL: Record<string, string> = { PAPIER: "auf Papier", UNTERSCHRIFT: "Unterschrift am Bildschirm", LINK: "per Bestätigungslink" };
+export { CONSENT_LABEL } from "./einwilligung-const";
 
 export function storageDir(): string { return process.env.STORAGE_DIR ?? "./data/uploads"; }
 

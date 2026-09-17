@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Unterschrift } from "@/components/Unterschrift";
 import { einwilligungErfassen, einwilligungWiderrufen } from "./einwilligung-actions";
-import { CONSENT_LABEL } from "@/lib/einwilligung";
+import { CONSENT_LABEL } from "@/lib/einwilligung-const";
 
 export interface EinwilligungStand { personId: string; at: string | null; method: string | null; unterschrift: boolean; widerrufAt: string | null; widerrufGrund: string | null }
 

@@ -6,7 +6,7 @@ import { MandantWahl } from "@/components/MandantWahl";
 import { mandantenListe } from "@/lib/unternehmen";
 import { gewaehlterMandant } from "@/lib/tenant";
 
-const NAV = [
+const NAV: { href: string; label: string; nurSuper?: boolean }[] = [
   { href: "/", label: "Status" },
   { href: "/mandanten", label: "Mandanten & Support" },
   { href: "/kennzahlen", label: "Kennzahlen" },
@@ -15,6 +15,7 @@ const NAV = [
   { href: "/unternehmen", label: "Mandanten (Unternehmen)" },
   { href: "/protokoll", label: "Protokoll" },
   { href: "/wartung", label: "Wartung" },
+  { href: "/betreiber", label: "Betreiber", nurSuper: true },
 ];
 
 async function logoutAction() {
@@ -40,13 +41,13 @@ export default async function OpsLayout({ children }: { children: React.ReactNod
           </div>
         </Link>
         <nav className="flex gap-3 ml-4 text-[.8125rem] flex-wrap">
-          {NAV.map((n) => <Link key={n.href} href={n.href} className="text-[color:var(--muted)] hover:text-[color:var(--text)]">{n.label}</Link>)}
+          {NAV.filter((n) => !n.nurSuper || user.rolle === "SUPER").map((n) => <Link key={n.href} href={n.href} className="text-[color:var(--muted)] hover:text-[color:var(--text)]">{n.label}</Link>)}
         </nav>
         <div className="flex-1" />
         <MandantWahl mandanten={mandanten} gewaehlt={gewaehlt} />
         {wartung ? <Link href="/wartung" className="pill bad"><span className="dot" />Wartungsmodus aktiv</Link> : null}
         {!user.totpEnabled ? <Link href="/konto" className="pill warn">2FA einrichten</Link> : null}
-        <Link href="/konto" className="text-sm">{user.displayName}</Link>
+        <Link href="/konto" className="text-sm">{user.displayName} <span className="pill muted">{user.rolle === "SUPER" ? "Super-Admin" : "Support"}</span></Link>
         <form action={logoutAction}><button className="btn ghost sm" type="submit">Abmelden</button></form>
       </div>
       <main className="p-6 max-w-6xl mx-auto">

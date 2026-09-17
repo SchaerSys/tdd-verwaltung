@@ -1,4 +1,5 @@
 import http from "node:http";
+import { sql } from "drizzle-orm";
 import { runWithTenant, tenants } from "@tdd/db";
 import { db } from "./db";
 import { hostsAusUmgebung, tenantAusRohdaten, type HostZuordnung } from "./tenant-aufloesung";
@@ -27,7 +28,7 @@ let laden: Promise<void> | null = null;
 
 async function hostsErneuern(): Promise<void> {
   try {
-    const rows = await db().select({ host: tenants.host, id: tenants.id, aktiv: tenants.isActive }).from(tenants);
+    const rows = await db().select({ host: tenants.host, id: tenants.id, aktiv: sql<boolean>`tenant_aktiv(${tenants.id})` }).from(tenants);
     const neu: HostZuordnung = { ...hostsAusUmgebung() };
     const ids = new Set<string>();
     for (const r of rows) {

@@ -19,6 +19,7 @@ import {
   time,
   doublePrecision,
   bigint,
+  bigserial,
   index,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
@@ -39,6 +40,50 @@ export const tenants = pgTable("tenants", {
   website: text("website"),
   vertretung: text("vertretung"),
   updatedAt: timestamp("updated_at"),
+  // Vertrag/Module/Notizen (057) – Betreiber-Spalten, fuer tdd_app nur teilweise lesbar
+  plan: text("plan").notNull().default("BASIS"), // TEST | BASIS | PLUS
+  testBis: date("test_bis"),
+  vertragBeginn: date("vertrag_beginn"),
+  vertragEnde: date("vertrag_ende"),
+  kuendigungsfrist: text("kuendigungsfrist"),
+  limitBenutzer: integer("limit_benutzer"),
+  limitStandorte: integer("limit_standorte"),
+  module: jsonb("module").$type<Record<string, boolean>>().notNull().default({}),
+  ansprechpartner: text("ansprechpartner"),
+  notizen: text("notizen"),
+});
+
+/** SMTP je Mandant (057). Passwort nur verschluesselt; tdd_ops liest die Spalte nicht. */
+export const tenantSmtp = pgTable("tenant_smtp", {
+  tenantId: uuid("tenant_id").primaryKey().references(() => tenants.id, { onDelete: "cascade" }),
+  host: text("host").notNull(),
+  port: integer("port").notNull().default(587),
+  sicherheit: text("sicherheit").notNull().default("STARTTLS"), // STARTTLS | SSL | KEINE
+  benutzer: text("benutzer"),
+  passwortEnc: text("passwort_enc"),
+  absenderEmail: text("absender_email").notNull(),
+  absenderName: text("absender_name"),
+  antwortAn: text("antwort_an"),
+  aktualisiertAm: timestamp("aktualisiert_am", { withTimezone: true }).notNull().defaultNow(),
+  aktualisiertVon: text("aktualisiert_von"),
+  letzterTestAm: timestamp("letzter_test_am", { withTimezone: true }),
+  letzterTestOk: boolean("letzter_test_ok"),
+  letzterTestInfo: text("letzter_test_info"),
+});
+
+/** Mail-Protokoll (057): Metadaten je Versand, kein Inhalt, Empfaenger nur als Hash. */
+export const mailLog = pgTable("mail_log", {
+  id: bigserial("id", { mode: "number" }).primaryKey(),
+  tenantId: uuid("tenant_id").default(sql`current_tenant_id()`).references(() => tenants.id, { onDelete: "cascade" }),
+  at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
+  empfaengerHash: text("empfaenger_hash").notNull(),
+  empfaengerDomain: text("empfaenger_domain"),
+  betreff: text("betreff"),
+  ausloeser: text("ausloeser"),
+  quelle: text("quelle").notNull().default("app"),
+  gesendet: boolean("gesendet").notNull(),
+  fehler: text("fehler"),
+  ueber: text("ueber"), // mandant | plattform
 });
 
 
@@ -135,6 +180,7 @@ export const opsUsers = pgTable("ops_users", {
   lastLogin: timestamp("last_login", { withTimezone: true }),
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  rolle: text("rolle").notNull().default("SUPER"), // SUPER | SUPPORT (057)
 });
 
 export const persons = pgTable(

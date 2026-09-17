@@ -5,11 +5,11 @@ import { eq } from "drizzle-orm";
 import { locations, lookupValues, organizations, retentionRules } from "@tdd/db";
 import { db } from "@/lib/db";
 import { audit } from "@/lib/audit";
-import { requireOps } from "@/lib/auth";
+import { requireSuper } from "@/lib/auth";
 
 /** Standort: Name/Ort/aktiv. Kennung und Typ bleiben in der Fach-App (Karten haengen daran). */
 export async function standortSpeichern(fd: FormData): Promise<void> {
-  const ops = await requireOps();
+  const ops = await requireSuper();
   const id = Number(fd.get("id"));
   const name = String(fd.get("name") ?? "").trim();
   const city = String(fd.get("city") ?? "").trim();
@@ -22,7 +22,7 @@ export async function standortSpeichern(fd: FormData): Promise<void> {
 
 /** Loeschfrist als Postgres-Intervall-Text, z. B. "3 years", "90 days". */
 export async function fristSpeichern(fd: FormData): Promise<void> {
-  const ops = await requireOps();
+  const ops = await requireSuper();
   const id = Number(fd.get("id"));
   const frist = String(fd.get("retentionPeriod") ?? "").trim();
   const aktiv = fd.get("isActive") === "on";
@@ -33,7 +33,7 @@ export async function fristSpeichern(fd: FormData): Promise<void> {
 }
 
 export async function auswahlwertHinzufuegen(fd: FormData): Promise<void> {
-  const ops = await requireOps();
+  const ops = await requireSuper();
   const listId = Number(fd.get("listId"));
   const label = String(fd.get("label") ?? "").trim();
   if (!listId || !label) return;
@@ -43,7 +43,7 @@ export async function auswahlwertHinzufuegen(fd: FormData): Promise<void> {
 }
 
 export async function auswahlwertSchalten(fd: FormData): Promise<void> {
-  const ops = await requireOps();
+  const ops = await requireSuper();
   const id = Number(fd.get("id"));
   const an = String(fd.get("aktiv")) === "1";
   if (!id) return;
@@ -53,7 +53,7 @@ export async function auswahlwertSchalten(fd: FormData): Promise<void> {
 }
 
 export async function organisationSchalten(fd: FormData): Promise<void> {
-  const ops = await requireOps();
+  const ops = await requireSuper();
   const id = Number(fd.get("id"));
   const an = String(fd.get("aktiv")) === "1";
   if (!id) return;

@@ -25,7 +25,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // Zivildiener/Ausgabe: ausschließlich Tresen-Kiosk, kein Einblick ins Backoffice.
   if (user.role === "AUSGABE") redirect("/kiosk");
 
-  const groups = navGroups(user.role);
+  const firma = await mandant();
+  const groups = navGroups(user.role, firma.module);
   const prefs = await getPrefs(user.id);
 
   let locationName = "Alle Standorte";
@@ -68,7 +69,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       collapsedInit={prefs.navCollapsed}
       logout={logoutAction}
       uebernahmen={uebernahmen}
-      traeger={(await mandant()).kurzname}
+      traeger={firma.kurzname}
     >
       {children}
     </AppShell>

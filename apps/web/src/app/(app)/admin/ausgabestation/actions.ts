@@ -39,7 +39,7 @@ export async function einmalPin(_prev: PinState, fd: FormData): Promise<PinState
   const pin = await einmalPinErzeugen(p.id);
   let gesendet = false;
   if (p.email && fd.get("mail") === "on") {
-    const r = await sendMail({ to: p.email, subject: "Deine Einmal-PIN für die Ausgabe", text: `Hallo ${p.first},\n\ndeine Einmal-PIN für die Ausgabestation lautet: ${pin}\n\nBeim ersten Anmelden am Ausgabelaptop legst du damit deine eigene PIN fest.\n\nTischlein deck dich Vorarlberg` });
+    const r = await sendMail({ ausloeser: "pin", to: p.email, subject: "Deine Einmal-PIN für die Ausgabe", text: `Hallo ${p.first},\n\ndeine Einmal-PIN für die Ausgabestation lautet: ${pin}\n\nBeim ersten Anmelden am Ausgabelaptop legst du damit deine eigene PIN fest.\n\nTischlein deck dich Vorarlberg` });
     gesendet = r.sent;
   }
   await audit({ actorUserId: u.id, action: "station.pin.issued", entityType: "staff", entityId: p.id, after: { gesendet } });

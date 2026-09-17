@@ -91,6 +91,28 @@ describe("Mandanten-Isolation (RLS ueber tenant_id)", () => {
         await owner`UPDATE tenants SET is_active = false WHERE id = ${zweiter}`;
         expect((await a`SELECT tenant_fuer_login('login-test@example.org') AS t`)[0]!.t).toBeNull(); // deaktivierter Mandant
         await owner`UPDATE tenants SET is_active = true WHERE id = ${zweiter}`;
+        // Testphase abgelaufen (057): ebenfalls kein Login, Jobs ueberspringen ihn
+        await owner`UPDATE tenants SET test_bis = current_date - 1 WHERE id = ${zweiter}`;
+        expect((await a`SELECT tenant_fuer_login('login-test@example.org') AS t`)[0]!.t).toBeNull();
+        expect((await a`SELECT tenant_aktiv(${zweiter}::uuid) AS x`)[0]!.x).toBe(false);
+        await owner`UPDATE tenants SET test_bis = NULL WHERE id = ${zweiter}`;
+        expect((await a`SELECT tenant_aktiv(${zweiter}::uuid) AS x`)[0]!.x).toBe(true);
+
+        // SMTP je Mandant (057): Betreiber schreibt, liest das Passwort aber nie; die Fach-App bekommt es nur fuer ihren Mandanten
+        await ops2`SELECT ops_smtp_speichern(${zweiter}::uuid, 'smtp.example.org', 587, 'STARTTLS', 'user', 'GEHEIM-ENC', 'noreply@example.org', 'Zweiter', NULL, 'test@ops')`;
+        await expect(ops2`SELECT passwort_enc FROM tenant_smtp`).rejects.toThrow(/permission denied/i);
+        expect((await ops2`SELECT host FROM tenant_smtp WHERE tenant_id = ${zweiter}`)[0]!.host).toBe("smtp.example.org");
+        expect((await b`SELECT passwort_enc FROM smtp_fuer_mandant()`)[0]!.passwort_enc).toBe("GEHEIM-ENC");
+        expect((await a`SELECT count(*)::int AS n FROM smtp_fuer_mandant()`)[0]!.n).toBe(0); // Vorarlberg hat keins
+        await expect(a`SELECT * FROM tenant_smtp`).rejects.toThrow(/permission denied/i);
+        // Passwort leer lassen = behalten
+        await ops2`SELECT ops_smtp_speichern(${zweiter}::uuid, 'smtp2.example.org', 465, 'SSL', 'user', NULL, 'noreply@example.org', NULL, NULL, 'test@ops')`;
+        expect((await b`SELECT host, passwort_enc FROM smtp_fuer_mandant()`)[0]).toMatchObject({ host: "smtp2.example.org", passwort_enc: "GEHEIM-ENC" });
+        // Mail-Protokoll: Fach-App schreibt in ihren Mandanten, sieht fremde Eintraege nicht; Betreiber-Spalten der tenants bleiben verborgen
+        await b`INSERT INTO mail_log (empfaenger_hash, betreff, gesendet) VALUES ('h', 'Test', true)`;
+        expect((await a`SELECT count(*)::int AS n FROM mail_log WHERE betreff = 'Test'`)[0]!.n).toBe(0);
+        expect((await b`SELECT count(*)::int AS n FROM mail_log WHERE betreff = 'Test'`)[0]!.n).toBe(1);
+        await expect(a`SELECT notizen FROM tenants LIMIT 1`).rejects.toThrow(/permission denied/i);
       } finally { await ops2.end(); }
 
       // Aufraeumen

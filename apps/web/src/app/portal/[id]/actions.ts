@@ -147,7 +147,7 @@ export async function decideAntrag(formData: FormData): Promise<void> {
       await db().insert(sd).values({ personId: info.personId, fileRef, docType: "BESCHEID", uploadedBy: user.id, retentionUntil: retention });
 
       if (info.email) {
-        const mail = await sendMail({
+        const mail = await sendMail({ ausloeser: "bescheid",
           to: info.email,
           subject: `${m.kurzname} – Positiver Bescheid`,
           text: `Guten Tag ${info.name},\n\nIhr Antrag wurde positiv beschieden. Im Anhang finden Sie Ihren Bescheid.\nBitte bringen Sie diesen zur zuständigen Ausgabestelle mit, um Ihre Berechtigungskarte zu erhalten.\n\nFreundliche Grüße\n${m.name}`,

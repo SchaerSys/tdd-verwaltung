@@ -2,8 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { eq, sql } from "drizzle-orm";
-import { users, TENANT_VORARLBERG } from "@tdd/db";
-import { db } from "@/lib/db";
+import { users, tenants, TENANT_VORARLBERG } from "@tdd/db";
+import { db, dbFuer } from "@/lib/db";
 import { gewaehlterMandant } from "@/lib/tenant";
 import { audit } from "@/lib/audit";
 import { requireOps } from "@/lib/auth";
@@ -41,10 +41,14 @@ export async function einladen(_prev: BenutzerState, fd: FormData): Promise<Benu
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Einladung fehlgeschlagen." };
   }
-  const link = `${appUrl()}/passwort-neu?token=${token}`;
+  const tInfo = (await dbFuer(null).select({ name: tenants.name, slug: tenants.slug, host: tenants.host }).from(tenants).where(eq(tenants.id, tenant)).limit(1))[0];
+  const basis = tInfo?.host ? `https://${tInfo.host}` : appUrl();
+  const einstieg = tInfo?.host ? `${basis}/login` : `${basis}/m/${tInfo?.slug ?? ""}`;
+  const link = `${basis}/passwort-neu?token=${token}`;
   const mail = await sendMail({
-    to: email, subject: "CareOS – Ihr Zugang",
-    text: `Guten Tag ${name},\n\nfür Sie wurde ein Zugang zur CareOS angelegt (Rolle ${rolle}).\nBitte legen Sie innerhalb von 72 Stunden Ihr Passwort fest:\n${link}\n\nDanach melden Sie sich unter ${appUrl()}/login an.\n\nFreundliche Grüße\nTischlein deck dich Vorarlberg`,
+    tenantId: tenant, ausloeser: "einladung",
+    to: email, subject: `CareOS – Ihr Zugang (${tInfo?.name ?? "CareOS"})`,
+    text: `Guten Tag ${name},\n\nfür Sie wurde ein Zugang zu CareOS bei ${tInfo?.name ?? "Ihrer Organisation"} angelegt (Rolle ${rolle}).\nBitte legen Sie innerhalb von 72 Stunden Ihr Passwort fest:\n${link}\n\nDanach melden Sie sich hier an:\n${einstieg}\n\nFreundliche Grüße\n${tInfo?.name ?? "CareOS"}`,
   });
   await audit({ akteur: ops.email, action: "user.invite", entityType: "user", entityId: email, after: { rolle, loc, org, mail: mail.sent } });
   revalidatePath("/benutzer");
@@ -66,6 +70,7 @@ export async function passwortLink(_prev: BenutzerState, fd: FormData): Promise<
   }
   const link = `${appUrl()}/passwort-neu?token=${token}`;
   const mail = await sendMail({
+    tenantId: (await gewaehlterMandant()) ?? TENANT_VORARLBERG, ausloeser: "passwort",
     to: u.email, subject: "CareOS – Passwort neu setzen",
     text: `Guten Tag ${u.name},\n\nüber diesen Link können Sie innerhalb von 24 Stunden ein neues Passwort setzen:\n${link}\n\nFalls Sie das nicht angefordert haben, wenden Sie sich an das TDD-Büro.\n\nFreundliche Grüße\nTischlein deck dich Vorarlberg`,
   });
@@ -80,7 +85,7 @@ export async function registrierungFreigeben(fd: FormData): Promise<void> {
   const u = (await (await db()).select({ email: users.email, name: users.displayName, active: users.isActive }).from(users).where(eq(users.id, id)).limit(1))[0];
   if (!u || u.active) return;
   await (await db()).update(users).set({ isActive: true }).where(eq(users.id, id));
-  await sendMail({ to: u.email, subject: "CareOS – Zugang freigegeben", text: `Guten Tag ${u.name},\n\nIhr Zugang zum Antragsportal wurde freigegeben. Sie können sich jetzt anmelden:\n${appUrl()}/login\n\nFreundliche Grüße\nTischlein deck dich Vorarlberg` });
+  await sendMail({ tenantId: (await gewaehlterMandant()) ?? TENANT_VORARLBERG, ausloeser: "freigabe", to: u.email, subject: "CareOS – Zugang freigegeben", text: `Guten Tag ${u.name},\n\nIhr Zugang zum Antragsportal wurde freigegeben. Sie können sich jetzt anmelden:\n${appUrl()}/login\n\nFreundliche Grüße\nTischlein deck dich Vorarlberg` });
   await audit({ akteur: ops.email, action: "user.approve", entityType: "user", entityId: id });
   revalidatePath("/benutzer");
 }

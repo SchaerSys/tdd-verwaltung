@@ -2,7 +2,6 @@ import Link from "next/link";
 import { mandantenStatus } from "@/lib/unternehmen";
 import { gewaehlterMandant } from "@/lib/tenant";
 import { mandantSchalten } from "./actions";
-import { NeuerMandant } from "./NeuerMandant";
 import { fmt } from "@/components/SupportTeile";
 import { checkliste } from "./checkliste";
 
@@ -18,19 +17,20 @@ export default async function UnternehmenSeite() {
       <div className="panel mb-4">
         <div className="panel-h"><h3>Unternehmen</h3><span className="pill muted">{mandanten.length}</span></div>
         <div className="twrap"><table className="data">
-          <thead><tr><th>Name</th><th>Kurzname</th><th>Host</th><th>Inbetriebnahme</th><th>Benutzer</th><th>Personen</th><th>Letzter Login</th><th>Status</th><th></th></tr></thead>
+          <thead><tr><th>Name</th><th>Plan</th><th>Host</th><th>SMTP</th><th>Inbetriebnahme</th><th>Benutzer</th><th>Personen</th><th>Letzter Login</th><th>Status</th><th></th></tr></thead>
           <tbody>{mandanten.map((m) => {
             const offen = checkliste(m).filter((p) => !p.ok).length;
             return (
               <tr key={m.id}>
                 <td><Link href={`/unternehmen/${m.id}`}>{m.name}</Link>{m.id === gewaehlt ? <span className="pill good" style={{ marginLeft: 8 }}>gewählt</span> : null}</td>
-                <td className="mono">{m.slug}</td>
-                <td className="mono text-xs">{m.host ?? <span className="text-muted">— (Anmeldung über E-Mail)</span>}</td>
+                <td><span className="pill muted">{m.plan}</span>{m.test_bis ? <span className="text-xs text-muted" style={{ marginLeft: 6 }}>bis {m.test_bis}</span> : null}{m.vertrag_ende ? <span className="text-xs text-muted" style={{ marginLeft: 6 }}>Vertrag bis {m.vertrag_ende}</span> : null}</td>
+                <td className="mono text-xs">{m.host ?? <span className="text-muted">/m/{m.slug}</span>}</td>
+                <td>{m.smtp ? <span className="pill good">eigenes</span> : <span className="pill muted">Plattform</span>}</td>
                 <td>{offen === 0 ? <span className="pill good">vollständig</span> : <span className="pill warn">{offen} offen</span>}</td>
                 <td>{m.benutzer} <span className="text-muted text-xs">({m.admins} Admin)</span></td>
                 <td>{m.personen}</td>
                 <td>{fmt(m.letzter_login)}</td>
-                <td>{m.is_active ? <span className="pill good"><span className="dot" />aktiv</span> : <span className="pill muted">inaktiv</span>}</td>
+                <td>{m.aktiv_effektiv ? <span className="pill good"><span className="dot" />aktiv</span> : m.is_active ? <span className="pill bad">abgelaufen</span> : <span className="pill muted">inaktiv</span>}</td>
                 <td>
                   <form action={mandantSchalten}>
                     <input type="hidden" name="id" value={m.id} />
@@ -47,15 +47,8 @@ export default async function UnternehmenSeite() {
         </p>
       </div>
 
-      <div className="panel">
-        <div className="panel-h"><h3>Neues Unternehmen anlegen</h3></div>
-        <div style={{ padding: 12 }}>
-          <p className="text-sm text-muted mb-3">
-            Angelegt werden: der Mandant, seine Trägerorganisation, Zeitregeln (AZG-Standard), Löschfristen und Auswahllisten als Kopie von Tischlein deck dich Vorarlberg.
-            Danach die Inbetriebnahme-Liste des Mandanten abarbeiten (Stammdaten, erstes Admin-Konto, Standorte).
-          </p>
-          <NeuerMandant />
-        </div>
+      <div className="flex gap-2">
+        <Link href="/unternehmen/neu" className="btn primary">＋ Neues Unternehmen einrichten (Assistent)</Link>
       </div>
     </div>
   );

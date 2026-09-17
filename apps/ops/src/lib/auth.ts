@@ -8,16 +8,17 @@ import { audit } from "./audit";
 import { signSession, verifySession, signToken, verifyToken, type PreAuthData } from "./session";
 import { SESSION_COOKIE, SESSION_MAX_AGE, PRE_AUTH_COOKIE, PRE_AUTH_MAX_AGE } from "./constants";
 
-export interface OpsUser { id: string; email: string; displayName: string; totpEnabled: boolean }
+export type OpsRolle = "SUPER" | "SUPPORT";
+export interface OpsUser { id: string; email: string; displayName: string; totpEnabled: boolean; rolle: OpsRolle }
 
 const MAX_ATTEMPTS = 5;
 const LOCK_MINUTES = 15;
 
 async function load(id: string): Promise<OpsUser | null> {
-  const rows = await (await db()).select({ id: opsUsers.id, email: opsUsers.email, displayName: opsUsers.displayName, totpEnabled: opsUsers.totpEnabled, isActive: opsUsers.isActive })
+  const rows = await (await db()).select({ id: opsUsers.id, email: opsUsers.email, displayName: opsUsers.displayName, totpEnabled: opsUsers.totpEnabled, isActive: opsUsers.isActive, rolle: opsUsers.rolle })
     .from(opsUsers).where(eq(opsUsers.id, id)).limit(1);
   const u = rows[0];
-  return u && u.isActive ? { id: u.id, email: u.email, displayName: u.displayName, totpEnabled: u.totpEnabled } : null;
+  return u && u.isActive ? { id: u.id, email: u.email, displayName: u.displayName, totpEnabled: u.totpEnabled, rolle: u.rolle === "SUPPORT" ? "SUPPORT" : "SUPER" } : null;
 }
 
 export async function getCurrentOps(): Promise<OpsUser | null> {
@@ -104,5 +105,12 @@ export async function logout(): Promise<void> {
 export async function requireOps(): Promise<OpsUser> {
   const u = await getCurrentOps();
   if (!u) throw new Error("Nicht angemeldet");
+  return u;
+}
+
+/** Nur Super-Admin: Mandanten anlegen, SMTP, Vertrag, Konfiguration, Wartung, Betreiber-Konten. Support liest und hilft. */
+export async function requireSuper(): Promise<OpsUser> {
+  const u = await requireOps();
+  if (u.rolle !== "SUPER") throw new Error("Nur für Super-Admin");
   return u;
 }

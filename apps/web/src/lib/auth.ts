@@ -105,8 +105,8 @@ export async function login(email: string, password: string, orgId?: number | nu
     return null;
   }
   if (!u.isActive) return null;
-  // Deaktivierter Mandant (Wartungsplattform): keine Anmeldung mehr
-  if (!(await db().select({ a: tenants.isActive }).from(tenants).where(eq(tenants.id, u.tenantId)).limit(1))[0]?.a) return null;
+  // Deaktivierter Mandant oder Testphase/Vertrag abgelaufen (Wartungsplattform, 057): keine Anmeldung mehr
+  if (!(await db().select({ a: sql<boolean>`tenant_aktiv(${tenants.id})` }).from(tenants).where(eq(tenants.id, u.tenantId)).limit(1))[0]?.a) return null;
 
   // Ausgetreten (Austritt am Personal-Datensatz liegt in der Vergangenheit)? Kein Login mehr, Konto sperren.
   const ausgetreten = (await db().select({ id: staff.id }).from(staff)

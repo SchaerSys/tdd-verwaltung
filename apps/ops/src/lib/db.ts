@@ -10,6 +10,19 @@ const pools = new Map<string, Database>();
  * Je gewaehltem Mandanten ein Pool mit GUC (053): mit Mandant nur dessen Zeilen,
  * Schluessel "" = ohne Kontext = alle Mandanten.
  */
+/** Pool fuer einen bestimmten Mandanten (Mandantenakte), unabhaengig von der Kopf-Auswahl; null = ohne Kontext. */
+export function dbFuer(tenantId: string | null): Database {
+  const key = tenantId ?? "";
+  let d = pools.get(key);
+  if (!d) {
+    const url = process.env.OPS_DATABASE_URL;
+    if (!url) throw new Error("OPS_DATABASE_URL fehlt");
+    d = createDb(url, tenantId ?? undefined, 5);
+    pools.set(key, d);
+  }
+  return d;
+}
+
 export async function db(): Promise<Database> {
   const tenant = (await gewaehlterMandant()) ?? "";
   let d = pools.get(tenant);

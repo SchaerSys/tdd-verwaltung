@@ -34,7 +34,7 @@ async function lauf(): Promise<unknown> {
   for (const c of expired) {
     await db().update(cards).set({ status: "ABGELAUFEN", updatedAt: new Date() }).where(eq(cards.id, c.cardId));
     if (c.email) {
-      const r = await sendMail({
+      const r = await sendMail({ ausloeser: "kartenablauf",
         to: c.email,
         subject: `${m.kurzname} – Ihre Berechtigungskarte ist abgelaufen`,
         text: `Guten Tag ${c.first} ${c.last},\n\nIhre Berechtigungskarte ist abgelaufen. Für eine weitere Nutzung stellen Sie bitte einen neuen Antrag bei Ihrer Gemeinde/Stadt oder der betreuenden Institution.\n\nFreundliche Grüße\nTischlein deck dich`,

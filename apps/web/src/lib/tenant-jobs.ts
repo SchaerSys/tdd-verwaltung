@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import { tenants, runWithTenant } from "@tdd/db";
 import { db } from "./db";
 
@@ -8,7 +8,7 @@ import { db } from "./db";
  * Standard-Pool (tenants hat keine RLS, tdd_app darf lesen).
  */
 export async function fuerAlleMandanten<T>(fn: (tenantId: string) => Promise<T>): Promise<Record<string, T>> {
-  const liste = await db().select({ id: tenants.id, slug: tenants.slug }).from(tenants).where(eq(tenants.isActive, true));
+  const liste = await db().select({ id: tenants.id, slug: tenants.slug }).from(tenants).where(sql`tenant_aktiv(${tenants.id})`); // aktiv und Testphase/Vertrag nicht abgelaufen (057)
   const out: Record<string, T> = {};
   for (const t of liste) out[t.slug] = await runWithTenant(t.id, () => fn(t.id));
   return out;
